@@ -8,18 +8,21 @@ import {
   AiOutlineMenu,
 } from "react-icons/ai";
 import ReactCountryFlag from "react-country-flag";
+import Logo from "../../assets/image/Logo.png";
 
 const Navbar = () => {
   return (
-    <nav className="bg-white shadow-lg shadow-gray-300/30 border border-gray-100 rounded-4xl absolute top-8 left-1/2 transform -translate-x-1/2 w-[80%] z-50">
+    <nav className="bg-white shadow-lg shadow-gray-300/30 border border-gray-100 rounded-4xl absolute top-8 left-1/2 transform -translate-x-1/2 w-[80%] z-50 overflow-visible">
       <div className="px-4">
-        <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">🐾</span>
+        <div className="flex items-center justify-between h-14 relative">
+          {/* Logo - taller than navbar, extending upward */}
+          <div className="flex flex-col items-center -mt-4 ml-2 z-10">
+            <div className="flex items-center justify-center">
+              <img src={Logo} alt="Logo" className="w-15 h-15" />
             </div>
-            <span className="text-xl font-bold text-gray-900">PawNest</span>
+            <span className="text-xs font-bold text-emerald-600 -mt-1 ml-2">
+              PawNest
+            </span>
           </div>
 
           {/* Navigation Links */}
