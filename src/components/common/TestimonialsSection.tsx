@@ -1,31 +1,34 @@
+import { FaStar, FaRegStar, FaQuoteRight, FaDog, FaCat } from "react-icons/fa";
+import { GiRabbit } from "react-icons/gi";
+
 const TestimonialsSection = () => {
   const testimonials = [
     {
       name: "Nguyễn Minh Anh",
       role: "Chủ thú cưng",
-      avatar: "👩",
+      avatar: `https://ui-avatars.com/api/?name=Nguyễn+Minh+Anh&background=random&color=fff`,
       rating: 5,
       content:
         "Dịch vụ tuyệt vời! Chó con của tôi được chăm sóc rất tận tình. Tôi nhận được cập nhật và hình ảnh liên tục, rất yên tâm khi đi công tác xa.",
-      petType: "🐕",
+      petIcon: <FaDog className="text-gray-700 text-2xl" />,
     },
     {
       name: "Trần Hoàng Nam",
       role: "Chủ thú cưng",
-      avatar: "👨",
+      avatar: `https://ui-avatars.com/api/?name=Trần+Hoàng+Nam&background=random&color=fff`,
       rating: 5,
       content:
         "Tìm được người chăm sóc phù hợp ngay lần đầu. Mèo nhà tôi rất thích chị chăm sóc, về nhà vẫn khỏe mạnh và vui vẻ như thường.",
-      petType: "🐱",
+      petIcon: <FaCat className="text-gray-700 text-2xl" />,
     },
     {
       name: "Lê Thị Hương",
       role: "Người chăm sóc",
-      avatar: "👩‍🦰",
+      avatar: `https://ui-avatars.com/api/?name=Lê+Thị+Hương&background=random&color=fff`,
       rating: 5,
       content:
         "Là người chăm sóc thú cưng, tôi thấy platform này rất dễ sử dụng. Hệ thống đặt lịch và thanh toán rất tiện lợi, khách hàng đều rất hài lòng.",
-      petType: "🐰",
+      petIcon: <GiRabbit className="text-gray-700 text-2xl" />,
     },
   ];
 
@@ -33,13 +36,12 @@ const TestimonialsSection = () => {
     return (
       <div className="flex space-x-1">
         {[...Array(5)].map((_, index) => (
-          <span
-            key={index}
-            className={`text-lg ${
-              index < rating ? "text-yellow-400" : "text-gray-300"
-            }`}
-          >
-            ⭐
+          <span key={index}>
+            {index < rating ? (
+              <FaStar className="text-yellow-400 text-xl" />
+            ) : (
+              <FaRegStar className="text-gray-300 text-xl" />
+            )}
           </span>
         ))}
       </div>
@@ -67,8 +69,8 @@ const TestimonialsSection = () => {
               className="bg-gray-50 rounded-2xl p-8 relative group hover:shadow-lg transition-all duration-300"
             >
               {/* Quote icon */}
-              <div className="absolute top-6 right-6 text-emerald-200 text-4xl">
-                "
+              <div className="absolute top-6 right-2 text-emerald-200">
+                <FaQuoteRight className="text-3xl" />
               </div>
 
               {/* Content */}
@@ -83,8 +85,12 @@ const TestimonialsSection = () => {
 
               {/* User info */}
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-xl mr-4">
-                  {testimonial.avatar}
+                <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
+                  <img
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900">
@@ -94,7 +100,7 @@ const TestimonialsSection = () => {
                     {testimonial.role}
                   </div>
                 </div>
-                <div className="text-2xl">{testimonial.petType}</div>
+                <div>{testimonial.petIcon}</div>
               </div>
 
               {/* Hover effect */}

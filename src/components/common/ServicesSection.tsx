@@ -1,7 +1,10 @@
+import { HiChevronRight } from "react-icons/hi";
+import { FaHome, FaWalking, FaHotel, FaMedkit } from "react-icons/fa";
+
 const ServicesSection = () => {
   const services = [
     {
-      icon: "🏠",
+      icon: <FaHome className="text-2xl text-white" />,
       title: "Chăm sóc tại nhà",
       description:
         "Người chăm sóc đến nhà bạn để chăm sóc thú cưng trong môi trường quen thuộc",
@@ -9,7 +12,7 @@ const ServicesSection = () => {
       bgColor: "bg-blue-50",
     },
     {
-      icon: "🚶",
+      icon: <FaWalking className="text-2xl text-white" />,
       title: "Dắt chó đi dạo",
       description:
         "Dịch vụ dắt chó đi dạo hàng ngày để thú cưng được vận động và khám phá",
@@ -17,7 +20,7 @@ const ServicesSection = () => {
       bgColor: "bg-green-50",
     },
     {
-      icon: "🏨",
+      icon: <FaHotel className="text-2xl text-white" />,
       title: "Nhận nuôi tạm thời",
       description:
         "Thú cưng được chăm sóc tại nhà người chăm sóc khi bạn đi xa",
@@ -25,7 +28,7 @@ const ServicesSection = () => {
       bgColor: "bg-purple-50",
     },
     {
-      icon: "🎯",
+      icon: <FaMedkit className="text-2xl text-white" />,
       title: "Chăm sóc đặc biệt",
       description:
         "Dịch vụ chăm sóc chuyên biệt cho thú cưng có nhu cầu đặc biệt hoặc bệnh lý",
@@ -35,7 +38,7 @@ const ServicesSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-gray-70">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -54,7 +57,7 @@ const ServicesSection = () => {
                 <div
                   className={`w-16 h-16 bg-gradient-to-br ${service.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
                 >
-                  <span className="text-2xl text-white">{service.icon}</span>
+                  {service.icon}
                 </div>
 
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">
@@ -66,28 +69,9 @@ const ServicesSection = () => {
                 </p>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Từ{" "}
-                    <span className="font-semibold text-gray-900">
-                      200.000đ
-                    </span>
-                    /ngày
-                  </div>
                   <button className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm flex items-center group">
                     Tìm hiểu thêm
-                    <svg
-                      className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+                    <HiChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
               </div>
