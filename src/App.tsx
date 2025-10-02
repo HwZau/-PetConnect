@@ -4,6 +4,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import { useState } from "react";
 import { UserContext, type User } from "./contexts/UserContext";
+import UserProfilePage from "./pages/user/UserProfilePage";
 
 // Tạo context cho thông tin người dùng
 // Import the UserContext from a separate file
@@ -24,13 +25,8 @@ function App() {
             {/* Protected routes - requires authentication */}
             <Route
               path="/profile"
-              element={
-                user ? (
-                  <div>Profile Page (To be implemented)</div>
-                ) : (
-                  <Navigate to="/login" />
-                )
-              }
+              // element={user ? <UserProfilePage /> : <Navigate to="/login" />}
+              element={<UserProfilePage />}
             />
             <Route
               path="/bookings"
