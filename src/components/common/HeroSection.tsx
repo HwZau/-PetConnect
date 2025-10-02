@@ -4,7 +4,7 @@ const HeroSection = () => {
   return (
     <section className="min-h-screen bg-white relative overflow-hidden pt-16 px-3">
       {/* Banner with rounded corners and gradient background - allow overflow for large cat */}
-      <div className="w-[95%] mx-auto bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100 rounded-3xl relative overflow-visible min-h-screen">
+      <div className="w-[95%] mx-auto bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100 rounded-t-3xl relative overflow-visible min-h-screen">
         {/* Background decorative elements */}
         <div className="absolute inset-0">
           {/* Large circle decoration behind cat area - adjusted for larger cat */}
@@ -50,19 +50,14 @@ const HeroSection = () => {
                   {/* Larger cyan oval background - centered for large cat */}
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[500px] bg-gradient-to-br from-cyan-200/70 to-teal-200/70 rounded-full max-lg:w-[450px] max-lg:h-[400px]"></div>
 
-                  {/* Cat image container - full height */}
-                  <div className="relative w-[800px] h-screen flex items-center justify-center -mt-16 max-lg:w-[600px] max-lg:-mt-12">
-                    {/* Cat image - extremely large to fill from nav to bottom */}
+                  {/* Cat image container - improved responsive handling */}
+                  <div className="relative flex items-center justify-center -mt-16 max-lg:-mt-12">
+                    {/* Cat image - responsive sizing */}
                     <div className="relative z-10">
                       <img
                         src={CatImage}
                         alt="Cat"
-                        className="w-[800px] h-[800px] filter drop-shadow-2xl max-lg:w-[700px] max-lg:h-[700px]"
-                        style={{
-                          width: "800px",
-                          height: "800px",
-                          maxWidth: "none",
-                        }}
+                        className="w-auto h-auto max-h-[700px] object-contain filter drop-shadow-2xl lg:max-h-[800px]"
                       />
                     </div>
                   </div>
