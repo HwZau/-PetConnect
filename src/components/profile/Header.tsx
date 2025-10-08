@@ -5,7 +5,6 @@ import {
   AiOutlineTeam,
   AiOutlineCalendar,
   AiOutlineQuestionCircle,
-  AiOutlineDown,
   AiOutlineMenu,
   AiOutlineLogin,
   AiOutlineBell,
@@ -18,7 +17,7 @@ import Logo from "../../assets/image/Logo.png";
 const Header = () => {
   const navigate = useNavigate();
   // Giả lập thông tin user, khi có API thì lấy từ backend
-  const [user, setUser] = useState<null | { name: string; avatar: string }>({
+  const [user] = useState<null | { name: string; avatar: string }>({
     name: "Lý Hồng Thư",
     avatar: "/images/avatars/user-1.jpg",
   });
@@ -36,9 +35,6 @@ const Header = () => {
   };
 
   // Function to get random avatar
-  const getRandomAvatar = () => {
-    return "https://source.unsplash.com/random/100x100/?portrait,face";
-  };
 
   // Function to get fixed avatar image
   const getFixedAvatar = () => {
