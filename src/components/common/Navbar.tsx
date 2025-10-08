@@ -11,7 +11,7 @@ import {
 } from "react-icons/ai";
 import ReactCountryFlag from "react-country-flag";
 import Logo from "../../assets/image/Logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -37,52 +37,52 @@ const Navbar = () => {
       <div className="px-4">
         <div className="flex items-center justify-between h-14 relative">
           {/* Logo */}
-          <div className="flex flex-col items-center -mt-4 ml-2 z-10">
+          <Link to="/" className="flex flex-col items-center -mt-4 ml-2 z-10">
             <div className="flex items-center justify-center">
               <img src={Logo} alt="Logo" className="w-15 h-15" />
             </div>
             <span className="text-xs font-bold text-emerald-600 -mt-1 ml-2">
               PawNest
             </span>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
-            <a
-              href="#"
+            <Link
+              to="/"
               className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 text-sm"
             >
               <AiOutlineHome className="w-4 h-4" />
               <span>Trang chủ</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 text-sm"
             >
               <AiOutlineUser className="w-4 h-4" />
               <span>Tìm Người</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 text-sm"
             >
               <AiOutlineTeam className="w-4 h-4" />
               <span>Công Đồng</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/events"
               className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 text-sm"
             >
               <AiOutlineCalendar className="w-4 h-4" />
               <span>Sự kiện</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200 text-sm"
             >
               <AiOutlineQuestionCircle className="w-4 h-4" />
               <span>Hỗ Trợ</span>
-            </a>
+            </Link>
           </div>
 
           {/* Language & User */}
@@ -139,41 +139,46 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {showMobileMenu && (
           <div className="md:hidden border-t border-gray-200 py-4 space-y-2">
-            <a
-              href="#"
+            <Link
+              to="/"
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+              onClick={() => setShowMobileMenu(false)}
             >
               <AiOutlineHome className="w-4 h-4" />
               <span>Trang chủ</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+              onClick={() => setShowMobileMenu(false)}
             >
               <AiOutlineUser className="w-4 h-4" />
               <span>Tìm Người</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+              onClick={() => setShowMobileMenu(false)}
             >
               <AiOutlineTeam className="w-4 h-4" />
               <span>Công Đồng</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/events"
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+              onClick={() => setShowMobileMenu(false)}
             >
               <AiOutlineCalendar className="w-4 h-4" />
               <span>Sự kiện</span>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="#"
               className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg"
+              onClick={() => setShowMobileMenu(false)}
             >
               <AiOutlineQuestionCircle className="w-4 h-4" />
               <span>Hỗ Trợ</span>
-            </a>
+            </Link>
 
             {/* Login/Profile in mobile menu */}
             {!user && (
