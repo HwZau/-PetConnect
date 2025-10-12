@@ -2,9 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import registerImage from "../../assets/image/register.png";
 import logoImage from "../../assets/image/Logo.png";
-import {FaHome} from "react-icons/fa"
+import { FaHome } from "react-icons/fa";
+import { useScrollToTop } from "../../hooks";
 
 const RegisterPage = () => {
+  // Scroll to top when page loads
+  useScrollToTop();
+
   const [formData, setFormData] = useState({
     email: "",
     fullName: "",
@@ -94,7 +98,11 @@ const RegisterPage = () => {
             <div className="absolute bottom-8 left-8 right-8">
               <div className="flex items-center">
                 <div className="flex items-center justify-center">
-                  <img src={logoImage} alt="PawNest Logo" className="w-15 h-15" />
+                  <img
+                    src={logoImage}
+                    alt="PawNest Logo"
+                    className="w-15 h-15"
+                  />
                 </div>
                 <span className="text-white font-bold text-xl ">PawNest</span>
               </div>
@@ -117,7 +125,7 @@ const RegisterPage = () => {
               className="inline-flex items-center text-gray-600 hover:text-emerald-600 transition-colors group"
             >
               <div className=" flex items-center justify-center ">
-                <FaHome className="w-6 h-6"/>
+                <FaHome className="w-6 h-6" />
               </div>
               <span className="font-semibold text-sm ml-2">Về trang chủ</span>
             </Link>
