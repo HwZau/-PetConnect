@@ -4,8 +4,12 @@ import { UserContext, type User } from "../../contexts/UserContext";
 import loginImage from "../../assets/image/login.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
+import { useScrollToTop } from "../../hooks";
 
 const LoginPage = () => {
+  // Scroll to top when page loads
+  useScrollToTop();
+
   const { setUser } = useContext(UserContext);
   const navigate = useNavigate();
 

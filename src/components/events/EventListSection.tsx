@@ -1,5 +1,16 @@
-const EventListSection = () => {
-  const events = [
+interface FilterState {
+  search: string;
+  category: string;
+  location: string;
+  dateRange: string;
+}
+
+interface EventListSectionProps {
+  filters?: FilterState;
+}
+
+const EventListSection = ({ filters }: EventListSectionProps) => {
+  const allEvents = [
     {
       id: 1,
       title: "Cuộc thi thú cưng đẹp nhất",
@@ -41,16 +52,43 @@ const EventListSection = () => {
     },
   ];
 
+  // Filter events based on filters
+  const filteredEvents = allEvents.filter((event) => {
+    if (
+      filters?.search &&
+      !event.title.toLowerCase().includes(filters.search.toLowerCase()) &&
+      !event.description.toLowerCase().includes(filters.search.toLowerCase())
+    ) {
+      return false;
+    }
+    if (
+      filters?.category &&
+      event.category.toLowerCase() !== filters.category
+    ) {
+      return false;
+    }
+    if (filters?.location) {
+      const eventLocationLower = event.location.toLowerCase();
+      const filterLocationLower = filters.location.toLowerCase();
+      if (!eventLocationLower.includes(filterLocationLower)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const events = filteredEvents;
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Những sự kiện sắp tới
+            Sự kiện sắp tới
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Tham gia các sự kiện thú vị và kết nối với cộng đồng yêu thú cưng
+            Các sự kiện sắp diễn ra trong thời gian tới - đừng bỏ lỡ!
           </p>
         </div>
 

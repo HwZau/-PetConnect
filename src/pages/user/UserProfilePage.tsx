@@ -8,6 +8,7 @@ import QuickActions from "../../components/profile/QuickActions";
 import FavoriteServices from "../../components/profile/FavoriteServices";
 import ChatSupport from "../../components/profile/ChatSupport";
 import { FaCut, FaStethoscope, FaPaw } from "react-icons/fa";
+import { useScrollToTop } from "../../hooks";
 
 // Giả lập dữ liệu user
 const user = {
@@ -107,6 +108,9 @@ const user = {
 };
 
 const UserProfilePage: React.FC = () => {
+  // Scroll to top when page loads
+  useScrollToTop();
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
