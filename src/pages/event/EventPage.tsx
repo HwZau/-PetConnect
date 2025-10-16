@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Navbar, Footer } from "../../components/common";
+import Navbar from "../../components/common/Navbar";
+import Footer from "../../components/common/Footer";
 import EventHeroSection from "../../components/events/EventHeroSection";
 import EventListSection from "../../components/events/EventListSection";
 import IncomingEventsSection from "../../components/events/IncomingEventsSection";
