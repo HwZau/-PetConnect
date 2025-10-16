@@ -168,3 +168,152 @@ export interface NotificationPreferences {
   reviews: boolean;
   marketing: boolean;
 }
+
+// Booking related interfaces
+export interface Freelancer {
+  id: number;
+  name: string;
+  avatar: string;
+  title: string;
+  rating: number;
+  reviewCount: number;
+  location: string;
+  completedJobs: number;
+  responseTime: string;
+  category?: string;
+  price?: string;
+  description?: string;
+  skills?: string[];
+  isVerified?: boolean;
+}
+
+export interface ServiceOption {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+export interface PetInfoData {
+  petType: string;
+  petSize: string;
+  duration: string;
+  petName?: string;
+  petAge?: string;
+  petWeight?: string;
+}
+
+export interface MultiplePetsData {
+  pets: PetInfoData[];
+}
+
+export interface DateTimeData {
+  date: string;
+  time: string;
+  recurringService: boolean;
+  frequency?: string;
+}
+
+export interface CustomerInfoData {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  emergencyContact: string;
+}
+
+export interface UserPet {
+  id: string;
+  name: string;
+  type: string;
+  age: string;
+  gender: string;
+  breed: string;
+}
+
+// Component Props interfaces
+export interface ServiceSelectionProps {
+  selectedService: string;
+  onServiceChange: (serviceId: string) => void;
+  error?: string;
+}
+
+export interface PetInformationProps {
+  petInfo: PetInfoData[];
+  onPetInfoChange: (
+    petIndex: number,
+    field: keyof PetInfoData,
+    value: string
+  ) => void;
+  onAddPet: () => void;
+  onRemovePet: (petIndex: number) => void;
+  errors: Record<string, string>;
+}
+
+export interface DateTimeSelectionProps {
+  dateTimeData: DateTimeData;
+  onDateTimeChange: (
+    field: keyof DateTimeData,
+    value: string | boolean
+  ) => void;
+  errors: Record<string, string>;
+}
+
+export interface CustomerInformationProps {
+  customerInfo: CustomerInfoData;
+  onCustomerInfoChange: (field: keyof CustomerInfoData, value: string) => void;
+  errors: Record<string, string>;
+}
+
+export interface BookingHeaderProps {
+  selectedFreelancer?: Freelancer;
+}
+
+export interface BookingSummaryProps {
+  selectedFreelancer?: Freelancer;
+  selectedService?: string;
+  petInfo: PetInfoData[];
+  date: string;
+  time: string;
+  recurringService: boolean;
+  frequency?: string;
+  onSubmit: () => void;
+}
+
+export interface SpecialRequestsProps {
+  specialRequests: string;
+  onSpecialRequestsChange: (value: string) => void;
+}
+
+// Common filter interfaces
+export interface FilterState {
+  searchTerm: string;
+  category: string;
+  location: string;
+  rating: string;
+}
+
+// Service related interfaces
+export interface Service {
+  id: number;
+  name: string;
+  provider: string;
+  date: string;
+  status: "completed" | "upcoming" | "cancelled";
+  price: number;
+  rating?: number;
+}
+
+export interface FavoriteService {
+  id: number;
+  name: string;
+  provider: string;
+  price: number;
+  rating: number;
+  image: string;
+}
+
+// Props interfaces
+export interface FreelancerListProps {
+  filters: FilterState;
+}

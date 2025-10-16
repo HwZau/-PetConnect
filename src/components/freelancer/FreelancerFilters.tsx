@@ -1,17 +1,6 @@
 import React from "react";
-import {
-  AiOutlineFilter,
-  AiOutlineDollar,
-  AiOutlineStar,
-} from "react-icons/ai";
-
-interface FilterState {
-  searchTerm: string;
-  category: string;
-  location: string;
-  priceRange: string;
-  rating: string;
-}
+import { AiOutlineFilter, AiOutlineStar } from "react-icons/ai";
+import type { FilterState } from "../../types";
 
 interface FreelancerFiltersProps {
   filters: FilterState;
@@ -33,13 +22,6 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
     "Tư vấn dinh dưỡng",
   ];
 
-  const priceRanges = [
-    { value: "0-200", label: "Dưới 200k" },
-    { value: "200-500", label: "200k - 500k" },
-    { value: "500-1000", label: "500k - 1tr" },
-    { value: "1000+", label: "Trên 1tr" },
-  ];
-
   const ratings = [
     { value: "4+", label: "4+ sao" },
     { value: "3+", label: "3+ sao" },
@@ -54,7 +36,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
           <h3 className="text-lg font-semibold text-gray-800">Bộ lọc</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Category Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -93,26 +75,6 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
             </select>
           </div>
 
-          {/* Price Range Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <AiOutlineDollar className="inline w-4 h-4 mr-1" />
-              Giá dịch vụ
-            </label>
-            <select
-              value={filters.priceRange}
-              onChange={(e) => onFilterChange({ priceRange: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
-            >
-              <option value="">Tất cả mức giá</option>
-              {priceRanges.map((range) => (
-                <option key={range.value} value={range.value}>
-                  {range.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Rating Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -141,7 +103,6 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
               onFilterChange({
                 category: "",
                 location: "",
-                priceRange: "",
                 rating: "",
               })
             }

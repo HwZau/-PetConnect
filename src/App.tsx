@@ -1,5 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { HomePage, EventPage, FreelancerPage, CommunityPage } from "./pages";
+import {
+  HomePage,
+  EventPage,
+  FreelancerPage,
+  CommunityPage,
+  BookingPage,
+} from "./pages";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import { useState } from "react";
@@ -24,6 +30,9 @@ function App() {
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Booking route - only accessible via freelancer selection */}
+            <Route path="/booking" element={<BookingPage />} />
 
             {/* Protected routes - requires authentication */}
             <Route
