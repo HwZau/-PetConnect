@@ -1,6 +1,14 @@
 import React from "react";
 import { FaCheck, FaPaw, FaRegStar, FaEnvelope } from "react-icons/fa";
-import type { UserStatsProps } from "../../types";
+
+interface UserStatsProps {
+  stats: {
+    friendsCount: number;
+    petCount: number;
+    reviewCount: number;
+    messagesCount: string;
+  };
+}
 
 const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
   return (
@@ -12,9 +20,7 @@ const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
             <FaCheck className="h-3 w-3 text-blue-500" />
           </div>
         </div>
-        <span className="text-xl font-bold mt-2">
-          {stats?.friendsCount || 0}
-        </span>
+        <span className="text-xl font-bold mt-2">{stats.friendsCount}</span>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow flex flex-col">
@@ -24,7 +30,7 @@ const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
             <FaPaw className="h-3 w-3 text-green-500" />
           </div>
         </div>
-        <span className="text-xl font-bold mt-2">{stats?.petCount || 0}</span>
+        <span className="text-xl font-bold mt-2">{stats.petCount}</span>
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow flex flex-col">
@@ -35,7 +41,7 @@ const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
           </div>
         </div>
         <span className="text-xl font-bold mt-2">
-          {stats?.reviewCount || 0} bài đánh giá
+          {stats.reviewCount} bài đánh giá
         </span>
       </div>
 
@@ -46,9 +52,7 @@ const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
             <FaEnvelope className="h-3 w-3 text-purple-500" />
           </div>
         </div>
-        <span className="text-xl font-bold mt-2">
-          {stats?.messagesCount || 0}
-        </span>
+        <span className="text-xl font-bold mt-2">{stats.messagesCount}</span>
       </div>
     </div>
   );

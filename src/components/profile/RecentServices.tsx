@@ -1,7 +1,21 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FaCalendarCheck } from "react-icons/fa";
-import type { RecentServicesProps } from "../../types";
+
+interface Service {
+  id: string;
+  title: string;
+  location: string;
+  status: string;
+  color: string;
+  icon: React.ReactNode;
+  bgColor: string;
+  percentage: string;
+}
+
+interface RecentServicesProps {
+  services: Service[];
+}
 
 const RecentServices: React.FC<RecentServicesProps> = ({ services }) => {
   return (
@@ -17,7 +31,7 @@ const RecentServices: React.FC<RecentServicesProps> = ({ services }) => {
       </div>
 
       <div className="space-y-4">
-        {services?.map((service) => (
+        {services.map((service) => (
           <div key={service.id} className="flex items-start">
             <div
               className={`${service.bgColor} h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0`}
