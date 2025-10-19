@@ -1,23 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FaPaw } from "react-icons/fa";
-
-interface Pet {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  avatar?: string;
-  color: string;
-}
-
-interface UserPetsProps {
-  pets: Pet[];
-}
+import type { UserPetsProps } from "../../types";
 
 const UserPets: React.FC<UserPetsProps> = ({ pets }) => {
   // Sử dụng hình ảnh cố định từ Unsplash thay vì ngẫu nhiên
-  const getPetImage = (petType: string) => {
+  const getPetImage = (petType: string | undefined): string => {
+    if (!petType)
+      return "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=200&h=200";
     // Map pet types to fixed Unsplash images
     const petImageMap: Record<string, string> = {
       "Golden Retriever":
@@ -52,7 +42,7 @@ const UserPets: React.FC<UserPetsProps> = ({ pets }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {pets.map((pet) => (
+        {pets?.map((pet) => (
           <div key={pet.id} className={`${pet.color} rounded-lg p-4`}>
             <div className="flex items-center mb-3">
               <img

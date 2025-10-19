@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { AiOutlineSearch, AiOutlineEnvironment } from "react-icons/ai";
 import DogImage from "../../assets/image/Dog.png";
-
-interface FreelancerHeroSectionProps {
-  onSearch: (filters: {
-    searchTerm?: string;
-    location?: string;
-    category?: string;
-  }) => void;
-}
+import type { FreelancerHeroSectionProps } from "../../types";
 
 const FreelancerHeroSection: React.FC<FreelancerHeroSectionProps> = ({
   onSearch,
@@ -18,7 +11,7 @@ const FreelancerHeroSection: React.FC<FreelancerHeroSectionProps> = ({
   const [category, setCategory] = useState("");
 
   const handleSearch = () => {
-    onSearch({ searchTerm, location, category });
+    onSearch?.({ searchTerm, location, category });
   };
 
   const petServices = [
@@ -72,8 +65,7 @@ const FreelancerHeroSection: React.FC<FreelancerHeroSectionProps> = ({
             <div className="space-y-8 order-1 lg:order-2">
               <div className="space-y-6">
                 <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight text-center lg:text-left">
-                  Tìm kiếm{" "}
-                  <br />
+                  Tìm kiếm <br />
                   <span className="text-purple-600">freelancer thú cưng </span>
                   <span className="text-violet-600">chuyên nghiệp </span>
                   <br />
@@ -149,7 +141,7 @@ const FreelancerHeroSection: React.FC<FreelancerHeroSectionProps> = ({
                       key={service}
                       onClick={() => {
                         setCategory(service);
-                        onSearch({ category: service });
+                        onSearch?.({ category: service });
                       }}
                       className="px-4 py-2 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-all duration-200 text-sm font-medium border border-purple-200"
                     >

@@ -23,3 +23,6 @@ export * from "./classUtils";
 
 // Constants - Pet types, service categories, etc.
 export * from "./constants";
+
+// Toast utilities - For notifications
+export * from "./toastUtils";

@@ -1,15 +1,5 @@
 import { useState } from "react";
-
-interface EventFiltersProps {
-  onFilterChange: (filters: FilterState) => void;
-}
-
-interface FilterState {
-  search: string;
-  category: string;
-  location: string;
-  dateRange: string;
-}
+import type { FilterState, EventFiltersProps } from "../../types";
 
 const EventFilters = ({ onFilterChange }: EventFiltersProps) => {
   const [filters, setFilters] = useState<FilterState>({
@@ -53,7 +43,7 @@ const EventFilters = ({ onFilterChange }: EventFiltersProps) => {
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    onFilterChange(newFilters);
+    onFilterChange?.(newFilters);
   };
 
   const clearAllFilters = () => {
@@ -64,7 +54,7 @@ const EventFilters = ({ onFilterChange }: EventFiltersProps) => {
       dateRange: "",
     };
     setFilters(clearedFilters);
-    onFilterChange(clearedFilters);
+    onFilterChange?.(clearedFilters);
   };
 
   const hasActiveFilters =
