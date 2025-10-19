@@ -1,43 +1,13 @@
 import React from "react";
-import type { ServiceOption, ServiceSelectionProps } from "../../types";
+import type { ServiceSelectionProps } from "../../types";
+import { ServiceManager } from "../../services/serviceManager";
 
 const ServiceSelection: React.FC<ServiceSelectionProps> = ({
   selectedService,
   onServiceChange,
   error,
 }) => {
-  const serviceOptions: ServiceOption[] = [
-    {
-      id: "pet_sitting",
-      name: "Trông thú cưng",
-      price: 200000,
-      description: "Chăm sóc thú cưng tại nhà bạn",
-    },
-    {
-      id: "dog_walking",
-      name: "Dắt chó đi dạo",
-      price: 150000,
-      description: "Dắt chó đi dạo và vận động",
-    },
-    {
-      id: "pet_grooming",
-      name: "Tắm gội và làm đẹp",
-      price: 300000,
-      description: "Tắm gội, cắt tỉa lông cho thú cưng",
-    },
-    {
-      id: "pet_training",
-      name: "Huấn luyện thú cưng",
-      price: 500000,
-      description: "Huấn luyện kỹ năng cơ bản cho thú cưng",
-    },
-    {
-      id: "pet_transportation",
-      name: "Đưa đón thú cưng",
-      price: 100000,
-      description: "Đưa đón thú cưng đến các địa điểm",
-    },
-  ];
+  const serviceOptions = ServiceManager.getServicesForSelect();
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">

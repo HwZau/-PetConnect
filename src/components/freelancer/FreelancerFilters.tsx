@@ -1,11 +1,6 @@
 import React from "react";
 import { AiOutlineFilter, AiOutlineStar } from "react-icons/ai";
-import type { FilterState } from "../../types";
-
-interface FreelancerFiltersProps {
-  filters: FilterState;
-  onFilterChange: (filters: Partial<FilterState>) => void;
-}
+import type { FreelancerFiltersProps } from "../../types";
 
 const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
   filters,
@@ -44,7 +39,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
             </label>
             <select
               value={filters.category}
-              onChange={(e) => onFilterChange({ category: e.target.value })}
+              onChange={(e) => onFilterChange?.({ category: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >
               <option value="">Tất cả danh mục</option>
@@ -63,7 +58,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
             </label>
             <select
               value={filters.location}
-              onChange={(e) => onFilterChange({ location: e.target.value })}
+              onChange={(e) => onFilterChange?.({ location: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >
               <option value="">Tất cả khu vực</option>
@@ -83,7 +78,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
             </label>
             <select
               value={filters.rating}
-              onChange={(e) => onFilterChange({ rating: e.target.value })}
+              onChange={(e) => onFilterChange?.({ rating: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >
               <option value="">Tất cả đánh giá</option>
@@ -100,7 +95,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
         <div className="mt-4 flex justify-between items-center">
           <button
             onClick={() =>
-              onFilterChange({
+              onFilterChange?.({
                 category: "",
                 location: "",
                 rating: "",

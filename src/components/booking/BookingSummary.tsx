@@ -1,6 +1,7 @@
 import React from "react";
 import { formatDate } from "../../utils";
 import type { BookingSummaryProps } from "../../types";
+import { ServiceManager } from "../../services/serviceManager";
 
 const BookingSummary: React.FC<BookingSummaryProps> = ({
   selectedFreelancer,
@@ -12,70 +13,21 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
   frequency,
   onSubmit,
 }) => {
-  interface LocalServiceOption {
-    id: string;
-    name: string;
-    price: number;
-    description: string;
-  }
-
-  const serviceOptions: LocalServiceOption[] = [
-    {
-      id: "pet_sitting",
-      name: "Trông thú cưng",
-      price: 200000,
-      description: "Chăm sóc thú cưng tại nhà bạn",
-    },
-    {
-      id: "dog_walking",
-      name: "Dắt chó đi dạo",
-      price: 150000,
-      description: "Dắt chó đi dạo và vận động",
-    },
-    {
-      id: "pet_grooming",
-      name: "Tắm gội và làm đẹp",
-      price: 300000,
-      description: "Tắm gội, cắt tỉa lông cho thú cưng",
-    },
-    {
-      id: "pet_training",
-      name: "Huấn luyện thú cưng",
-      price: 500000,
-      description: "Huấn luyện kỹ năng cơ bản cho thú cưng",
-    },
-    {
-      id: "pet_transportation",
-      name: "Đưa đón thú cưng",
-      price: 100000,
-      description: "Đưa đón thú cưng đến các địa điểm",
-    },
-  ];
-
   const currentService = selectedService
-    ? serviceOptions.find((s) => s.id === selectedService)
+    ? ServiceManager.getServiceById(selectedService)
     : undefined;
 
-  // Calculate total price based on number of pets and their durations
+  // Calculate total price using ServiceManager
   const calculateTotalPrice = () => {
-    if (!currentService || !petInfo || petInfo.length === 0) return 0;
+    if (!selectedService || !petInfo || petInfo.length === 0) return 0;
 
-    let totalPrice = 0;
-    petInfo.forEach((pet) => {
-      let petPrice = currentService.price;
-
-      // Apply duration multiplier if available
-      if (pet.duration) {
-        const durationHours = parseInt(pet.duration) / 60;
-        if (durationHours > 1) {
-          petPrice *= durationHours;
-        }
-      }
-
-      totalPrice += petPrice;
-    });
-
-    return totalPrice;
+    const petSizes = petInfo.map((pet) => pet.petSize);
+    return ServiceManager.calculateTotalPrice(
+      selectedService,
+      petInfo.length,
+      petSizes,
+      recurringService
+    );
   };
 
   const totalPrice = calculateTotalPrice();
@@ -167,20 +119,6 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
                         ? "Lớn"
                         : pet.petSize || "Chưa chọn"}
                     </span>
-                    <span>
-                      Thời gian:{" "}
-                      {pet.duration === "30"
-                        ? "30 phút"
-                        : pet.duration === "60"
-                        ? "1 giờ"
-                        : pet.duration === "120"
-                        ? "2 giờ"
-                        : pet.duration === "240"
-                        ? "4 giờ"
-                        : pet.duration === "480"
-                        ? "Cả ngày"
-                        : pet.duration || "Chưa chọn"}
-                    </span>
                   </div>
 
                   {pet.petAge && (
@@ -216,7 +154,9 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
               <div className="text-sm text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Dịch vụ cơ bản:</span>
-                  <span>{currentService.price.toLocaleString("vi-VN")}đ</span>
+                  <span>
+                    {ServiceManager.formatPrice(currentService.basePrice)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Số thú cưng:</span>
@@ -228,7 +168,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
             <div className="flex justify-between text-lg font-semibold">
               <span>Tổng cộng:</span>
               <span className="text-purple-600">
-                {totalPrice.toLocaleString("vi-VN")}đ
+                {ServiceManager.formatPrice(totalPrice)}
               </span>
             </div>
           </div>
@@ -249,7 +189,12 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
       )}
 
       <button
-        onClick={onSubmit}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onSubmit();
+        }}
+        type="button"
         className="w-full py-3 px-4 rounded-lg transition-colors font-medium bg-purple-600 text-white hover:bg-purple-700"
       >
         Xác Nhận Đặt Dịch Vụ

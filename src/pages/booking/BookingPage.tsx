@@ -11,6 +11,12 @@ import {
 } from "../../components/booking";
 import Header from "../../components/profile/Header";
 import { UserContext } from "../../contexts/UserContext";
+import {
+  validateEmail,
+  validatePhoneVN,
+  showError,
+  showSuccess,
+} from "../../utils";
 import type {
   Freelancer,
   PetInfoData,
@@ -20,15 +26,13 @@ import type {
 } from "../../types";
 
 const BookingPage: React.FC = () => {
-  console.log("BookingPage component loaded");
   const location = useLocation();
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { user } = useContext(UserContext);
   const freelancerData = location.state?.freelancer as Freelancer;
-  console.log("Location state:", location.state);
-  console.log("Current user:", user);
 
-  // Mock user data - in real app this would come from context/API
+  // Mock user data - always use for demo
   const mockUser = {
     id: "1",
     fullName: "Lý Hồng Thư",
@@ -40,7 +44,7 @@ const BookingPage: React.FC = () => {
         id: "1",
         name: "Buddy",
         type: "dog",
-        age: "2 tuổi",
+        age: "2",
         gender: "Đực",
         breed: "Golden Retriever",
       },
@@ -48,7 +52,7 @@ const BookingPage: React.FC = () => {
         id: "2",
         name: "Luna",
         type: "cat",
-        age: "1 tuổi",
+        age: "1",
         gender: "Cái",
         breed: "Persian",
       },
@@ -58,11 +62,11 @@ const BookingPage: React.FC = () => {
   const [selectedService, setSelectedService] = useState<string>("");
   const [petInfo, setPetInfo] = useState<PetInfoData[]>([
     {
-      petType: user && mockUser.pets.length > 0 ? mockUser.pets[0].type : "",
+      petType: mockUser.pets.length > 0 ? mockUser.pets[0].type : "",
       petSize: "",
       duration: "",
-      petName: user && mockUser.pets.length > 0 ? mockUser.pets[0].name : "",
-      petAge: user && mockUser.pets.length > 0 ? mockUser.pets[0].age : "",
+      petName: mockUser.pets.length > 0 ? mockUser.pets[0].name : "",
+      petAge: mockUser.pets.length > 0 ? mockUser.pets[0].age : "",
       petWeight: "",
     },
   ]);
@@ -74,18 +78,17 @@ const BookingPage: React.FC = () => {
   });
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoData>({
-    fullName: user ? mockUser.fullName : "",
-    email: user ? mockUser.email : "",
-    phone: user ? mockUser.phone : "",
-    address: user ? mockUser.address : "",
-    emergencyContact: user ? mockUser.phone : "",
+    fullName: mockUser.fullName,
+    email: mockUser.email,
+    phone: mockUser.phone,
+    address: mockUser.address,
+    emergencyContact: mockUser.phone,
   });
   const [specialRequests, setSpecialRequests] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [userPets] = useState<UserPet[]>(user ? mockUser.pets : []);
+  const [userPets] = useState<UserPet[]>(mockUser.pets);
 
   useEffect(() => {
-    console.log("BookingPage freelancerData:", freelancerData);
     // Redirect if no freelancer data
     if (!freelancerData) {
       navigate("/freelancers", {
@@ -98,19 +101,6 @@ const BookingPage: React.FC = () => {
   const handleServiceChange = (serviceId: string) => {
     setSelectedService(serviceId);
     setErrors((prev) => ({ ...prev, selectedService: "" }));
-  };
-
-  const handlePetInfoChange = (
-    petIndex: number,
-    field: keyof PetInfoData,
-    value: string
-  ) => {
-    setPetInfo((prev) => {
-      const updated = [...prev];
-      updated[petIndex] = { ...updated[petIndex], [field]: value };
-      return updated;
-    });
-    setErrors((prev) => ({ ...prev, [`${field}_${petIndex}`]: "" }));
   };
 
   const handleAddPet = () => {
@@ -128,19 +118,7 @@ const BookingPage: React.FC = () => {
   };
 
   const handleRemovePet = (petIndex: number) => {
-    if (petInfo.length > 1) {
-      setPetInfo((prev) => prev.filter((_, index) => index !== petIndex));
-      // Clean up related errors
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        Object.keys(newErrors).forEach((key) => {
-          if (key.endsWith(`_${petIndex}`)) {
-            delete newErrors[key];
-          }
-        });
-        return newErrors;
-      });
-    }
+    setPetInfo((prev) => prev.filter((_, index) => index !== petIndex));
   };
 
   const handleDateTimeChange = (
@@ -155,8 +133,138 @@ const BookingPage: React.FC = () => {
     field: keyof CustomerInfoData,
     value: string
   ) => {
-    setCustomerInfo((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Real-time validation for phone and email
+    if (field === "phone") {
+      // Allow only digits, spaces, parentheses, and hyphens
+      // eslint-disable-next-line no-useless-escape
+      const cleanValue = value.replace(/[^\d\s\-\(\)]/g, "");
+      setCustomerInfo((prev) => ({ ...prev, [field]: cleanValue }));
+
+      // Validate phone number format
+      if (cleanValue && !validatePhoneVN(cleanValue)) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "Số điện thoại không đúng định dạng (VD: 0901234567)",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    } else if (field === "email") {
+      setCustomerInfo((prev) => ({ ...prev, [field]: value }));
+
+      // Validate email format
+      if (value && !validateEmail(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "Email không đúng định dạng",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    } else {
+      setCustomerInfo((prev) => ({ ...prev, [field]: value }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // Validate pet weight
+  const validatePetWeight = (weight: string): string | null => {
+    if (!weight) return null; // Optional field
+
+    // eslint-disable-next-line no-useless-escape
+    const cleanWeight = weight.replace(/[^\d\.]/g, "");
+    const weightNum = parseFloat(cleanWeight);
+
+    if (isNaN(weightNum)) {
+      return "Cân nặng phải là số";
+    }
+
+    if (weightNum <= 0) {
+      return "Cân nặng phải lớn hơn 0";
+    }
+
+    if (weightNum > 200) {
+      return "Cân nặng không hợp lệ (tối đa 200kg)";
+    }
+
+    return null;
+  };
+
+  // Validate pet age - simplified to numbers only
+  const validatePetAge = (age: string): string | null => {
+    if (!age) return null; // Optional field
+
+    const ageNum = parseFloat(age);
+
+    if (isNaN(ageNum)) {
+      return "Tuổi phải là số";
+    }
+
+    if (ageNum <= 0) {
+      return "Tuổi phải lớn hơn 0";
+    }
+
+    if (ageNum > 30) {
+      return "Tuổi thú cưng không được quá 30 tuổi";
+    }
+
+    return null;
+  };
+
+  const handlePetInfoChange = (
+    petIndex: number,
+    field: keyof PetInfoData,
+    value: string
+  ) => {
+    // For weight field, validate and format input
+    if (field === "petWeight") {
+      // Allow only numbers and decimal point
+      // eslint-disable-next-line no-useless-escape
+      const cleanValue = value.replace(/[^\d\.]/g, "");
+      setPetInfo((prev) =>
+        prev.map((pet, index) =>
+          index === petIndex ? { ...pet, [field]: cleanValue } : pet
+        )
+      );
+
+      // Validate weight in real-time
+      if (cleanValue) {
+        const weightError = validatePetWeight(cleanValue);
+        setErrors((prev) => ({
+          ...prev,
+          [`${field}_${petIndex}`]: weightError || "",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, [`${field}_${petIndex}`]: "" }));
+      }
+    } else if (field === "petAge") {
+      // Handle pet age - only allow numbers and decimal point
+      // eslint-disable-next-line no-useless-escape
+      const cleanValue = value.replace(/[^\d\.]/g, "");
+      setPetInfo((prev) =>
+        prev.map((pet, index) =>
+          index === petIndex ? { ...pet, [field]: cleanValue } : pet
+        )
+      );
+
+      // Validate age in real-time
+      if (cleanValue) {
+        const ageError = validatePetAge(cleanValue);
+        setErrors((prev) => ({
+          ...prev,
+          [`${field}_${petIndex}`]: ageError || "",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, [`${field}_${petIndex}`]: "" }));
+      }
+    } else {
+      setPetInfo((prev) =>
+        prev.map((pet, index) =>
+          index === petIndex ? { ...pet, [field]: value } : pet
+        )
+      );
+      setErrors((prev) => ({ ...prev, [`${field}_${petIndex}`]: "" }));
+    }
   };
 
   const handleSpecialRequestsChange = (value: string) => {
@@ -170,6 +278,11 @@ const BookingPage: React.FC = () => {
       newErrors.selectedService = "Vui lòng chọn dịch vụ";
     }
 
+    // Check if we have at least one pet
+    if (petInfo.length === 0) {
+      newErrors.petInfo = "Vui lòng thêm ít nhất một thú cưng";
+    }
+
     // Validate each pet
     petInfo.forEach((pet, index) => {
       if (!pet.petType) {
@@ -178,10 +291,24 @@ const BookingPage: React.FC = () => {
       if (!pet.petSize) {
         newErrors[`petSize_${index}`] = "Vui lòng chọn kích thước thú cưng";
       }
-      if (!pet.duration) {
-        newErrors[`duration_${index}`] = "Vui lòng chọn thời gian dịch vụ";
+
+      // Validate pet weight if provided
+      if (pet.petWeight) {
+        const weightError = validatePetWeight(pet.petWeight);
+        if (weightError) {
+          newErrors[`petWeight_${index}`] = weightError;
+        }
+      }
+
+      // Validate pet age if provided
+      if (pet.petAge) {
+        const ageError = validatePetAge(pet.petAge);
+        if (ageError) {
+          newErrors[`petAge_${index}`] = ageError;
+        }
       }
     });
+
     if (!dateTimeData.date) {
       newErrors.date = "Vui lòng chọn ngày";
     }
@@ -191,12 +318,21 @@ const BookingPage: React.FC = () => {
     if (!customerInfo.fullName) {
       newErrors.fullName = "Vui lòng nhập họ tên";
     }
+
+    // Validate email using utils
     if (!customerInfo.email) {
       newErrors.email = "Vui lòng nhập email";
+    } else if (!validateEmail(customerInfo.email)) {
+      newErrors.email = "Email không đúng định dạng";
     }
+
+    // Validate phone number using utils
     if (!customerInfo.phone) {
       newErrors.phone = "Vui lòng nhập số điện thoại";
+    } else if (!validatePhoneVN(customerInfo.phone)) {
+      newErrors.phone = "Số điện thoại không đúng định dạng (VD: 0901234567)";
     }
+
     if (!customerInfo.address) {
       newErrors.address = "Vui lòng nhập địa chỉ";
     }
@@ -207,6 +343,9 @@ const BookingPage: React.FC = () => {
 
   const handleSubmit = () => {
     if (!validateForm()) {
+      // Show validation errors using toast
+      const firstError = Object.values(errors)[0];
+      showError(firstError || "Vui lòng kiểm tra lại thông tin đã nhập");
       return;
     }
 
@@ -220,9 +359,15 @@ const BookingPage: React.FC = () => {
       specialRequests,
     };
 
-    console.log("Booking Data:", bookingData);
-    alert("Đặt dịch vụ thành công! Chúng tôi sẽ liên hệ với bạn sớm.");
-    navigate("/");
+    // Show success message
+    showSuccess("Đặt dịch vụ thành công! Chuyển đến trang thanh toán...");
+
+    // Navigate to payment page with booking data
+    navigate("/payment", {
+      state: {
+        bookingData: bookingData,
+      },
+    });
   };
 
   if (!freelancerData) {
@@ -238,31 +383,29 @@ const BookingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <BookingHeader selectedFreelancer={freelancerData} />
 
-          {/* User Info Banner */}
-          {user && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold text-lg">
-                      {mockUser.fullName.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Xin chào, {mockUser.fullName}!
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Thông tin của bạn đã được tự động điền sẵn
-                    </p>
-                  </div>
+          {/* User Info Banner - Always show for demo */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">
+                    {mockUser.fullName.charAt(0)}
+                  </span>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {userPets.length} thú cưng
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Xin chào, {mockUser.fullName}!
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Thông tin của bạn đã được tự động điền sẵn
+                  </p>
                 </div>
               </div>
+              <div className="text-sm text-gray-500">
+                {userPets.length} thú cưng
+              </div>
             </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
             {/* Left Column - Form */}
