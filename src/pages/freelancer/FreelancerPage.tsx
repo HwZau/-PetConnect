@@ -5,7 +5,14 @@ import FreelancerFilters from "../../components/freelancer/FreelancerFilters";
 import FreelancerList from "../../components/freelancer/FreelancerList";
 import Footer from "../../components/common/Footer";
 import { useScrollToTop } from "../../hooks";
-import type { FilterState } from "../../types";
+
+interface FilterState {
+  searchTerm: string;
+  category: string;
+  location: string;
+  priceRange: string;
+  rating: string;
+}
 
 const FreelancerPage: React.FC = () => {
   // Scroll to top when page loads
@@ -15,6 +22,7 @@ const FreelancerPage: React.FC = () => {
     searchTerm: "",
     category: "",
     location: "",
+    priceRange: "",
     rating: "",
   });
 

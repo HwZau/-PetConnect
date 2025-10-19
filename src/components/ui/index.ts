@@ -1,5 +1,4 @@
 // UI components exports
-export { default as LoadingSpinner } from "../common/LoadingSpinner";
 // export { default as Button } from './Button';
 // export { default as Input } from './Input';
 // export { default as Modal } from './Modal';

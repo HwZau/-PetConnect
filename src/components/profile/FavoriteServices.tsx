@@ -1,6 +1,17 @@
 import React from "react";
 import { FaHeart } from "react-icons/fa";
-import type { FavoriteServicesProps } from "../../types";
+
+interface FavoriteService {
+  id: string;
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  bgColor: string;
+}
+
+interface FavoriteServicesProps {
+  services: FavoriteService[];
+}
 
 const FavoriteServices: React.FC<FavoriteServicesProps> = ({ services }) => {
   return (
@@ -13,7 +24,7 @@ const FavoriteServices: React.FC<FavoriteServicesProps> = ({ services }) => {
       </div>
 
       <div className="space-y-3">
-        {services?.map((service) => (
+        {services.map((service) => (
           <div
             key={service.id}
             className="flex items-center p-3 bg-gray-50 rounded-lg"
