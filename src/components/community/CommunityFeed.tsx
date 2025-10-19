@@ -1,18 +1,13 @@
 import React, { useState } from "react";
 import {
-  AiOutlineLike,
-  AiFillLike,
+  AiOutlineHeart,
   AiOutlineComment,
-  AiOutlineShareAlt,
+  AiOutlineShake,
   AiOutlineCamera,
+  AiOutlineMore,
+  AiOutlineLike,
+  AiOutlineEye,
 } from "react-icons/ai";
-
-interface Comment {
-  id: number;
-  author: string;
-  content: string;
-  timestamp: string;
-}
 
 interface Post {
   id: number;
@@ -26,250 +21,234 @@ interface Post {
   images?: string[];
   timestamp: string;
   likes: number;
-  comments: Comment[];
+  comments: number;
   shares: number;
   views: number;
   liked: boolean;
 }
 
-interface CommunityFeedProps {
-  posts: Post[];
-  onLike: (id: number) => void;
-  onComment: (id: number, text: string) => void;
-  onDelete: (id: number) => void;
-  onEdit: (id: number, newContent: string) => void;
-  onShare: (id: number) => void;
-  onView: (id: number) => void;
-  onAddPost: (newPost: {
-    author: string;
-    caption: string;
-    image?: string;
-  }) => void;
-}
+const CommunityFeed: React.FC = () => {
+  const [posts, setPosts] = useState<Post[]>([
+    {
+      id: 1,
+      author: {
+        name: "Nguyễn Thị Mai",
+        avatar:
+          "https://images.unsplash.com/photo-1494790108755-2616b60b2bb4?w=50&h=50&fit=crop&crop=face",
+        isVerified: true,
+        title: "Chuyên gia chăm sóc thú cưng",
+      },
+      content:
+        "Chia sẻ kinh nghiệm chăm sóc chó mèo con trong mùa đông. Các bé rất dễ bị cảm lạnh nên chúng ta cần chú ý giữ ấm và dinh dưỡng đầy đủ cho các bé nhé! 🐶❄️",
+      images: [
+        "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop",
+      ],
+      timestamp: "2 giờ trước",
+      likes: 124,
+      comments: 18,
+      shares: 5,
+      views: 432,
+      liked: false,
+    },
+    {
+      id: 2,
+      author: {
+        name: "Trần Văn Đức",
+        avatar:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50&h=50&fit=crop&crop=face",
+        isVerified: true,
+        title: "Huấn luyện viên chó",
+      },
+      content:
+        "Hôm nay có buổi training với những chú Golden Retriever siêu đáng yêu! Các bé học rất nhanh và ngoan lắm. Ai có thắc mắc về huấn luyện chó cơ bản thì inbox mình nhé! 💪🐕",
+      timestamp: "5 giờ trước",
+      likes: 89,
+      comments: 12,
+      shares: 3,
+      views: 287,
+      liked: true,
+    },
+    {
+      id: 3,
+      author: {
+        name: "Lê Thị Hoa",
+        avatar:
+          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50&h=50&fit=crop&crop=face",
+        isVerified: true,
+        title: "Bác sĩ thú y",
+      },
+      content:
+        "Nguyên tắc vàng khi chăm sóc thú cưng ốm: Quan sát cẩn thận các triệu chứng và đưa đến bác sĩ thú y kịp thời. Đừng tự ý dùng thuốc cho các bé nhé các bạn! 🏥🩺",
+      timestamp: "8 giờ trước",
+      likes: 156,
+      comments: 24,
+      shares: 8,
+      views: 621,
+      liked: false,
+    },
+  ]);
 
-const CommunityFeed: React.FC<CommunityFeedProps> = ({
-  posts,
-  onLike,
-  onComment,
-  onDelete,
-  onEdit,
-  onShare,
-  onView,
-  onAddPost,
-}) => {
-  const [newPost, setNewPost] = useState("");
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
-
-  // 🧩 Xử lý đăng bài
-  const handleAddPost = () => {
-    if (!newPost.trim()) return;
-    onAddPost({
-      author: "Bạn",
-      caption: newPost,
-      image: imagePreview || undefined,
-    });
-    setNewPost("");
-    setImagePreview(null);
-  };
-
-  // 🧩 Xử lý upload ảnh
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  // 🧩 Gửi comment
-  const handleSendComment = (postId: number) => {
-    const text = commentInputs[postId]?.trim();
-    if (!text) return;
-    onComment(postId, text);
-    setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+  const handleLike = (postId: number) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              liked: !post.liked,
+              likes: post.liked ? post.likes - 1 : post.likes + 1,
+            }
+          : post
+      )
+    );
   };
 
   return (
     <div className="space-y-6">
-      {/* 🧩 Ô đăng bài */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex items-start gap-4">
+      {/* Create Post */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-4">
           <img
-            src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-            alt="user"
-            className="w-12 h-12 rounded-full"
+            src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face"
+            alt="Your avatar"
+            className="w-12 h-12 rounded-full object-cover"
           />
           <div className="flex-1">
-            <textarea
-              className="w-full bg-gray-100 p-3 rounded-lg text-gray-700 resize-none focus:ring-2 focus:ring-orange-500 focus:outline-none"
-              placeholder="Chia sẻ cảm nghĩ của bạn về thú cưng..."
-              rows={3}
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-            ></textarea>
-            {imagePreview && (
-              <div className="mt-3 relative">
-                <img
-                  src={imagePreview}
-                  alt="preview"
-                  className="rounded-lg max-h-64 object-cover"
-                />
-                <button
-                  className="absolute top-2 right-2 bg-gray-700 text-white px-2 py-1 rounded-lg text-sm"
-                  onClick={() => setImagePreview(null)}
-                >
-                  ✕
-                </button>
-              </div>
-            )}
-            <div className="flex justify-between mt-4">
-              <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
-                <AiOutlineCamera className="text-orange-500 w-5 h-5" />
-                <span>Thêm ảnh</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-              <button
-                onClick={handleAddPost}
-                className="bg-orange-600 text-white px-5 py-2 rounded-lg hover:bg-orange-700"
-              >
-                Đăng bài
-              </button>
-            </div>
+            <button className="w-full text-left px-4 py-3 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+              Bạn đang nghĩ gì về thú cưng hôm nay?
+            </button>
           </div>
+        </div>
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+          <button className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600">
+            <AiOutlineCamera className="w-5 h-5 text-orange-500" />
+            <span>Ảnh/Video</span>
+          </button>
+          <button className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium">
+            Đăng bài
+          </button>
         </div>
       </div>
 
-      {/* 🧩 Danh sách bài đăng */}
+      {/* Posts Feed */}
       {posts.map((post) => (
         <div
           key={post.id}
           className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
         >
-          <div className="p-5">
-            {/* Header */}
+          {/* Post Header */}
+          <div className="p-6 pb-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center space-x-3">
                 <img
                   src={post.author.avatar}
                   alt={post.author.name}
-                  className="w-10 h-10 rounded-full"
+                  className="w-12 h-12 rounded-full object-cover"
                 />
                 <div>
-                  <h4 className="font-semibold text-gray-800">
-                    {post.author.name}{" "}
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-semibold text-gray-900">
+                      {post.author.name}
+                    </h3>
                     {post.author.isVerified && (
-                      <span className="text-blue-500">✔️</span>
+                      <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
                     )}
-                  </h4>
-                  <p className="text-sm text-gray-500">{post.author.title}</p>
-                  <p className="text-xs text-gray-400">{post.timestamp}</p>
+                  </div>
+                  <p className="text-sm text-orange-600">{post.author.title}</p>
+                  <p className="text-xs text-gray-500">{post.timestamp}</p>
                 </div>
               </div>
-              <button
-                className="text-red-500 text-sm hover:text-red-600"
-                onClick={() => onDelete(post.id)}
-              >
-                Xóa
+              <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <AiOutlineMore className="w-5 h-5 text-gray-500" />
               </button>
             </div>
+          </div>
 
-            {/* Nội dung */}
-            <p className="mt-4 text-gray-700">{post.content}</p>
-            {post.images && post.images.length > 0 && (
-              <div className="mt-3">
+          {/* Post Content */}
+          <div className="px-6 pb-4">
+            <p className="text-gray-800 leading-relaxed">{post.content}</p>
+          </div>
+
+          {/* Post Images */}
+          {post.images && post.images.length > 0 && (
+            <div className="px-6 pb-4">
+              {post.images.length === 1 ? (
                 <img
                   src={post.images[0]}
-                  alt="post"
-                  className="rounded-lg max-h-96 w-full object-cover"
+                  alt="Post image"
+                  className="w-full h-64 object-cover rounded-lg"
                 />
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex justify-around text-gray-600 text-sm mt-4 pt-3">
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onLike(post.id)}
-              >
-                {post.liked ? (
-                  <AiFillLike className="text-orange-500" />
-                ) : (
-                  <AiOutlineLike />
-                )}
-                <span>Thích ({post.likes})</span>
-              </button>
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onView(post.id)}
-              >
-                <AiOutlineComment />
-                <span>Bình luận ({post.comments.length})</span>
-              </button>
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onShare(post.id)}
-              >
-                <AiOutlineShareAlt />
-                <span>Chia sẻ ({post.shares})</span>
-              </button>
-            </div>
-
-            {/* Bình luận */}
-            <div className="mt-4 space-y-3 border-t border-gray-100 pt-3">
-              {post.comments.map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                    alt={c.author}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div className="bg-gray-100 rounded-lg p-2">
-                    <p className="text-sm font-semibold">{c.author}</p>
-                    <p className="text-gray-700 text-sm">{c.content}</p>
-                    <span className="text-xs text-gray-400">{c.timestamp}</span>
-                  </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {post.images.slice(0, 3).map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Post image ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+          )}
 
-              {/* Ô nhập comment */}
-              <div className="flex items-center gap-3 mt-2">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                  alt="user"
-                  className="w-8 h-8 rounded-full"
-                />
-                <input
-                  type="text"
-                  placeholder="Viết bình luận..."
-                  className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                  value={commentInputs[post.id] || ""}
-                  onChange={(e) =>
-                    setCommentInputs({
-                      ...commentInputs,
-                      [post.id]: e.target.value,
-                    })
-                  }
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && handleSendComment(post.id)
-                  }
-                />
-                <button
-                  onClick={() => handleSendComment(post.id)}
-                  className="text-orange-600 font-semibold text-sm"
-                >
-                  Gửi
-                </button>
+          {/* Post Stats */}
+          <div className="px-6 py-2 border-t border-gray-100">
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center space-x-1">
+                  <AiOutlineLike className="w-4 h-4" />
+                  <span>{post.likes}</span>
+                </span>
+                <span>{post.comments} bình luận</span>
+                <span>{post.shares} chia sẻ</span>
               </div>
+              <div className="flex items-center space-x-1">
+                <AiOutlineEye className="w-4 h-4" />
+                <span>{post.views} lượt xem</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Post Actions */}
+          <div className="px-6 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => handleLike(post.id)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  post.liked
+                    ? "text-orange-600 bg-orange-50"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <AiOutlineHeart
+                  className={`w-5 h-5 ${post.liked ? "fill-current" : ""}`}
+                />
+                <span>Thích</span>
+              </button>
+              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                <AiOutlineComment className="w-5 h-5" />
+                <span>Bình luận</span>
+              </button>
+              <button className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
+                <AiOutlineShake className="w-5 h-5" />
+                <span>Chia sẻ</span>
+              </button>
             </div>
           </div>
         </div>
       ))}
+
+      {/* Load More */}
+      <div className="text-center py-8">
+        <button className="px-6 py-3 border border-orange-600 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-medium">
+          Xem thêm bài viết
+        </button>
+      </div>
     </div>
   );
 };
