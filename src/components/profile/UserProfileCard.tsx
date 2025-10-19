@@ -1,15 +1,6 @@
 import React from "react";
 import { FaRegEdit, FaCalendarAlt } from "react-icons/fa";
-
-interface UserProfileCardProps {
-  user: {
-    name: string;
-    avatar?: string;
-    role: string;
-    location: string;
-    memberSince: string;
-  };
-}
+import type { UserProfileCardProps } from "../../types";
 
 const UserProfileCard: React.FC<UserProfileCardProps> = ({ user }) => {
   // Hình ảnh cố định từ Unsplash cho avatar người dùng
@@ -23,8 +14,8 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user }) => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <div className="flex items-center">
           <img
-            src={user.avatar || getPersonImage()}
-            alt={user.name}
+            src={user?.avatar || getPersonImage()}
+            alt={user?.name || "User"}
             className="h-20 w-20 rounded-full object-cover border-4 border-white shadow"
             onError={(e) => {
               e.currentTarget.onerror = null;
@@ -33,16 +24,18 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user }) => {
             }}
           />
           <div className="ml-4">
-            <h1 className="text-2xl font-bold text-gray-800">{user.name}</h1>
-            <p className="text-gray-600">{user.role}</p>
+            <h1 className="text-2xl font-bold text-gray-800">
+              {user?.name || "Người dùng"}
+            </h1>
+            <p className="text-gray-600">{user?.role || "Thành viên"}</p>
             <div className="flex items-center mt-1">
               <div className="bg-green-500 h-2 w-2 rounded-full mr-2"></div>
               <span className="text-xs text-gray-500 mr-3">
-                {user.location}
+                {user?.location || "Chưa cập nhật"}
               </span>
               <FaCalendarAlt className="text-gray-400 mr-1 h-3 w-3" />
               <span className="text-xs text-gray-500">
-                Thành viên từ {user.memberSince}
+                Thành viên từ {user?.memberSince || "2024"}
               </span>
             </div>
           </div>
