@@ -11,6 +11,7 @@ const FreelancerPage = lazy(() => import("./pages/freelancer/FreelancerPage"));
 const CommunityPage = lazy(() => import("./pages/community/CommunityPage"));
 const BookingPage = lazy(() => import("./pages/booking/BookingPage"));
 const PaymentPage = lazy(() => import("./pages/payment/PaymentPage"));
+const SupportPage = lazy(() => import("./pages/support/SupportPage"))
 const PaymentStatusPage = lazy(
   () => import("./pages/payment/PaymentStatusPage")
 );
@@ -37,7 +38,7 @@ function App() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-
+              <Route path="/support" element={<SupportPage />} />
               {/* Booking route - only accessible via freelancer selection */}
               <Route path="/booking" element={<BookingPage />} />
 

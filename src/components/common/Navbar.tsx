@@ -124,7 +124,7 @@ const Navbar = () => {
                 <span>Sự kiện</span>
               </Link>
               <Link
-                to="#"
+                to="/support"
                 className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
               >
                 <AiOutlineQuestionCircle className="w-4 h-4" />
