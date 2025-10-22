@@ -1,6 +1,6 @@
 // API Configuration and Constants
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
+  BASE_URL: import.meta.env.VITE_API_BASE_URL,
   TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 10000,
   MAX_FILE_SIZE: Number(import.meta.env.VITE_MAX_FILE_SIZE) || 5242880, // 5MB
   ALLOWED_FILE_TYPES: import.meta.env.VITE_ALLOWED_FILE_TYPES?.split(",") || [
@@ -15,23 +15,23 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: "/auth/login",
-    REGISTER: "/auth/register",
-    LOGOUT: "/auth/logout",
-    REFRESH: "/auth/refresh",
-    PROFILE: "/auth/profile",
-    CHANGE_PASSWORD: "/auth/change-password",
-    FORGOT_PASSWORD: "/auth/forgot-password",
-    RESET_PASSWORD: "/auth/reset-password",
+    LOGIN: "/login",
+    REGISTER: "/register",
+    LOGOUT: "/logout",
+    REFRESH: "/refresh",
+    PROFILE: "/profile",
+    CHANGE_PASSWORD: "/change-password",
+    FORGOT_PASSWORD: "/forgot-password",
+    RESET_PASSWORD: "/reset-password",
   },
 
   // Users
   USERS: {
     LIST: "/users",
-    PROFILE: "/users/profile",
-    UPDATE: "/users/profile",
-    AVATAR: "/users/avatar",
-    DELETE: "/users",
+    PROFILE: "/user/",
+    UPDATE: "/user/",
+    AVATAR: "/user/avatar",
+    DELETE: "/user/",
   },
 
   // Pets

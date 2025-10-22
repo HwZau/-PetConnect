@@ -12,7 +12,7 @@ import type { Freelancer, FreelancerListProps } from "../../types";
 const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
   const navigate = useNavigate();
   const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<(string | number)[]>([]);
   const [sortOption, setSortOption] = useState<string>("relevant");
 
   // Mock data cho freelancers
@@ -194,20 +194,21 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         // Kinh nghiệm nhiều nhất
         return b.completedJobs - a.completedJobs;
 
-      case "response":
-        // Phản hồi nhanh nhất
-        { const responseTimeA = parseInt(
+      case "response": // Phản hồi nhanh nhất
+      {
+        const responseTimeA = parseInt(
           a.responseTime.match(/\d+/)?.[0] || "999"
         );
         const responseTimeB = parseInt(
           b.responseTime.match(/\d+/)?.[0] || "999"
         );
-        return responseTimeA - responseTimeB; }
+        return responseTimeA - responseTimeB;
+      }
 
       case "relevant":
-      default:
-        // Độ phù hợp - kết hợp rating, completed jobs và verified status
-        { const scoreA =
+      default: // Độ phù hợp - kết hợp rating, completed jobs và verified status
+      {
+        const scoreA =
           a.rating * 0.4 +
           Math.min(a.completedJobs / 10, 10) * 0.3 +
           (a.isVerified ? 2 : 0);
@@ -215,7 +216,8 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
           b.rating * 0.4 +
           Math.min(b.completedJobs / 10, 10) * 0.3 +
           (b.isVerified ? 2 : 0);
-        return scoreB - scoreA; }
+        return scoreB - scoreA;
+      }
     }
   });
 
@@ -223,7 +225,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
     setSortOption(value);
   };
 
-  const toggleFavorite = (freelancerId: number) => {
+  const toggleFavorite = (freelancerId: string | number) => {
     setFavorites((prev) =>
       prev.includes(freelancerId)
         ? prev.filter((id) => id !== freelancerId)
@@ -264,12 +266,16 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         {sortedFreelancers.map((freelancer) => (
           <div
             key={freelancer.id}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100"
+            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 cursor-pointer"
+            onClick={() => navigate(`/freelancers/${freelancer.id}`)}
           >
             {/* Header với avatar và favorite */}
             <div className="relative p-6 pb-4">
               <button
-                onClick={() => toggleFavorite(freelancer.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(freelancer.id);
+                }}
                 className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <AiOutlineHeart
@@ -354,15 +360,24 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
               {/* Action Buttons */}
               <div className="flex space-x-2">
                 <button
-                  onClick={() => handleBookService(freelancer)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBookService(freelancer);
+                  }}
                   className="flex-1 bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm"
                 >
                   Đặt dịch vụ
                 </button>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <AiOutlinePhone className="w-4 h-4" />
                 </button>
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <AiOutlineMail className="w-4 h-4" />
                 </button>
               </div>

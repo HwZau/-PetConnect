@@ -9,32 +9,34 @@ import {
   AiOutlineLogin,
   AiOutlineBell,
   AiOutlineSetting,
+  AiOutlineLogout,
 } from "react-icons/ai";
 import ReactCountryFlag from "react-country-flag";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../../assets/image/Logo.png";
+import { useAuth } from "../../hooks";
 
 const Header = () => {
   const navigate = useNavigate();
-  // Giả lập thông tin user, khi có API thì lấy từ backend
-  const [user] = useState<null | { name: string; avatar: string }>({
-    name: "Lý Hồng Thư",
-    avatar: "/images/avatars/user-1.jpg",
-  });
+  const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Xử lý đăng nhập: chuyển sang login page hoặc cập nhật user giả lập
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Xử lý đăng nhập/đăng xuất
   const handleAuthAction = () => {
     if (user) {
-      // Hiển thị menu profile hoặc logout
-      console.log("Toggling profile menu");
+      setShowUserMenu(!showUserMenu);
     } else {
-      // Chuyển hướng sang trang /login với React Router
       navigate("/login");
     }
   };
 
-  // Function to get random avatar
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate("/");
+  };
 
   // Function to get fixed avatar image
   const getFixedAvatar = () => {
@@ -122,22 +124,45 @@ const Header = () => {
 
             {/* User Avatar */}
             {user ? (
-              <div
-                className="flex items-center space-x-1 cursor-pointer group"
-                onClick={handleAuthAction}
-              >
-                <div className="w-8 h-8 rounded-full overflow-hidden">
-                  <img
-                    src={user.avatar || getFixedAvatar()}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
-                    }}
-                  />
+              <div className="relative">
+                <div
+                  className="flex items-center space-x-1 cursor-pointer group"
+                  onClick={handleAuthAction}
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    <img
+                      src={user.avatar || getFixedAvatar()}
+                      alt={user.name || 'User'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src =
+                          "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
+                      }}
+                    />
+                  </div>
                 </div>
+                
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <AiOutlineUser className="w-4 h-4 mr-3" />
+                      Hồ sơ của tôi
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <AiOutlineLogout className="w-4 h-4 mr-3" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button
