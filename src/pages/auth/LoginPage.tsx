@@ -1,16 +1,17 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserContext, type User } from "../../contexts/UserContext";
 import loginImage from "../../assets/image/login.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
-import { useScrollToTop } from "../../hooks";
+import { useScrollToTop, useAuth } from "../../hooks";
+import { authService } from "../../services";
+import { showError, showSuccess } from "../../utils/toastUtils";
 
 const LoginPage = () => {
   // Scroll to top when page loads
   useScrollToTop();
 
-  const { setUser } = useContext(UserContext);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -34,20 +35,29 @@ const LoginPage = () => {
         return;
       }
 
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock successful login - replace with actual API response
-      const userData: User = {
-        id: "1",
+      // Call login API
+      const loginResponse = await authService.login({
         email: formData.email,
-        name: "User Name",
-        role: "user",
-      };
+        password: formData.password,
+      });
 
-      handleSuccessfulLogin(userData);
+      if (!loginResponse.success) {
+        setError(
+          loginResponse.error || "Đăng nhập không thành công. Vui lòng thử lại."
+        );
+        return;
+      }
+
+      const token = loginResponse.data?.token;
+
+      // Save user to context if login successful
+      if (token) {
+        login(token);
+        showSuccess("Đăng nhập thành công!");
+        navigate("/");
+      }
     } catch (err) {
-      setError("Đăng nhập không thành công. Vui lòng thử lại.");
+      showError("Lỗi đăng nhập. Vui lòng thử lại.");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -60,11 +70,6 @@ const LoginPage = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
-
-  const handleSuccessfulLogin = (userData: User) => {
-    setUser(userData);
-    navigate("/");
   };
 
   return (

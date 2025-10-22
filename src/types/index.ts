@@ -8,16 +8,11 @@ import type { ReactNode } from "react";
 export interface User {
   id: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  name?: string; // For simplified user context
+  name?: string;
   phoneNumber?: string;
   avatar?: string;
-  role: "owner" | "caregiver" | "admin" | "user" | "staff";
-  isEmailVerified?: boolean;
-  isPhoneVerified?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  role: string;
+  isActive?: boolean;
 }
 
 // Pet Entity - Used in Pet components, Profile page, Booking components

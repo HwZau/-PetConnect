@@ -8,15 +8,16 @@ import {
   AiOutlineDown,
   AiOutlineMenu,
   AiOutlineLogin,
+  AiOutlineLogout,
 } from "react-icons/ai";
 import ReactCountryFlag from "react-country-flag";
 import Logo from "../../assets/image/Logo.png";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../hooks";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  // Giả lập thông tin user, khi có API thì lấy từ backend
-  const [user] = useState<null | { name: string; avatar: string }>(null);
+  const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -31,15 +32,35 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Xử lý đăng nhập: chuyển sang login page hoặc cập nhật user giả lập
-  const handleAuthAction = () => {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showUserMenu && !target.closest(".user-menu-container")) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showUserMenu]);
+
+  // Xử lý đăng nhập/đăng xuất
+  const handleAuthAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (user) {
-      // Hiển thị menu profile hoặc logout
-      console.log("Toggling profile menu");
+      setShowUserMenu(!showUserMenu);
     } else {
-      // Chuyển hướng sang trang /login với React Router
       navigate("/login");
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+    navigate("/");
   };
 
   return (
@@ -150,18 +171,48 @@ const Navbar = () => {
 
               {/* Conditional User Avatar or Login Button */}
               {user ? (
-                <div
-                  className="flex items-center space-x-2 cursor-pointer group"
-                  onClick={handleAuthAction}
-                >
-                  <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+                <div className="relative user-menu-container">
+                  <div
+                    className="flex items-center space-x-2 cursor-pointer group"
+                    onClick={handleAuthAction}
+                  >
+                    <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name || "User"}
+                          className="w-full h-full rounded-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <AiOutlineUser className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                    <AiOutlineDown className="w-3 h-3 text-gray-500 group-hover:text-gray-700 transition-colors duration-150" />
                   </div>
-                  <AiOutlineDown className="w-3 h-3 text-gray-500 group-hover:text-gray-700 transition-colors duration-150" />
+
+                  {/* User Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                      <Link
+                        to="/profile"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <AiOutlineUser className="w-4 h-4 mr-3" />
+                        Hồ sơ của tôi
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <AiOutlineLogout className="w-4 h-4 mr-3" />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button
@@ -242,20 +293,26 @@ const Navbar = () => {
                 </button>
               )}
               {user && (
-                <div
-                  className="flex items-center space-x-2 px-4 py-2 cursor-pointer group transition-colors duration-150"
-                  onClick={handleAuthAction}
-                >
-                  <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  </div>
-                  <span className="font-medium text-gray-700">{user.name}</span>
-                  <AiOutlineDown className="w-3 h-3 text-gray-500 group-hover:text-gray-700 transition-colors duration-150" />
-                </div>
+                <>
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    <AiOutlineUser className="w-4 h-4" />
+                    <span>Hồ sơ của tôi</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowMobileMenu(false);
+                    }}
+                    className="flex items-center w-full space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
+                  >
+                    <AiOutlineLogout className="w-4 h-4" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
