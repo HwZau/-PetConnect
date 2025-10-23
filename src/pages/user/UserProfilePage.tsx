@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../../components/profile/Header";
 import UserProfileCard from "../../components/profile/UserProfileCard";
 import UserStats from "../../components/profile/UserStats";
@@ -7,109 +7,64 @@ import RecentServices from "../../components/profile/RecentServices";
 import QuickActions from "../../components/profile/QuickActions";
 import FavoriteServices from "../../components/profile/FavoriteServices";
 import ChatSupport from "../../components/profile/ChatSupport";
-import { FaCut, FaStethoscope, FaPaw } from "react-icons/fa";
 import { useScrollToTop } from "../../hooks";
-
-// Giả lập dữ liệu user
-const user = {
-  id: "1",
-  name: "Lý Hồng Thư",
-  avatar: "/images/avatars/user-1.jpg",
-  role: "Chủ thú cưng yêu thương",
-  location: "Quận trí TPHCM",
-  memberSince: "2023",
-  stats: {
-    petCount: 3,
-    friendsCount: 24,
-    reviewCount: 3,
-    messagesCount: "2.3M",
-  },
-  pets: [
-    {
-      id: "1",
-      name: "Buddy",
-      type: "Golden Retriever",
-      status: "Khỏe",
-      avatar: "/images/pets/dog1.jpg",
-      color: "bg-orange-100",
-    },
-    {
-      id: "2",
-      name: "Luna",
-      type: "Persian Cat",
-      status: "Ốm",
-      avatar: "/images/pets/cat1.jpg",
-      color: "bg-blue-100",
-    },
-    {
-      id: "3",
-      name: "Kiwi",
-      type: "Cockatiel",
-      status: "Khỏe mạnh",
-      avatar: "/images/pets/bird1.jpg",
-      color: "bg-green-100",
-    },
-  ],
-  recentServices: [
-    {
-      id: "1",
-      title: "Cắt tỉa lông cho Buddy",
-      location: "Pet Parlament • 12/10/2024",
-      status: "Hoàn thành",
-      color: "green",
-      icon: <FaCut className="text-white" />,
-      bgColor: "bg-green-500",
-      percentage: "100%",
-    },
-    {
-      id: "2",
-      title: "Khám sức khỏe Luna",
-      location: "Dr PetCare • 09/10/2024",
-      status: "Đang xử lý",
-      color: "yellow",
-      icon: <FaStethoscope className="text-white" />,
-      bgColor: "bg-yellow-500",
-      percentage: "50%",
-    },
-    {
-      id: "3",
-      title: "Pet sitting cho tất cả",
-      location: "Pet Parlament • 25/12/2024",
-      status: "Đã đặt",
-      color: "blue",
-      icon: <FaPaw className="text-white" />,
-      bgColor: "bg-blue-500",
-      percentage: "0%",
-    },
-  ],
-  favoriteServices: [
-    {
-      id: "1",
-      title: "Cắt tỉa lông",
-      desc: "Tỉnh xảo nhất",
-      icon: <FaCut className="text-white" />,
-      bgColor: "bg-orange-500",
-    },
-    {
-      id: "2",
-      title: "Khám sức khỏe",
-      desc: "Đặt đi đừng ngại",
-      icon: <FaStethoscope className="text-white" />,
-      bgColor: "bg-blue-500",
-    },
-    {
-      id: "3",
-      title: "Pet sitting",
-      desc: "Giá cả phải chăng",
-      icon: <FaPaw className="text-white" />,
-      bgColor: "bg-green-500",
-    },
-  ],
-};
+import type {
+  UserProfile,
+  UserStats as UserStatsType,
+} from "../../types/domains/profile";
+import type { Pet } from "../../types/domains/booking";
+import {
+  fetchUserProfile,
+  fetchUserStats,
+  fetchUserPets,
+  fetchRecentBookings,
+  fetchFavoriteServices,
+} from "../../services/Profile/User/mockUserService";
 
 const UserProfilePage: React.FC = () => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [userStats, setUserStats] = useState<UserStatsType | null>(null);
+  const [userPets, setUserPets] = useState<Pet[]>([]);
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [favoriteServices, setFavoriteServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Scroll to top when page loads
   useScrollToTop();
+
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const [profile, stats, pets, bookings, services] = await Promise.all([
+          fetchUserProfile("user-001"),
+          fetchUserStats("user-001"),
+          fetchUserPets("user-001"),
+          fetchRecentBookings("user-001"),
+          fetchFavoriteServices("user-001"),
+        ]);
+
+        setUserProfile(profile);
+        setUserStats(stats);
+        setUserPets(pets);
+        setRecentBookings(bookings as any[]);
+        setFavoriteServices(services as any[]);
+      } catch (error) {
+        console.error("Failed to load user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  if (loading || !userProfile || !userStats) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -121,16 +76,16 @@ const UserProfilePage: React.FC = () => {
           {/* Main Content - 2 columns */}
           <div className="lg:col-span-2 space-y-6">
             {/* User Profile Card */}
-            <UserProfileCard user={user} />
+            <UserProfileCard user={userProfile} />
 
             {/* Stats */}
-            <UserStats stats={user.stats} />
+            <UserStats stats={userStats} userType="customer" />
 
             {/* Pets */}
-            <UserPets pets={user.pets} />
+            <UserPets pets={userPets} />
 
             {/* Recent Services */}
-            <RecentServices services={user.recentServices} />
+            <RecentServices bookings={recentBookings} />
           </div>
 
           {/* Sidebar */}
@@ -139,7 +94,7 @@ const UserProfilePage: React.FC = () => {
             <QuickActions />
 
             {/* Favorite Services */}
-            <FavoriteServices services={user.favoriteServices} />
+            <FavoriteServices services={favoriteServices} />
 
             {/* Chat Support */}
             <ChatSupport />

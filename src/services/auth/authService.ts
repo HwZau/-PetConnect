@@ -1,7 +1,7 @@
 // Authentication services
-import { apiClient } from "./apiClient";
-import type { User, ApiResponse } from "../types";
-import { API_ENDPOINTS } from "../config/api";
+import { apiClient } from "../apiClient";
+import type { User, ApiResponse } from "../../types";
+import { API_ENDPOINTS } from "../../config/api";
 
 export interface LoginCredentials {
   email: string;

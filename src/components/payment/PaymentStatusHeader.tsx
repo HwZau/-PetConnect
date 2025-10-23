@@ -2,7 +2,7 @@ import React from "react";
 import { FiCheckCircle, FiXCircle } from "react-icons/fi";
 
 interface PaymentStatusHeaderProps {
-  status: "success" | "failed";
+  status: "success" | "failed" | "pending";
   countdown?: number;
 }
 

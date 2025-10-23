@@ -5,7 +5,7 @@ interface TransactionDetailsProps {
   transactionId: string;
   paymentMethod: string;
   totalAmount: number;
-  status: "success" | "failed";
+  status: "success" | "failed" | "pending";
 }
 
 const TransactionDetails: React.FC<TransactionDetailsProps> = ({

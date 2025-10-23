@@ -1,6 +1,6 @@
 import React from "react";
 import type { ServiceSelectionProps } from "../../types";
-import { ServiceManager } from "../../services/serviceManager";
+import { ServiceManager } from "../../services/booking/serviceManager";
 
 const ServiceSelection: React.FC<ServiceSelectionProps> = ({
   selectedService,

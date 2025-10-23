@@ -7,7 +7,7 @@ import {
   PromoCodeSection,
   OrderSummary,
 } from "../../components/payment";
-import { ServiceManager } from "../../services/serviceManager";
+import { ServiceManager } from "../../services/booking/serviceManager";
 import { showSuccess, showError, showPromise } from "../../utils";
 import type { PaymentBookingData } from "../../types";
 
@@ -95,7 +95,7 @@ const PaymentPage = () => {
           transactionId: `TXN${Date.now()}`,
         },
       });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // Navigate to failed page
       navigate("/payment-status", {

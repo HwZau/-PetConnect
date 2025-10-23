@@ -1,6 +1,6 @@
 // Pet management services
-import { apiClient } from "./apiClient";
-import type { Pet, ApiResponse, PaginatedResponse } from "../types";
+import { apiClient } from "../apiClient";
+import type { Pet, ApiResponse, PaginatedResponse } from "../../types";
 
 export interface CreatePetData {
   name: string;

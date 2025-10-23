@@ -1,7 +1,7 @@
 import React from "react";
 import { formatDate } from "../../utils";
 import type { BookingSummaryProps } from "../../types";
-import { ServiceManager } from "../../services/serviceManager";
+import { ServiceManager } from "../../services/booking/serviceManager";
 
 const BookingSummary: React.FC<BookingSummaryProps> = ({
   selectedFreelancer,

@@ -2,7 +2,7 @@ import React from "react";
 import { FiHome, FiRefreshCw, FiDownload, FiShare2 } from "react-icons/fi";
 
 interface PaymentStatusActionsProps {
-  status: "success" | "failed";
+  status: "success" | "failed" | "pending";
   onRetryPayment: () => void;
   onGoHome: () => void;
   onDownloadReceipt: () => void;
