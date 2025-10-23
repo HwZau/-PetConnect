@@ -77,7 +77,20 @@ const AppRoutes = () => {
   <Route path="payments" element={<PaymentsPage />} />
 </Route>
 
-          
+          {/* 🛠️ Admin routes neu co usecontext */}
+{/* <Route
+  path="/admin/*"
+  element={
+    user?.role === "admin" ? <AdminLayout /> : <Navigate to="/" />
+  }
+>
+  <Route index element={<DashboardPage />} />
+  <Route path="freelancers" element={<FreelancersPage />} />
+  <Route path="customers" element={<CustomersPage />} />
+  <Route path="jobs" element={<JobsPage />} />
+  <Route path="payments" element={<PaymentsPage />} />
+</Route> */}
+
 
           {/* 404 - Not Found */}
           <Route
