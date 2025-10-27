@@ -2,6 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy, useContext } from "react";
 import { UserProvider, UserContext } from "./contexts/UserContext";
 import PageLoader from "./components/common/PageLoader";
+import DashboardPage from "./pages/admin/DashboardPage";
+import FreelancersPage from "./pages/admin/FreelancersPage";
+import CustomersPage from "./pages/admin/CustomersPage";
+import JobsPage from "./pages/admin/JobsPage";
+import PaymentsPage from "./pages/admin/PaymentsPage";
+import AdminLayout from "./layouts/AdminLayout";
 
 // Lazy load all pages
 const HomePage = lazy(() => import("./pages/home/HomePage"));
@@ -30,6 +36,7 @@ const AppRoutes = () => {
       <Suspense fallback={<PageLoader text="Đang tải trang..." />}>
         <Routes>
           {/* Public routes */}
+
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<EventPage />} />
           <Route path="/freelancers" element={<FreelancerPage />} />
@@ -61,17 +68,29 @@ const AppRoutes = () => {
             }
           />
 
-          {/* Admin routes - requires admin role */}
-          <Route
-            path="/admin/*"
-            element={
-              user?.role === "admin" ? (
-                <div>Admin Dashboard (To be implemented)</div>
-              ) : (
-                <Navigate to="/" />
-              )
-            }
-          />
+          {/* 🛠️ Admin routes */}
+         <Route path="/admin/*" element={<AdminLayout />}>
+  <Route path="dashboard" element={<DashboardPage />} />
+  <Route path="freelancers" element={<FreelancersPage />} />
+  <Route path="customers" element={<CustomersPage />} />
+  <Route path="jobs" element={<JobsPage />} />
+  <Route path="payments" element={<PaymentsPage />} />
+</Route>
+
+          {/* 🛠️ Admin routes neu co usecontext */}
+{/* <Route
+  path="/admin/*"
+  element={
+    user?.role === "admin" ? <AdminLayout /> : <Navigate to="/" />
+  }
+>
+  <Route index element={<DashboardPage />} />
+  <Route path="freelancers" element={<FreelancersPage />} />
+  <Route path="customers" element={<CustomersPage />} />
+  <Route path="jobs" element={<JobsPage />} />
+  <Route path="payments" element={<PaymentsPage />} />
+</Route> */}
+
 
           {/* 404 - Not Found */}
           <Route
@@ -84,6 +103,7 @@ const AppRoutes = () => {
               </div>
             }
           />
+          
         </Routes>
       </Suspense>
     </div>
