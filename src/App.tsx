@@ -69,16 +69,16 @@ const AppRoutes = () => {
           />
 
           {/* 🛠️ Admin routes */}
-         <Route path="/admin/*" element={<AdminLayout />}>
-  <Route path="dashboard" element={<DashboardPage />} />
-  <Route path="freelancers" element={<FreelancersPage />} />
-  <Route path="customers" element={<CustomersPage />} />
-  <Route path="jobs" element={<JobsPage />} />
-  <Route path="payments" element={<PaymentsPage />} />
-</Route>
+          <Route path="/admin/*" element={<AdminLayout />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="freelancers" element={<FreelancersPage />} />
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="jobs" element={<JobsPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
+          </Route>
 
           {/* 🛠️ Admin routes neu co usecontext */}
-{/* <Route
+          {/* <Route
   path="/admin/*"
   element={
     user?.role === "admin" ? <AdminLayout /> : <Navigate to="/" />
@@ -103,7 +103,7 @@ const AppRoutes = () => {
               </div>
             }
           />
-          
+
         </Routes>
       </Suspense>
     </div>
