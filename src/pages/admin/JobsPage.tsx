@@ -6,6 +6,7 @@ import JobCard from "../../components/admin/JobCard"; // Sử dụng JobCard chi
 import { AiOutlineProfile, AiOutlineHourglass, AiOutlineCheckSquare, AiOutlineCalendar, AiOutlineEnvironment } from "react-icons/ai";
 import FiltersPanel from "../../components/admin/FiltersPanel";
 import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import JobModal from "../../components/admin/modal/JobModal";
 
 const ITEMS_PER_PAGE = 6;
@@ -62,6 +63,8 @@ const JobsPage: React.FC = () => {
   }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { language, theme } = useSettings();
+  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
 
   const handleCreateJob = (data: any) => {
     console.log('Creating job:', data);
@@ -82,19 +85,6 @@ const JobsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { searchQuery } = useSearch();
 
-  // MOCK DATA ĐÃ CẬP NHẬT ĐẦY ĐỦ
-  const allJobs: Job[] = [
-    { id: 1, title: "Chăm Sóc Tai Nhỏ - Buddy", customer: "Nguyễn Thị Lan Anh", pet: "Chó Golden", freelancer: "Chưa phân công", time: "10:00, 10/10", location: "Quận 1, TP.HCM", status: "Pending", price: "700,000₫", type: "Grooming", petType: "Dog", createdDate: "10/10/2025", region: "TP.HCM" },
-    { id: 2, title: "Tắm Rửa & Cắt Tỉa - Mimi", customer: "Trần Văn Minh", pet: "Mèo Ba Tư", freelancer: "Nguyễn Thị Lan", time: "14:00, 09/10", location: "Quận Ba Đình, Hà Nội", status: "Completed", price: "900,000₫", type: "Grooming", petType: "Cat", createdDate: "09/10/2025", region: "Hà Nội" },
-    { id: 3, title: "Huấn luyện cơ bản - Rex", customer: "Võ Thị Mai", pet: "Chó Alaska", freelancer: "Trần Văn Minh", time: "17:00, 11/10", location: "Quận 1, TP.HCM", status: "In Progress", price: "1,200,000₫", type: "Training", petType: "Dog", createdDate: "11/10/2025", region: "TP.HCM" },
-    { id: 4, title: "Dịch vụ Sitter 3 ngày - Kitty", customer: "Phạm Văn Lợi", pet: "Mèo Anh", freelancer: "Ngô Hữu Trí", time: "13/10 - 15/10", location: "Quận Hải Châu, Đà Nẵng", status: "Assigned", price: "1,500,000₫", type: "Sitting", petType: "Cat", createdDate: "13/10/2025", region: "Đà Nẵng" },
-    { id: 5, title: "Khám định kỳ & Tiêm phòng", customer: "Đặng Tiến Dũng", pet: "Thỏ", freelancer: "Chưa phân công", time: "09:00, 14/10", location: "Quận Ba Đình, Hà Nội", status: "Pending", price: "850,000₫", type: "Medical", petType: "Other", createdDate: "14/10/2025", region: "Hà Nội" },
-    { id: 6, title: "Vệ sinh chuồng chim - Vẹt", customer: "Trịnh Quang Hùng", pet: "Vẹt", freelancer: "Nguyễn Thị Lan", time: "11:00, 05/10", location: "Quận 1, TP.HCM", status: "Completed", price: "500,000₫", type: "Grooming", petType: "Other", createdDate: "05/10/2025", region: "TP.HCM" },
-    { id: 7, title: "Chăm sóc lông dài - Gấu", customer: "Bùi Thị Yến", pet: "Mèo Ragdoll", freelancer: "Trần Văn Minh", time: "16:00, 15/10", location: "Quận Ba Đình, Hà Nội", status: "In Progress", price: "1,100,000₫", type: "Grooming", petType: "Cat", createdDate: "15/10/2025", region: "Hà Nội" },
-    { id: 8, title: "Huấn luyện nâng cao - Rex", customer: "Ngô Văn Phát", pet: "Chó Poodle", freelancer: "Nguyễn Thị Lan", time: "18:00, 16/10", location: "Quận Hải Châu, Đà Nẵng", status: "Assigned", price: "300,000₫", type: "Training", petType: "Dog", createdDate: "16/10/2025", region: "Đà Nẵng" },
-    { id: 9, title: "Massage trị liệu - Rex", customer: "Phạm Văn Lợi", pet: "Chó Alaska", freelancer: "Ngô Hữu Trí", time: "10:30, 17/10", location: "Quận 1, TP.HCM", status: "Cancelled", price: "2,000,000₫", type: "Medical", petType: "Dog", createdDate: "17/10/2025", region: "TP.HCM" },
-    { id: 10, title: "Cắt móng & Vệ sinh tai", customer: "Nguyễn Thị Lan Anh", pet: "Chó Golden", freelancer: "Trần Văn Minh", time: "14:30, 18/10", location: "Quận Ba Đình, Hà Nội", status: "Pending", price: "400,000₫", type: "Grooming", petType: "Dog", createdDate: "18/10/2025", region: "Hà Nội" },
-  ];
 
   // LOGIC LỌC
   const filteredJobs = allJobs.filter(job => {
@@ -139,17 +129,16 @@ const JobsPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-4  rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+        className={`px-4  rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-        Trang Trước
+        {t('Trang Trước','Prev')}
       </button>
 
       {[...Array(totalPages)].map((_, index) => (
         <button
           key={index}
           onClick={() => handlePageChange(index + 1)}
-          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
+          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           {index + 1}
         </button>
@@ -158,26 +147,26 @@ const JobsPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-4  rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+          className={`px-4  rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-        Trang Sau
+          {t('Trang Sau','Next')}
       </button>
     </div>
   );
 
   return (
     // Dùng div độc lập để chứa nội dung trang
-    <div className="p-8">
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Quản Lý Công Việc</h2>
-          <p className="text-gray-500">Theo dõi trạng thái và tiến độ của tất cả công việc.</p>
+          <h2 className="text-3xl font-bold">{t('Quản Lý Công Việc','Jobs Management')}</h2>
+          <p className="text-gray-500">{t('Theo dõi trạng thái và tiến độ của tất cả công việc.','Track status and progress of all jobs.')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
         >
-          + Tạo Công Việc Mới
+          {t('+ Tạo Công Việc Mới','+ Create Job')}
         </button>
       </div>
 
@@ -224,7 +213,7 @@ const JobsPage: React.FC = () => {
         onReset={() => setFilter({ status: "All", type: "All", petType: "All", freelancer: "All", createdDate: "All", region: "All" })}
       />
 
-      <h3 className="text-xl font-bold mb-4">Danh Sách Công Việc ({filteredJobs.length})</h3>
+  <h3 className="text-xl font-bold mb-4">{t('Danh Sách Công Việc','Job List')} ({filteredJobs.length})</h3>
 
       {/* DANH SÁCH JOB CARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,8 +232,8 @@ const JobsPage: React.FC = () => {
             />
           ))
         ) : (
-          <div className="md:col-span-3 text-center py-10 bg-white rounded-2xl text-gray-500">
-            Không tìm thấy công việc nào phù hợp với bộ lọc.
+          <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
+            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>{t('Không tìm thấy công việc nào phù hợp với bộ lọc.','No jobs match the filters.')}</div>
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import { AiOutlineDollarCircle, AiOutlineLineChart, AiOutlineSwap, AiOutlineDown
 import FiltersPanel from "../../components/admin/FiltersPanel";
 import PaymentModal from "../../components/admin/modal/PaymentModal";
 import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -33,6 +34,8 @@ interface Transaction {
 
 const PaymentsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { language, theme } = useSettings();
+  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
 
   const handleCreatePayment = (data: any) => {
     console.log('Creating payment:', data);
@@ -304,14 +307,14 @@ const PaymentsPage: React.FC = () => {
 
 
   return (
-    <div className="p-8">
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       {/* HERO / PAGE HEADER */}
       <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-2xl p-6 shadow-xl overflow-hidden">
+        <div className={`lg:col-span-2 rounded-2xl p-6 shadow-xl overflow-hidden ${theme === 'dark' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white'}`}>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-3xl font-bold">Quản Lý Giao Dịch</h2>
-              <p className="opacity-90 mt-1">Tổng quan doanh thu, phí và hoạt động thanh toán trên PawNest.</p>
+              <h2 className="text-3xl font-bold">{t('Quản Lý Giao Dịch', 'Payments Management')}</h2>
+              <p className="opacity-90 mt-1">{t('Tổng quan doanh thu, phí và hoạt động thanh toán trên PawNest.', 'Overview of revenue, fees and payment activity on PawNest.')}</p>
               <div className="mt-4 flex items-center gap-4">
                 <div className="bg-white/10 px-3 py-2 rounded-lg">
                   <div className="text-sm opacity-90">Tổng doanh thu (tháng)</div>
@@ -331,7 +334,7 @@ const PaymentsPage: React.FC = () => {
                   onClick={() => setIsModalOpen(true)} 
                   className="px-3 py-2 bg-white text-green-600 rounded-lg font-medium hover:scale-105 transition-transform"
                 >
-                  + Tạo Giao Dịch Mới
+                  {t('+ Tạo Giao Dịch Mới', '+ Create Transaction')}
                 </button>
               </div>
 
@@ -361,10 +364,10 @@ const PaymentsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-md flex flex-col gap-3 justify-between">
+  <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-md flex flex-col gap-3 justify-between`}>
           <div>
-            <h3 className="text-lg font-semibold">Tổng quan nhanh</h3>
-            <p className="text-sm text-gray-500">Những con số chính và trạng thái hệ thống</p>
+            <h3 className="text-lg font-semibold">{t('Tổng quan nhanh', 'Quick Overview')}</h3>
+            <p className="text-sm text-gray-500">{t('Những con số chính và trạng thái hệ thống', 'Key numbers and system status')}</p>
           </div>
           <div className="grid grid-cols-1 gap-3">
             <div className="flex items-center justify-between gap-4">
@@ -413,8 +416,8 @@ const PaymentsPage: React.FC = () => {
 
       {/* ACTIONS */}
       <div className="mb-6 flex items-center justify-end gap-2">
-        <button onClick={() => exportCsv(filteredTransactions)} className="px-4 py-2 bg-white border rounded-xl hover:bg-gray-50 flex items-center gap-2"><AiOutlineDownload /> Xuất CSV</button>
-        <button onClick={() => exportPdf(filteredTransactions)} className="px-4 py-2 bg-white border rounded-xl hover:bg-gray-50 flex items-center gap-2"><AiOutlineFilePdf /> Xuất PDF</button>
+        <button onClick={() => exportCsv(filteredTransactions)} className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}><AiOutlineDownload /> {t('Xuất CSV','Export CSV')}</button>
+        <button onClick={() => exportPdf(filteredTransactions)} className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}><AiOutlineFilePdf /> {t('Xuất PDF','Export PDF')}</button>
       </div>
 {/* FILTER */}
       <FiltersPanel

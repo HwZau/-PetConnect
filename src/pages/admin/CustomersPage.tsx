@@ -38,11 +38,14 @@ const allCustomers: Customer[] = [
 ];
 
 import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { AiOutlineEnvironment } from 'react-icons/ai';
 import CustomerModal from "../../components/admin/modal/CustomerModal";
 
 const CustomersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { language, theme } = useSettings();
+  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
 
   const handleCreateCustomer = (data: any) => {
     console.log('Creating customer:', data);
@@ -145,17 +148,16 @@ const CustomersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'}`}
       >
-        Trang Trước
+        {t('Trang Trước', 'Prev')}
       </button>
 
       {[...Array(totalPages)].map((_, index) => (
         <button
           key={index}
           onClick={() => handlePageChange(index + 1)}
-          className={`px-4 py-2 rounded-xl font-semibold ${currentPage === index + 1 ? 'bg-green-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
+          className={`px-4 py-2 rounded-xl font-semibold ${currentPage === index + 1 ? 'bg-green-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           {index + 1}
         </button>
@@ -164,26 +166,26 @@ const CustomersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'}`}
       >
-        Trang Sau
+        {t('Trang Sau', 'Next')}
       </button>
     </div>
   );
 
   return (
 
-    <div className="p-8">
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Quản Lý Khách Hàng</h2>
-          <p className="text-gray-500">Quản lý hồ sơ và lịch sử giao dịch của khách hàng.</p>
+          <h2 className="text-3xl font-bold">{t('Quản Lý Khách Hàng', 'Customers Management')}</h2>
+          <p className="text-gray-500">{t('Quản lý hồ sơ và lịch sử giao dịch của khách hàng.', 'Manage customer profiles and transaction history.')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
         >
-          + Thêm Khách Hàng
+          {t('+ Thêm Khách Hàng', '+ Add Customer')}
         </button>
       </div>
 
@@ -229,7 +231,7 @@ const CustomersPage: React.FC = () => {
     onReset={() => setFilter({ status: "All", petType: "All", bookingCount: "All", joinDate: "All", region: "All" })}
       />
 
-      <h3 className="text-xl font-bold mb-4">Danh Sách Khách Hàng ({filteredCustomers.length})</h3>
+  <h3 className="text-xl font-bold mb-4">{t('Danh Sách Khách Hàng', 'Customer List')} ({filteredCustomers.length})</h3>
 
       {/* DANH SÁCH CUSTOMER CARD (Đã cập nhật để dùng dữ liệu đã lọc) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -249,8 +251,8 @@ const CustomersPage: React.FC = () => {
             />
           ))
         ) : (
-          <div className="md:col-span-3 text-center py-10 bg-white rounded-2xl text-gray-500 shadow-md">
-            Không tìm thấy khách hàng nào phù hợp với bộ lọc.
+          <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
+            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>{t('Không tìm thấy khách hàng nào phù hợp với bộ lọc.', 'No customers match the filters.')}</div>
           </div>
         )}
       </div>

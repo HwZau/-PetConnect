@@ -7,7 +7,9 @@ import FreelancersPage from "./pages/admin/FreelancersPage";
 import CustomersPage from "./pages/admin/CustomersPage";
 import JobsPage from "./pages/admin/JobsPage";
 import PaymentsPage from "./pages/admin/PaymentsPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 import AdminLayout from "./layouts/AdminLayout";
+import { SettingsProvider } from "./contexts/SettingsContext";
 
 // Lazy load all pages
 const HomePage = lazy(() => import("./pages/home/HomePage"));
@@ -75,6 +77,7 @@ const AppRoutes = () => {
             <Route path="customers" element={<CustomersPage />} />
             <Route path="jobs" element={<JobsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           {/* 🛠️ Admin routes neu co usecontext */}
@@ -113,9 +116,12 @@ const AppRoutes = () => {
 function App() {
   return (
     <UserProvider>
-      <BrowserRouter>
+      <SettingsProvider >
+         <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      </SettingsProvider>
+     
     </UserProvider>
   );
 }

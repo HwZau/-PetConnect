@@ -36,11 +36,14 @@ const allFreelancers: Freelancer[] = [
 ];
 
 import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { AiOutlineEnvironment } from 'react-icons/ai';
 import FreelancerModal from "../../components/admin/modal/FreelancerModal";
 
 const FreelancersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { language, theme } = useSettings();
+  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
 
   const handleCreateFreelancer = (data: any) => {
     console.log('Creating freelancer:', data);
@@ -139,17 +142,16 @@ const FreelancersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-        Trang Trước
+        {t('Trang Trước','Prev')}
       </button>
 
       {[...Array(totalPages)].map((_, index) => (
         <button
           key={index}
           onClick={() => handlePageChange(index + 1)}
-          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
+          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           {index + 1}
         </button>
@@ -158,9 +160,9 @@ const FreelancersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-        Trang Sau
+        {t('Trang Sau','Next')}
       </button>
     </div>
   );
@@ -172,17 +174,17 @@ const FreelancersPage: React.FC = () => {
 
 
   return (
-    <div className="p-8">
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Quản Lý Freelancers</h2>
-          <p className="text-gray-500">Quản lý hồ sơ, dịch vụ và hiệu suất của freelancers.</p>
+          <h2 className="text-3xl font-bold">{t('Quản Lý Freelancers','Freelancers Management')}</h2>
+          <p className="text-gray-500">{t('Quản lý hồ sơ, dịch vụ và hiệu suất của freelancers.','Manage profiles, services and performance of freelancers.')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
         >
-          + Thêm Freelancer
+          {t('+ Thêm Freelancer','+ Add Freelancer')}
         </button>
       </div>
   {/* STAT CARDS (Đã cập nhật số liệu thật) */}
@@ -206,7 +208,7 @@ const FreelancersPage: React.FC = () => {
         onReset={() => { resetFilters(); }}
       />
 
-      <h3 className="text-xl font-bold mb-4">Danh Sách Freelancer ({filteredFreelancers.length})</h3>
+  <h3 className="text-xl font-bold mb-4">{t('Danh Sách Freelancer','Freelancer List')} ({filteredFreelancers.length})</h3>
 
       {/* DANH SÁCH FREELANCER CARD (Sử dụng dữ liệu đã lọc) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -226,8 +228,8 @@ const FreelancersPage: React.FC = () => {
             />
           ))
         ) : (
-          <div className="md:col-span-3 text-center py-10 bg-white rounded-2xl text-gray-500 shadow-md">
-            Không tìm thấy freelancer nào phù hợp với bộ lọc.
+          <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
+            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>{t('Không tìm thấy freelancer nào phù hợp với bộ lọc.','No freelancers match the filters.')}</div>
           </div>
         )}
       </div>
