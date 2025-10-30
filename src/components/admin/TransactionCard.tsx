@@ -1,5 +1,6 @@
 // file: TransactionCard.tsx
 import React from "react";
+import { useSettings } from "../../contexts/SettingsContext";
 // Import icons cần thiết
 import { 
     AiOutlineDollarCircle, 
@@ -39,6 +40,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     platformFee, 
     status 
 }) => {
+    const { theme } = useSettings();
+    const textColor = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
+    const subText = theme === 'dark' ? 'text-gray-300' : 'text-gray-500';
+    const muted = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
     
     // Helper function để quyết định màu sắc dựa trên status
     const getStatusStyle = (jobStatus: string) => {
@@ -112,36 +117,36 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     };
 
     return (
-        <div className={`bg-white rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl border-l-4 ${status === 'Success' ? 'border-green-400' : status === 'Pending' ? 'border-amber-400' : 'border-red-400'}`}>
+        <div className={`rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl border-l-4 ${status === 'Success' ? 'border-green-400' : status === 'Pending' ? 'border-amber-400' : 'border-red-400'} ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
             {/* HEADER: avatar, title, status, amount */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-700">{avatarText}</div>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-700'}`}>{avatarText}</div>
                     </div>
                     <div className="min-w-0">
-                        <div className="text-md font-semibold text-gray-800 truncate" title={title}>{title}</div>
-                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                        <div className={`text-md font-semibold ${textColor} truncate`} title={title}>{title}</div>
+                        <div className={`${subText} text-xs mt-1 flex items-center gap-2`}>
                             <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>{getVietnameseStatus(status)}</span>
-                            <span className="text-gray-400">•</span>
+                            <span className={`${muted}`}>•</span>
                             <span>{date}</span>
                         </div>
                     </div>
                 </div>
 
                 <div className="text-right">
-                    <div className="text-sm text-gray-500">Tổng</div>
-                    <div className="text-lg font-bold text-gray-800">{amount || 'N/A'}</div>
+                    <div className={`${subText} text-sm`}>Tổng</div>
+                    <div className={`text-lg font-bold ${textColor}`}>{amount || 'N/A'}</div>
                 </div>
             </div>
 
             {/* DETAILS */}
-            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-gray-600 mb-4">
-                <div className="flex items-center gap-2"><AiOutlineUser className="text-gray-400" /> <span className="truncate">{customer || '—'}</span></div>
-                <div className="flex items-center gap-2"><AiOutlineTeam className="text-gray-400" /> <span className="truncate">{freelancer || '—'}</span></div>
-                <div className="flex items-center gap-2"><AiOutlineTags className="text-gray-400" /> <span className="truncate">{service || '—'}</span></div>
-                <div className="flex items-center gap-2"><AiOutlineCreditCard className="text-gray-400" /> <span className="truncate">{method || '—'}</span></div>
-                <div className="flex items-center gap-2 col-span-2"><AiOutlineDollarCircle className="text-gray-400" /> <span className="truncate">Phí nền tảng: <span className="font-semibold text-red-500 ml-2">{platformFee || '—'}</span></span></div>
+            <div className={`grid grid-cols-2 gap-y-2 gap-x-4 text-sm mb-4 ${subText}`}>
+                <div className="flex items-center gap-2"><AiOutlineUser className={`${muted}`} /> <span className="truncate">{customer || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineTeam className={`${muted}`} /> <span className="truncate">{freelancer || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineTags className={`${muted}`} /> <span className="truncate">{service || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineCreditCard className={`${muted}`} /> <span className="truncate">{method || '—'}</span></div>
+                <div className="flex items-center gap-2 col-span-2"><AiOutlineDollarCircle className={`${muted}`} /> <span className="truncate">Phí nền tảng: <span className="font-semibold text-red-500 ml-2">{platformFee || '—'}</span></span></div>
             </div>
 
             {/* ACTIONS */}

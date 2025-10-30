@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
+import { useSettings } from '../../contexts/SettingsContext'
 import { AiOutlineCalendar, AiOutlineFilter, AiOutlineSearch } from 'react-icons/ai'
 
 type FieldOption = { value: string; label: string }
@@ -24,6 +25,7 @@ interface FiltersPanelProps<T extends Record<string, any>> {
 }
 function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange, onReset, className = '' }: FiltersPanelProps<T>) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const { theme } = useSettings()
 
   const basicFields = useMemo(() => fields.filter(f => !f.advanced), [fields])
   const advancedFields = useMemo(() => fields.filter(f => f.advanced), [fields])
@@ -33,13 +35,13 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
   }
 
   return (
-    <div className={`bg-white rounded-2xl shadow-xl p-4 sm:p-5 mb-8 ${className}`}>
+    <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl shadow-xl p-4 sm:p-5 mb-8 ${className}`}>
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Bộ Lọc</h3>
         {advancedFields.length > 0 && (
           <button
             aria-expanded={showAdvanced}
-            className="text-sm text-gray-600 flex items-center gap-2 hover:text-gray-800 transition-colors"
+            className={`${theme === 'dark' ? 'text-gray-300 hover:text-gray-100' : 'text-sm text-gray-600 hover:text-gray-800'} flex items-center gap-2 transition-colors`}
             onClick={() => setShowAdvanced(s => !s)}
           >
             <span className="hidden sm:inline">{showAdvanced ? 'Ẩn nâng cao' : 'Hiện nâng cao'}</span>
@@ -55,7 +57,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
       <div className="flex gap-3 mt-3 overflow-x-auto">
         {basicFields.map((f) => (
           <div key={String(f.key)} className="flex flex-col min-w-[200px] flex-1">
-            <label className="text-sm text-gray-600 mb-1">{f.label}</label>
+            <label className={`${theme === 'dark' ? 'text-gray-300' : 'text-sm text-gray-600'} mb-1`}>{f.label}</label>
             {f.type === 'select' ? (
               <div className="relative">
                 {/** left icon */}
@@ -65,7 +67,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                 <select
                   value={(values as any)[f.key] ?? 'All'}
                   onChange={(e) => handleChange(f.key, e.target.value)}
-                  className="appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap"
+                  className={`${theme === 'dark' ? 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap' : 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap'}`}
                 >
                   <option value="All">Tất cả</option>
                   {(f.options || []).map((o) => (
@@ -85,7 +87,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                   type="date"
                   value={(values as any)[f.key] ?? ''}
                   onChange={(e) => handleChange(f.key, e.target.value)}
-                  className="w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500"
+                  className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500'}`}
                 />
               </div>
             ) : (
@@ -98,7 +100,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                   placeholder={f.placeholder ?? ''}
                   value={(values as any)[f.key] ?? ''}
                   onChange={(e) => handleChange(f.key, e.target.value)}
-                  className="w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate"
+                  className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate'}`}
                 />
               </div>
             )}
@@ -110,7 +112,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
             <div className="flex gap-3">
               {advancedFields.map((f) => (
                 <div key={String(f.key)} className="flex flex-col min-w-[200px] flex-1">
-                  <label className="text-sm text-gray-600 mb-1">{f.label}</label>
+                  <label className={`${theme === 'dark' ? 'text-gray-300' : 'text-sm text-gray-600'} mb-1`}>{f.label}</label>
                   {f.type === 'select' ? (
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -119,7 +121,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                       <select
                         value={(values as any)[f.key] ?? 'All'}
                         onChange={(e) => handleChange(f.key, e.target.value)}
-                        className="appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap"
+                        className={`${theme === 'dark' ? 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap' : 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap'}`}
                       >
                         <option value="All">Tất cả</option>
                         {(f.options || []).map((o) => (
@@ -139,7 +141,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                         type="date"
                         value={(values as any)[f.key] ?? ''}
                         onChange={(e) => handleChange(f.key, e.target.value)}
-                        className="w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500"
+                        className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500'}`}
                       />
                     </div>
                   ) : (
@@ -152,7 +154,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                         placeholder={f.placeholder ?? ''}
                         value={(values as any)[f.key] ?? ''}
                         onChange={(e) => handleChange(f.key, e.target.value)}
-                        className="w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate"
+                        className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate'}`}
                       />
                     </div>
                   )}
@@ -165,7 +167,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
         <div className="col-span-2 md:col-span-2 flex items-center gap-2 justify-end mt-2">
           <button
             onClick={() => { onReset?.(); }}
-            className="px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
+            className={`${theme === 'dark' ? 'px-4 py-2 bg-gray-700 text-gray-100 rounded-xl hover:bg-gray-600 transition-colors' : 'px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors'}`}
           >
             Đặt Lại
           </button>

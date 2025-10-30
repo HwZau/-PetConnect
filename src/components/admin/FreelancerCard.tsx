@@ -1,5 +1,6 @@
 // file: FreelancerCard.tsx
 import React from "react";
+import { useSettings } from "../../contexts/SettingsContext";
 // IMPORT ICONS CẦN THIẾT
 import { AiOutlineStar, AiOutlineTrophy, AiOutlineDollarCircle, AiOutlineEnvironment, AiOutlineClockCircle } from "react-icons/ai";
 
@@ -19,14 +20,19 @@ interface FreelancerCardProps {
 }
 
 // Helper component for displaying details inside the card
-const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => (
-    <div className="flex items-center text-sm text-gray-700">
-        <div className="text-green-500 mr-2">{icon}</div>
-        <div className="flex-1">
-            <span className="font-medium">{label}:</span> {value}
-        </div>
-    </div>
-);
+const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => {
+    const { theme } = useSettings();
+    const textCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-700';
+    const iconCls = theme === 'dark' ? 'text-green-400' : 'text-green-500';
+    return (
+        <div className={`flex items-center text-sm ${textCls}`}>
+            <div className={`${iconCls} mr-2`}>{icon}</div>
+            <div className="flex-1">
+                <span className="font-medium">{label}:</span> {value}
+            </div>
+        </div>
+    );
+};
 
 // Helper function để xử lý badge style
 const getBadgeClasses = (badge: string) => {
@@ -60,6 +66,7 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
     region
 }) => {
     
+    const { theme } = useSettings();
     // Kiểm tra trạng thái tạm ngưng (Hỗ trợ cả Tiếng Anh và Tiếng Việt)
     const isSuspended = badge === "Suspended" || badge === "Tạm ngưng";
 
@@ -74,15 +81,15 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
     }
     // END LOGIC CHO NÚT BẤM
 
-  return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl"> 
+ return (
+        <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl`}> 
       <div className="flex items-center gap-4">
         <img src={avatar || "https://i.pravatar.cc/80"} alt={name} className="w-16 h-16 rounded-full object-cover shadow-md" /> 
         <div className="flex-1">
           <div className="flex items-start justify-between">
             <div className="min-w-0 pr-4">
-              <div className="font-bold text-lg text-gray-800 truncate" title={name}>{name}</div> 
-              {subtitle && <div className="text-sm text-gray-500 truncate" title={subtitle}>{subtitle}</div>}
+                            <div className="font-bold text-lg truncate" title={name}>{name}</div> 
+                            {subtitle && <div className="text-sm truncate" title={subtitle}>{subtitle}</div>}
             </div>
             {badge && <div className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${getBadgeClasses(badge)}`}>{badge}</div>}
           </div>
@@ -90,8 +97,8 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
       </div>
       
       {/* HIỂN THỊ THÔNG TIN CHI TIẾT */}
-      {(experience || rating !== undefined || jobsCompleted !== undefined || servicePrice || region) && (
-          <div className="space-y-2 pt-4 mt-4 border-t border-gray-100">
+            {(experience || rating !== undefined || jobsCompleted !== undefined || servicePrice || region) && (
+                    <div className={`space-y-2 pt-4 mt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`}>
               {experience && <DetailItem icon={<AiOutlineClockCircle />} label="Kinh nghiệm" value={experience} />}
               {rating !== undefined && <DetailItem icon={<AiOutlineStar />} label="Đánh giá" value={`${rating}/5`} />}
               {jobsCompleted !== undefined && <DetailItem icon={<AiOutlineTrophy />} label="Hoàn thành" value={`${jobsCompleted} công việc`} />}
@@ -100,13 +107,13 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
           </div>
       )}
 
-      {/* NÚT BẤM */}
-      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
-        <button className={buttonClass}>
-            {buttonLabel}
-        </button>
-      </div>
-    </div>
+            {/* NÚT BẤM */}
+            <div className={`mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'} flex justify-center`}>
+                <button className={buttonClass}>
+                        {buttonLabel}
+                </button>
+            </div>
+        </div>
   );
 };
 

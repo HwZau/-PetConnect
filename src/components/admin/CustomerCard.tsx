@@ -1,5 +1,6 @@
 // file: CustomerCard.tsx
 import React from "react";
+import { useSettings } from "../../contexts/SettingsContext";
 // IMPORT ICONS CẦN THIẾT
 import { AiOutlineCalendar, AiOutlineDollarCircle, AiOutlineClockCircle, AiOutlineEnvironment, AiOutlineMail } from "react-icons/ai";
 import { FaPaw } from "react-icons/fa";
@@ -21,14 +22,19 @@ interface CustomerCardProps {
 }
 
 // Helper component for displaying details inside the card
-const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => (
-  <div className="flex items-center text-sm text-gray-700">
-    <div className="text-green-500 mr-2">{icon}</div>
-    <div className="flex-1">
-      <span className="font-medium">{label}:</span> {value}
+const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => {
+  const { theme } = useSettings();
+  const textCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-700';
+  const iconCls = theme === 'dark' ? 'text-green-400' : 'text-green-500';
+  return (
+    <div className={`flex items-center text-sm ${textCls}`}>
+      <div className={`${iconCls} mr-2`}>{icon}</div>
+      <div className="flex-1">
+        <span className="font-medium">{label}:</span> {value}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Helper function để xử lý badge style
 const getBadgeClasses = (badge: string) => {
@@ -61,6 +67,10 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
   region
 }) => {
 
+  const { theme } = useSettings();
+  const titleCls = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
+  const subCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-500';
+
   // Kiểm tra trạng thái không hoạt động (Hỗ trợ cả Tiếng Anh và Tiếng Việt)
   const isInactive = badge === "Inactive" || badge === "Không hoạt động";
 
@@ -77,14 +87,14 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
   // END LOGIC CHO NÚT BẤM
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl">
+    <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-5 shadow-xl`}>
       <div className="flex items-center gap-4">
         <img src={avatar || "https://i.pravatar.cc/80"} alt={name} className="w-16 h-16 rounded-full object-cover shadow-md" />
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-bold text-lg text-gray-800">{name}</div>
-              {subtitle && <div className="text-sm text-gray-500">{subtitle}</div>}
+              <div className={`font-bold text-lg ${titleCls}`}>{name}</div>
+              {subtitle && <div className={`text-sm ${subCls}`}>{subtitle}</div>}
             </div>
             {badge && <div className={`text-xs px-3 py-1 rounded-full font-medium ${getBadgeClasses(badge)}`}>{badge}</div>}
           </div>
@@ -93,7 +103,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
 
       {/* HIỂN THỊ 5 THÔNG TIN MỚI */}
       {(pet || bookingCount !== undefined || totalSpent || lastBooking || region) && (
-        <div className="space-y-2 pt-4 mt-4 border-t border-gray-100">
+          <div className={`space-y-2 pt-4 mt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`}>
           {pet && <DetailItem icon={<FaPaw />} label="Thú cưng" value={pet} />}
           {bookingCount !== undefined && <DetailItem icon={<AiOutlineCalendar />} label="Số lần đặt" value={`${bookingCount} lần`} />}
           {totalSpent && <DetailItem icon={<AiOutlineDollarCircle />} label="Tổng chi tiêu" value={totalSpent} />}
@@ -103,7 +113,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
       )}
 
       {/* NÚT BẤM (ĐÃ CẬP NHẬT) */}
-      <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+      <div className={`mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'} flex justify-center`}>
         <button className={buttonClass}>
           {buttonIcon}
           {buttonLabel}

@@ -1,5 +1,6 @@
 // file: JobCardDashboard.tsx
 import React from "react";
+import { useSettings } from "../../contexts/SettingsContext";
 import { AiOutlineClockCircle, AiOutlineDollarCircle } from "react-icons/ai"; // Icons cho thời gian và giá
 
 interface JobCardDashboardProps {
@@ -33,13 +34,16 @@ const getStatusClasses = (jobStatus: string) => {
 };
 
 const JobCardDashboard: React.FC<JobCardDashboardProps> = ({ title, client, status, date, price }) => {
+    const { theme } = useSettings();
+    const titleCls = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
+    const subCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-500';
     return (
-        <div className="bg-white rounded-xl  p-4 shadow-sm transition hover:shadow-md cursor-pointer">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl  p-4 shadow-sm transition hover:shadow-md cursor-pointer`}>
             <div className="flex items-center justify-between">
                 {/* TIÊU ĐỀ VÀ KHÁCH HÀNG */}
                 <div>
-                    <div className="font-semibold text-gray-800 truncate" title={title}>{title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{client}</div>
+                    <div className={`font-semibold ${titleCls} truncate`} title={title}>{title}</div>
+                    <div className={`text-xs ${subCls} mt-0.5`}>{client}</div>
                 </div>
                 {/* STATUS */}
                 <div className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusClasses(status)}`}>
@@ -53,7 +57,7 @@ const JobCardDashboard: React.FC<JobCardDashboardProps> = ({ title, client, stat
                     <AiOutlineDollarCircle className="mr-1.5 text-lg" />
                     {price}
                 </div>
-                <div className="flex items-center text-gray-500">
+                <div className={`flex items-center ${subCls}`}>
                     <AiOutlineClockCircle className="mr-1.5 text-lg" />
                     {date}
                 </div>
