@@ -1,9 +1,22 @@
 // file: AdminHeader.tsx
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineSearch, AiOutlineBell } from "react-icons/ai";
+import { useSearch } from "../../contexts/SearchContext";
 
 const AdminHeader: React.FC = () => {
+  const { searchQuery, setSearchQuery } = useSearch();
+  const [local, setLocal] = useState<string>(searchQuery || "");
+
+  // keep local in sync when context changes elsewhere
+  useEffect(() => { setLocal(searchQuery || ""); }, [searchQuery]);
+
+  // debounce writes to context
+  useEffect(() => {
+    const id = setTimeout(() => setSearchQuery(local), 300);
+    return () => clearTimeout(id);
+  }, [local, setSearchQuery]);
+
   return (
     // THAY ĐỔI: Dùng py-4 để có khoảng cách lớn hơn, bỏ border-b, dùng shadow-sm
     <header className="bg-white py-4 px-8 flex items-center justify-between shadow-sm z-10">
@@ -11,10 +24,20 @@ const AdminHeader: React.FC = () => {
         <div className="relative flex-1">
           <AiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
           <input
-            placeholder="Tìm kiếm freelancers, customers, jobs..."
-            // THAY ĐỔI: Bo tròn góc lớn hơn (rounded-xl), border nhẹ, focus ring màu xanh
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            placeholder="Tìm kiếm freelancer, khách hàng, công việc..."
+            className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
           />
+          {local && (
+            <button
+              onClick={() => { setLocal(''); setSearchQuery(''); }}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800"
+              aria-label="clear search"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -30,7 +53,7 @@ const AdminHeader: React.FC = () => {
           <img src="https://i.pravatar.cc/40" alt="avatar" className="w-10 h-10 rounded-full border-2 border-green-500" />
           <div className="text-sm hidden sm:block">
             <div className="font-medium text-gray-800">Quản Trị Viên</div>
-            <div className="text-xs text-gray-500">Admin User</div>
+            <div className="text-xs text-gray-500">Người quản trị hệ thống</div>
           </div>
         </div>
       </div>

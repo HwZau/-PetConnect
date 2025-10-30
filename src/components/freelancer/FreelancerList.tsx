@@ -133,7 +133,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       !freelancer.name
         .toLowerCase()
         .includes(filters.searchTerm.toLowerCase()) &&
-      !freelancer.title
+      !(freelancer.title ?? "")
         .toLowerCase()
         .includes(filters.searchTerm.toLowerCase()) &&
       !freelancer.description
@@ -184,23 +184,23 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
           return b.rating - a.rating;
         }
         // Nếu rating bằng nhau, ưu tiên số lượng đánh giá nhiều hơn
-        return b.reviewCount - a.reviewCount;
+        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
 
       case "newest":
-        // Mới nhất - ưu tiên completed jobs ít hơn (mới vào nghề)
-        return a.completedJobs - b.completedJobs;
+  // Mới nhất - ưu tiên completed jobs ít hơn (mới vào nghề)
+  return (a.completedJobs ?? 0) - (b.completedJobs ?? 0);
 
       case "experience":
-        // Kinh nghiệm nhiều nhất
-        return b.completedJobs - a.completedJobs;
+  // Kinh nghiệm nhiều nhất
+  return (b.completedJobs ?? 0) - (a.completedJobs ?? 0);
 
       case "response": // Phản hồi nhanh nhất
       {
         const responseTimeA = parseInt(
-          a.responseTime.match(/\d+/)?.[0] || "999"
+          a.responseTime?.match(/\d+/)?.[0] ?? "999"
         );
         const responseTimeB = parseInt(
-          b.responseTime.match(/\d+/)?.[0] || "999"
+          b.responseTime?.match(/\d+/)?.[0] ?? "999"
         );
         return responseTimeA - responseTimeB;
       }
@@ -210,11 +210,11 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       {
         const scoreA =
           a.rating * 0.4 +
-          Math.min(a.completedJobs / 10, 10) * 0.3 +
+          Math.min((a.completedJobs ?? 0) / 10, 10) * 0.3 +
           (a.isVerified ? 2 : 0);
         const scoreB =
           b.rating * 0.4 +
-          Math.min(b.completedJobs / 10, 10) * 0.3 +
+          Math.min((b.completedJobs ?? 0) / 10, 10) * 0.3 +
           (b.isVerified ? 2 : 0);
         return scoreB - scoreA;
       }

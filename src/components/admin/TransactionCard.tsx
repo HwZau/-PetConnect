@@ -3,7 +3,6 @@ import React from "react";
 // Import icons cần thiết
 import { 
     AiOutlineDollarCircle, 
-    AiOutlineClockCircle, 
     AiOutlineUser, 
     AiOutlineTeam, 
     AiOutlineCreditCard,
@@ -27,22 +26,7 @@ interface TransactionCardProps {
     status: "Success" | "Pending" | "Failed";
 }
 
-// Helper component for displaying details inside the card
-// ĐÃ SỬA: value có thể là undefined/string/number
-const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number | undefined, valueClass?: string }> = ({ icon, label, value, valueClass }) => {
-    // KHÔNG RENDER nếu giá trị không tồn tại
-    if (!value) return null;
-
-    return (
-        <div className="flex items-center text-sm text-gray-700 justify-between">
-            <div className="flex items-center">
-                <div className="text-gray-500 mr-2">{icon}</div>
-                <span className="font-medium text-gray-500">{label}</span>
-            </div>
-            <div className={`font-semibold ${valueClass || 'text-gray-800'}`}>{value}</div>
-        </div>
-    );
-};
+// (Details rendered inline below; helper removed to simplify layout)
 
 const TransactionCard: React.FC<TransactionCardProps> = ({ 
     title, 
@@ -69,6 +53,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 return "bg-gray-100 text-gray-700";
         }
     };
+
+    // Avatar initials
+    const avatarText = (customer || freelancer || "").split(' ').filter(Boolean).map(s => s[0]).slice(0,2).join('').toUpperCase() || 'PN';
 
     const getVietnameseStatus = (jobStatus: string) => {
         switch (jobStatus) {
@@ -125,37 +112,40 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     };
 
     return (
-        <div className="bg-white  rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl"> 
-            
-            {/* TIÊU ĐỀ & STATUS */}
-            <div className="flex items-start justify-between mb-4 pb-4">
-                <div className="flex-1 min-w-0">
-                    <div className="text-lg font-bold text-gray-800 truncate" title={title}>{title}</div>
-                    <div className="text-sm text-gray-500 mt-1 flex items-center">
-                        <span className="font-medium">Trạng thái:</span>
-                        <span className={`text-xs ml-2 px-3 py-1 rounded-full font-medium ${getStatusStyle(status)}`}>
-                            {getVietnameseStatus(status)}
-                        </span>
+        <div className={`bg-white rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl border-l-4 ${status === 'Success' ? 'border-green-400' : status === 'Pending' ? 'border-amber-400' : 'border-red-400'}`}>
+            {/* HEADER: avatar, title, status, amount */}
+            <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-700">{avatarText}</div>
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-md font-semibold text-gray-800 truncate" title={title}>{title}</div>
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>{getVietnameseStatus(status)}</span>
+                            <span className="text-gray-400">•</span>
+                            <span>{date}</span>
+                        </div>
                     </div>
                 </div>
-                {/* Đảm bảo hiển thị an toàn khi amount có thể là undefined */}
-                <div className="text-2xl font-bold ml-4" title="Tổng số tiền giao dịch">{amount || 'N/A'}</div>
+
+                <div className="text-right">
+                    <div className="text-sm text-gray-500">Tổng</div>
+                    <div className="text-lg font-bold text-gray-800">{amount || 'N/A'}</div>
+                </div>
             </div>
 
-            {/* HIỂN THỊ CHI TIẾT GIAO DỊCH */}
-            <div className="space-y-2">
-                {/* DetailItem sẽ không hiển thị nếu prop tương ứng là undefined */}
-                <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
-                <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
-                <DetailItem icon={<AiOutlineTags />} label="Dịch vụ" value={service} />
-                <DetailItem icon={<AiOutlineCreditCard />} label="Phương thức" value={method} />
-                <DetailItem icon={<AiOutlineClockCircle />} label="Thời gian" value={date} />
-                {/* Hiển thị Phí Nền Tảng riêng biệt, có thể có màu sắc khác */}
-                <DetailItem icon={<AiOutlineDollarCircle />} label="Phí Nền Tảng" value={platformFee} valueClass="text-red-500" />
+            {/* DETAILS */}
+            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-gray-600 mb-4">
+                <div className="flex items-center gap-2"><AiOutlineUser className="text-gray-400" /> <span className="truncate">{customer || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineTeam className="text-gray-400" /> <span className="truncate">{freelancer || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineTags className="text-gray-400" /> <span className="truncate">{service || '—'}</span></div>
+                <div className="flex items-center gap-2"><AiOutlineCreditCard className="text-gray-400" /> <span className="truncate">{method || '—'}</span></div>
+                <div className="flex items-center gap-2 col-span-2"><AiOutlineDollarCircle className="text-gray-400" /> <span className="truncate">Phí nền tảng: <span className="font-semibold text-red-500 ml-2">{platformFee || '—'}</span></span></div>
             </div>
 
-            {/* NÚT HÀNH ĐỘNG ĐỘNG */}
-            <div className="mt-5 pt-4 flex justify-end">
+            {/* ACTIONS */}
+            <div className="mt-2 flex justify-end">
                 {renderActionButtons()}
             </div>
         </div>

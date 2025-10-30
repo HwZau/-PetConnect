@@ -285,12 +285,14 @@ const CommunitySidebar: React.FC<CommunitySidebarProps> = ({ onAddPost }) => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
                     setFormData({
                       ...formData,
-                      image: URL.createObjectURL(e.target.files[0]),
-                    })
-                  }
+                      image: URL.createObjectURL(file),
+                    });
+                  }}
                 />
                 {formData.image && (
                   <img

@@ -13,6 +13,7 @@ import { useScrollToTop } from "../../hooks";
 // Giả lập dữ liệu user
 const user = {
   id: "1",
+  email: "lyhongthu@example.com",
   name: "Lý Hồng Thư",
   avatar: "/images/avatars/user-1.jpg",
   role: "Chủ thú cưng yêu thương",
@@ -31,6 +32,8 @@ const user = {
       type: "Golden Retriever",
       status: "Khỏe",
       avatar: "/images/pets/dog1.jpg",
+      age: 2,
+      gender: "male",
       color: "bg-orange-100",
     },
     {
@@ -39,6 +42,8 @@ const user = {
       type: "Persian Cat",
       status: "Ốm",
       avatar: "/images/pets/cat1.jpg",
+      age: 3,
+      gender: "female",
       color: "bg-blue-100",
     },
     {
@@ -47,6 +52,8 @@ const user = {
       type: "Cockatiel",
       status: "Khỏe mạnh",
       avatar: "/images/pets/bird1.jpg",
+      age: 1,
+      gender: "male",
       color: "bg-green-100",
     },
   ],
