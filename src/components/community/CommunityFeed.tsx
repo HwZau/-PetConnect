@@ -37,7 +37,6 @@ interface CommunityFeedProps {
   onLike: (id: number) => void;
   onComment: (id: number, text: string) => void;
   onDelete: (id: number) => void;
-  onEdit: (id: number, newContent: string) => void;
   onShare: (id: number) => void;
   onView: (id: number) => void;
   onAddPost: (newPost: {
@@ -52,7 +51,6 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   onLike,
   onComment,
   onDelete,
-  onEdit,
   onShare,
   onView,
   onAddPost,

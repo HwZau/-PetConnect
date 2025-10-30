@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import StatCard from "../../components/admin/StatCard";
 import CustomerCard from "../../components/admin/CustomerCard";
+import FiltersPanel from "../../components/admin/FiltersPanel";
 import { AiOutlineUser, AiOutlineFileText, AiOutlineCalendar, AiOutlineTeam } from "react-icons/ai";
 
 const ITEMS_PER_PAGE = 6;
@@ -36,9 +37,43 @@ const allCustomers: Customer[] = [
   { id: 10, name: "Ngô Văn Phát", subtitle: "nvphat@email.com", pet: "Vẹt (Cockatiel)", bookingCount: 8, totalSpent: "5,800,000₫", lastBooking: "1 tháng trước", region: "Cần Thơ", avatar: "https://i.pravatar.cc/84?img=24", badge: "Hoạt động", petTypeSimplified: 'Khác/Chưa có', joinDate: "2024-04-05" },
 ];
 
+import { useSearch } from "../../contexts/SearchContext";
+import { AiOutlineEnvironment } from 'react-icons/ai';
+import CustomerModal from "../../components/admin/modal/CustomerModal";
+
 const CustomersPage: React.FC = () => {
-  // 5 trường lọc mới
-  const [filter, setFilter] = useState({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleCreateCustomer = (data: any) => {
+    console.log('Creating customer:', data);
+    // TODO: Implement customer creation
+  };
+
+  // Mock data for modal dropdowns based on existing customers
+  const mockPetTypes = [
+    { id: 'dog', name: 'Chó' },
+    { id: 'cat', name: 'Mèo' },
+    { id: 'other', name: 'Khác' }
+  ];
+
+  const mockPetBreeds = [
+    { id: 'golden', name: 'Golden Retriever', petTypeId: 'dog' },
+    { id: 'alaska', name: 'Alaska', petTypeId: 'dog' },
+    { id: 'poodle', name: 'Poodle', petTypeId: 'dog' },
+    { id: 'persian', name: 'Ba Tư', petTypeId: 'cat' },
+    { id: 'british', name: 'Anh Lông Ngắn', petTypeId: 'cat' },
+    { id: 'ragdoll', name: 'Ragdoll', petTypeId: 'cat' },
+  ];
+  // Kiểu cho bộ lọc của trang Customers
+  type CustomerFilter = {
+    status: string
+    petType: string
+    bookingCount: string
+    joinDate: string
+    region: string
+  }
+
+  const [filter, setFilter] = useState<CustomerFilter>({
     status: "All",
     petType: "All",
     bookingCount: "All",
@@ -46,6 +81,7 @@ const CustomersPage: React.FC = () => {
     region: "All"
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const { searchQuery } = useSearch();
 
   // LOGIC LỌC
   const filteredCustomers = allCustomers.filter(c => {
@@ -76,6 +112,13 @@ const CustomersPage: React.FC = () => {
 
     // 5. Khu vực
     if (filter.region !== "All" && c.region !== filter.region) return false;
+
+    // Header search (tìm theo tên, email, pet hoặc khu vực)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${c.name} ${c.subtitle} ${c.pet || ''} ${c.region}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
 
     return true;
   });
@@ -136,7 +179,12 @@ const CustomersPage: React.FC = () => {
           <h2 className="text-3xl font-bold text-gray-800">Quản Lý Khách Hàng</h2>
           <p className="text-gray-500">Quản lý hồ sơ và lịch sử giao dịch của khách hàng.</p>
         </div>
-        <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors">+ Thêm Khách Hàng</button>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
+        >
+          + Thêm Khách Hàng
+        </button>
       </div>
 
       {/* STAT CARDS */}
@@ -167,100 +215,19 @@ const CustomersPage: React.FC = () => {
           icon={<AiOutlineCalendar />}
         />
       </div>
-
-      {/* KHỐI LỌC (5 trường lọc mới) */}
-      <div className="bg-white rounded-2xl shadow-xl  p-5 mb-8">
-        <h3 className="text-lg font-semibold mb-3">Bộ Lọc Khách Hàng</h3>
-        {/* Đã sửa grid thành 5 cột cho 5 trường lọc */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-
-          {/* 1. Trạng Thái */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.status}
-            onChange={(e) => {
-              setFilter({ ...filter, status: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Trạng Thái</option>
-            <option value="Hoạt động">Hoạt Động</option>
-            <option value="Không hoạt động">Không Hoạt Động</option>
-            <option value="VIP">VIP</option>
-          </select>
-
-          {/* 2. Loại thú cưng (Sử dụng petTypeSimplified) */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.petType}
-            onChange={(e) => {
-              setFilter({ ...filter, petType: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Loại Thú Cưng</option>
-            <option value="Chó">Chó</option>
-            <option value="Mèo">Mèo</option>
-            <option value="Khác/Chưa có">Khác/Chưa có</option>
-          </select>
-
-          {/* 3. Số lần đặt */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.bookingCount}
-            onChange={(e) => {
-              setFilter({ ...filter, bookingCount: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Số Lần Đặt</option>
-            <option value="Low">Dưới 5 lần</option>
-            <option value="Medium">6 - 15 lần</option>
-            <option value="High">Trên 15 lần</option>
-          </select>
-
-          {/* 4. Ngày tham gia */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.joinDate}
-            onChange={(e) => {
-              setFilter({ ...filter, joinDate: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Ngày Tham Gia</option>
-            <option value="New">6 Tháng Gần Nhất</option>
-            <option value="Old">Trên 6 Tháng</option>
-          </select>
-
-          {/* 5. Khu vực */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.region}
-            onChange={(e) => {
-              setFilter({ ...filter, region: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Khu Vực</option>
-            <option value="Hà Nội">Hà Nội</option>
-            <option value="TP.HCM">TP.HCM</option>
-            <option value="Đà Nẵng">Đà Nẵng</option>
-            <option value="Khác">Khác</option>
-          </select>
-
-          {/* Nút thao tác (Dùng col-span-5 để chiếm toàn bộ hàng mới) */}
-          <div className="col-span-2 md:col-span-5 flex items-center gap-2 justify-end mt-2">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
-              onClick={() => setFilter({ status: "All", petType: "All", bookingCount: "All", joinDate: "All", region: "All" })}
-            >
-              Đặt Lại Bộ Lọc
-            </button>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">Áp Dụng</button>
-          </div>
-        </div>
-      </div>
+{/* FILTER */}
+      <FiltersPanel
+        fields={[
+          { key: 'status', label: 'Trạng Thái', type: 'select', icon: <AiOutlineUser />, options: [{ value: 'Hoạt động', label: 'Hoạt Động' }, { value: 'Không hoạt động', label: 'Không Hoạt Động' }, { value: 'VIP', label: 'VIP' }] },
+          { key: 'petType', label: 'Loại Thú Cưng', type: 'select', icon: <AiOutlineFileText />, options: [{ value: 'Chó', label: 'Chó' }, { value: 'Mèo', label: 'Mèo' }, { value: 'Khác/Chưa có', label: 'Khác/Chưa có' }] },
+          { key: 'bookingCount', label: 'Số Lần Đặt', type: 'select', icon: <AiOutlineTeam />, options: [{ value: 'Low', label: 'Dưới 5' }, { value: 'Medium', label: '6-15' }, { value: 'High', label: 'Trên 15' }] },
+          { key: 'joinDate', label: 'Ngày Tham Gia', type: 'select', icon: <AiOutlineCalendar />, options: [{ value: 'New', label: '6 Tháng Gần Nhất' }, { value: 'Old', label: 'Trên 6 Tháng' }] },
+          { key: 'region', label: 'Khu Vực', type: 'select', icon: <AiOutlineEnvironment />, options: [{ value: 'Hà Nội', label: 'Hà Nội' }, { value: 'TP.HCM', label: 'TP.HCM' }, { value: 'Đà Nẵng', label: 'Đà Nẵng' }, { value: 'Khác', label: 'Khác' }] },
+        ]}
+    values={filter}
+    onChange={(next: CustomerFilter) => { setFilter(next); setCurrentPage(1); }}
+    onReset={() => setFilter({ status: "All", petType: "All", bookingCount: "All", joinDate: "All", region: "All" })}
+      />
 
       <h3 className="text-xl font-bold mb-4">Danh Sách Khách Hàng ({filteredCustomers.length})</h3>
 
@@ -290,6 +257,15 @@ const CustomersPage: React.FC = () => {
 
       {/* PHÂN TRANG */}
       {totalPages > 1 && renderPagination()}
+
+      {/* Modal */}
+      <CustomerModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateCustomer}
+        petTypes={mockPetTypes}
+        petBreeds={mockPetBreeds}
+      />
     </div>
   );
 };

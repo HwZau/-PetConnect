@@ -12,12 +12,12 @@ import {
 import LogoImage from '/src/assets/image/Logo.png';
 const AdminSidebar: React.FC = () => {
   const items = [
-    { to: "/admin/dashboard", label: "Dashboard", icon: <AiOutlineDashboard /> },
-    { to: "/admin/freelancers", label: "Freelancers", icon: <AiOutlineUser /> },
-    { to: "/admin/customers", label: "Customers", icon: <AiOutlineFileText /> },
-    { to: "/admin/jobs", label: "Jobs", icon: <AiOutlineProfile /> },
-    { to: "/admin/payments", label: "Payments", icon: <AiOutlineDollar /> },
-    { to: "/admin/settings", label: "Settings", icon: <AiOutlineSetting /> },
+    { to: "/admin/dashboard", label: "Tổng Quan", icon: <AiOutlineDashboard /> },
+    { to: "/admin/freelancers", label: "Freelancer", icon: <AiOutlineUser /> },
+    { to: "/admin/customers", label: "Khách Hàng", icon: <AiOutlineFileText /> },
+    { to: "/admin/jobs", label: "Công Việc", icon: <AiOutlineProfile /> },
+    { to: "/admin/payments", label: "Thanh Toán", icon: <AiOutlineDollar /> },
+    { to: "/admin/settings", label: "Cài Đặt", icon: <AiOutlineSetting /> },
   ];
 
   return (
