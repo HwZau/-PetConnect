@@ -9,6 +9,7 @@ import {
   AiOutlineSetting,
 } from "react-icons/ai";
 
+import LogoImage from '/src/assets/image/Logo.png';
 const AdminSidebar: React.FC = () => {
   const items = [
     { to: "/admin/dashboard", label: "Dashboard", icon: <AiOutlineDashboard /> },
@@ -20,29 +21,36 @@ const AdminSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-72 bg-white border-r h-screen sticky top-0">
-      <div className="px-6 py-3 ">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-green-200 rounded flex items-center justify-center text-green-700 font-bold">PA</div>
-          <div>
-            <div className="text-lg font-semibold">PetAdmin</div>
-
+    // THAY ĐỔI: Tăng độ bo tròn và sử dụng màu nền trắng đồng bộ, bỏ border-r, shadow-lg
+    <aside className="w-64 bg-white h-screen sticky top-0 shadow-2xl z-20 shrink-0">
+      <div className="px-6 py-4 ">
+        <div className="flex items-center space-x-2">
+          {/* THAY ĐỔI: Logo và Text */}
+          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+            <img
+              alt="Logo"
+              
+              src={LogoImage} // <--- Đã sửa: dùng biến import
+            />
           </div>
+          <div className="text-xl font-bold text-gray-800">Pawnet Admin</div>
         </div>
       </div>
 
-      <nav className="px-4 py-6 space-y-1">
+      {/* THAY ĐỔI: Giảm padding và điều chỉnh màu sắc NavLink */}
+      <nav className="p-4 space-y-1">
         {items.map((it) => (
           <NavLink
             to={it.to}
             key={it.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md text-sm ${
-                isActive ? "bg-green-50 text-green-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+              `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+              // MÀU SẮC NHẤN MẠNH: Màu xanh lá đậm hơn cho trạng thái Active
+              isActive ? "bg-green-100 text-green-700 font-semibold" : "text-gray-600 hover:bg-gray-50"
               }`
             }
           >
-            <div className="text-lg">{it.icon}</div>
+            <div className="text-xl">{it.icon}</div>
             <div>{it.label}</div>
           </NavLink>
         ))}

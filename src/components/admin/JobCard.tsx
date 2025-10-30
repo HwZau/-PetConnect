@@ -1,41 +1,125 @@
+// file: JobCard.tsx
 import React from "react";
+// Import icons cần thiết
+import { AiOutlineDollarCircle, AiOutlineClockCircle, AiOutlineEnvironment, AiOutlineUser, AiOutlineTeam } from "react-icons/ai";
+import { FaPaw, FaStar, FaUserPlus } from "react-icons/fa"; // Thêm icon cho Phân Công và Xem Đánh Giá
 
 interface JobCardProps {
   title: string;
-  client?: string;
-  status?: string;
-  date?: string;
-  price?: string;
+  customer: string;
+  pet: string;
+  freelancer: string;
+  time: string;
+  location: string;
+  status: "Pending" | "Assigned" | "In Progress" | "Completed" | "Cancelled";
+  price: string;
 }
 
-const statusClasses: Record<string, string> = {
-  Pending: "bg-yellow-50 text-yellow-800",
-  Assigned: "bg-blue-50 text-blue-800",
-  "In Progress": "bg-indigo-50 text-indigo-800",
-  Completed: "bg-green-50 text-green-800",
-  Cancelled: "bg-red-50 text-red-800",
-};
+// Helper component for displaying details inside the card
+const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => (
+  <div className="flex items-center text-sm text-gray-700">
+    <div className="text-green-500 mr-2">{icon}</div>
+    <div className="flex-1">
+      <span className="font-medium">{label}:</span> {value}
+    </div>
+  </div>
+);
 
-const JobCard: React.FC<JobCardProps> = ({ title, client, status = "Pending", date, price }) => {
+const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, time, location, status, price }) => {
+
+  // Helper function để quyết định màu sắc dựa trên status
+  const getStatusStyle = (jobStatus: string) => {
+    switch (jobStatus) {
+      case "Completed":
+        return "bg-green-100 text-green-700";
+      case "In Progress":
+        return "bg-blue-100 text-blue-700";
+      case "Assigned":
+        return "bg-indigo-100 text-indigo-700";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "Cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getVietnameseStatus = (jobStatus: string) => {
+    switch (jobStatus) {
+      case "Completed": return "Đã Hoàn Thành";
+      case "In Progress": return "Đang Xử Lý";
+      case "Assigned": return "Đã Giao";
+      case "Pending": return "Đang Chờ";
+      case "Cancelled": return "Đã Hủy";
+      default: return "Không rõ";
+    }
+  };
+
+  // LOGIC XÁC ĐỊNH NÚT HÀNH ĐỘNG
+  const renderActionButton = () => {
+    let label = "Xem Chi Tiết";
+    let icon = null;
+    let className = "bg-green-600 hover:bg-green-700";
+
+    switch (status) {
+      case "Pending":
+      case "In Progress":
+        label = (status === "Pending" && freelancer === "Chưa phân công") ? "Phân Công" : "Tái Phân Công";
+        icon = <FaUserPlus className="mr-2" />;
+        className = "bg-yellow-600 hover:bg-yellow-700";
+        break;
+      case "Completed":
+        label = "Xem Đánh Giá";
+        icon = <FaStar className="mr-2" />;
+        className = "bg-blue-600 hover:bg-blue-700";
+        break;
+      case "Assigned":
+      case "Cancelled":
+      default:
+        label = "Xem Chi Tiết";
+        icon = null;
+        className = "bg-green-600 hover:bg-green-700";
+        break;
+    }
+
+    if (status === "Cancelled") return null; // Không hiển thị nút nếu bị Hủy
+
+    return (
+      <button className={`px-4 py-2 text-white rounded-xl font-medium transition-colors flex items-center ${className}`}>
+        {icon}
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <div className="bg-white rounded-lg border p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-semibold">{title}</div>
-          {client && <div className="text-xs text-gray-500">{client}</div>}
-        </div>
-        <div className={`text-xs px-2 py-1 rounded ${statusClasses[status] || "bg-gray-50 text-gray-700"}`}>
-          {status}
+    <div className="bg-white rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl">
+      <div className="flex items-start justify-between mb-4 pb-4 ">
+        <div className="flex-1 min-w-0">
+          <div className="text-xl font-bold text-gray-800 truncate" title={title}>{title}</div>
+          <div className="text-sm text-gray-500 mt-1 flex items-center">
+            <span className="font-medium">Trạng thái:</span>
+            <span className={`text-xs ml-2 px-3 py-1 rounded-full font-medium ${getStatusStyle(status)}`}>
+              {getVietnameseStatus(status)}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
-        <div>{date}</div>
-        <div className="font-medium">{price}</div>
+      {/* HIỂN THỊ 6 THÔNG TIN CHI TIẾT */}
+      <div className="space-y-2">
+        <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
+        <DetailItem icon={<FaPaw />} label="Thú Cưng" value={pet} />
+        <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
+        <DetailItem icon={<AiOutlineClockCircle />} label="Thời Gian" value={time} />
+        <DetailItem icon={<AiOutlineEnvironment />} label="Địa Điểm" value={location} />
+        <DetailItem icon={<AiOutlineDollarCircle />} label="Giá" value={price} />
       </div>
 
-      <div className="mt-3">
-        <button className="px-3 py-1 bg-green-600 text-white rounded">View Details</button>
+      {/* NÚT HÀNH ĐỘNG ĐỘNG */}
+      <div className="mt-5 pt-4 flex justify-center">
+        {renderActionButton()}
       </div>
     </div>
   );
