@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import type { ReactNode, ChangeEvent } from 'react'; 
 import Modal from '../../ui/Modal';
+
 import { AiOutlineUser, AiOutlineDollar, AiOutlineEnvironment, AiOutlineStar } from 'react-icons/ai';
 
 // --- INTERFACES ---
 
-interface FreelancerFormData {
+export interface FreelancerFormData {
   name: string;
   subtitle: string;
   experience: string;
@@ -35,8 +36,8 @@ interface FormInputProps {
     handleSelectChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
     children?: ReactNode;
     readOnly?: boolean;
-    className?: string;
-    [key: string]: any;
+  className?: string;
+  [key: string]: unknown;
 }
 const FormInput = React.memo((props: FormInputProps) => {
   const {
@@ -54,10 +55,12 @@ const FormInput = React.memo((props: FormInputProps) => {
 
   const onChangeHandler = type === 'select' && handleSelectChange ? handleSelectChange : handleInputChange;
   const value = formData[name];
-  const customClasses = (rest.className as string) || '';
 
-  // Remove any externally passed value/onChange to avoid conflicts with controlled inputs
-  const { value: _v, onChange: _oc, ...safeRest } = rest;
+  // Build safe props by removing any externally provided value/onChange
+  const safeRest = { ...rest } as Record<string, unknown>;
+  delete safeRest.value;
+  delete safeRest.onChange;
+  const customClasses = String(safeRest.className ?? '');
 
   return (
     <div className="mb-4">
@@ -74,7 +77,7 @@ const FormInput = React.memo((props: FormInputProps) => {
             {...safeRest}
             name={name}
             value={value}
-            onChange={onChangeHandler as any}
+            onChange={onChangeHandler as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
             className={`w-full rounded-xl pl-9 pr-4 py-2 border appearance-none bg-white text-gray-900 ${customClasses}
               ${error ? 'border-red-500' : 'border-gray-200'} 
               hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 
@@ -91,7 +94,7 @@ const FormInput = React.memo((props: FormInputProps) => {
             type={type}
             name={name}
             value={value}
-            onChange={onChangeHandler as any}
+            onChange={onChangeHandler as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
             className={`w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border text-gray-900 ${customClasses}
               ${error ? 'border-red-500' : 'border-gray-200'} 
               focus:ring-2 focus:ring-green-100 focus:border-green-500 
@@ -120,6 +123,7 @@ const initialData: FreelancerFormData = {
 const FreelancerModal = ({ isOpen, onClose, onSubmit, services }: FreelancerModalProps) => {
   const [formData, setFormData] = useState<FreelancerFormData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof FreelancerFormData, string>>>({});
+  
 
   const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof FreelancerFormData, string>> = {};

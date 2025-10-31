@@ -13,17 +13,15 @@ import { useSettings } from "../../contexts/SettingsContext";
 
 import LogoImage from '/src/assets/image/Logo.png';
 const AdminSidebar: React.FC = () => {
-  // use settings for language and theme
-  const { language, theme } = useSettings();
-  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
+  const { theme } = useSettings();
 
   const items = [
-    { to: "/admin/dashboard", label: t('Tổng Quan','Overview'), icon: <AiOutlineDashboard /> },
-    { to: "/admin/freelancers", label: t('Freelancer','Freelancers'), icon: <AiOutlineUser /> },
-    { to: "/admin/customers", label: t('Khách Hàng','Customers'), icon: <AiOutlineFileText /> },
-    { to: "/admin/jobs", label: t('Công Việc','Jobs'), icon: <AiOutlineProfile /> },
-    { to: "/admin/payments", label: t('Thanh Toán','Payments'), icon: <AiOutlineDollar /> },
-    { to: "/admin/settings", label: t('Cài Đặt','Settings'), icon: <AiOutlineSetting /> },
+    { to: "/admin/dashboard", label: 'Tổng Quan', icon: <AiOutlineDashboard /> },
+    { to: "/admin/freelancers", label: 'Freelancer', icon: <AiOutlineUser /> },
+    { to: "/admin/customers", label: 'Khách Hàng', icon: <AiOutlineFileText /> },
+    { to: "/admin/jobs", label: 'Công Việc', icon: <AiOutlineProfile /> },
+    { to: "/admin/payments", label: 'Thanh Toán', icon: <AiOutlineDollar /> },
+    { to: "/admin/settings", label: 'Cài Đặt', icon: <AiOutlineSetting /> },
   ];
 
   return (

@@ -2,12 +2,13 @@ import React, { useState, useCallback } from 'react';
 // Sửa lỗi TS: Thêm 'type' cho các import chỉ là kiểu dữ liệu
 import type { ReactNode, ChangeEvent, FormEvent } from 'react'; 
 import Modal from '../../ui/Modal';
+
 import { AiOutlineUser, AiOutlineEnvironment, AiOutlineMail, AiOutlinePhone } from 'react-icons/ai';
 import { FaDog } from 'react-icons/fa';
 
 // --- INTERFACES ---
 
-interface CustomerFormData {
+export interface CustomerFormData {
   name: string;
   email: string;
   phone: string;
@@ -42,9 +43,9 @@ interface FormInputProps {
     handleInputChange: (e: ChangeEvent<InputElement>) => void; // Sử dụng type đã mở rộng
     // Dùng cho logic phức tạp (ví dụ: thay đổi PetType)
     onChange?: (e: ChangeEvent<HTMLSelectElement>) => void; 
-    children?: ReactNode;
-    disabled?: boolean;
-    [key: string]: any;
+  children?: ReactNode;
+  disabled?: boolean;
+  [key: string]: unknown;
 }
 
 const FormInput = React.memo(({
@@ -66,8 +67,11 @@ const FormInput = React.memo(({
   // Chọn handler: Nếu là select và có handler riêng, dùng handler riêng. Nếu không, dùng handler chung.
   const finalHandler = isSelect && onChange ? onChange : handleInputChange;
 
-  // Remove externally provided value/onChange to avoid controlled/uncontrolled conflicts
-  const { value: _v, onChange: _oc, ...safeProps } = props;
+  // Build safeProps by removing any externally provided value/onChange
+  const safeProps = { ...props } as Record<string, unknown>;
+  delete safeProps.value;
+  delete safeProps.onChange;
+  const customClasses = String(safeProps.className ?? '');
 
   return (
     <div className="mb-4">
@@ -84,10 +88,10 @@ const FormInput = React.memo(({
             {...safeProps}
             name={name}
             value={value}
-            onChange={finalHandler as any} // Dùng as any vì đã được tối ưu
+            onChange={finalHandler as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
             disabled={props.disabled}
             // Tối ưu UI: Màu chữ đen, custom arrow, focus xanh lá
-            className={`w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border appearance-none bg-white text-gray-900 
+            className={`w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border appearance-none bg-white text-gray-900 ${customClasses}
               ${error ? 'border-red-500' : 'border-gray-200'} 
               ${props.disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'hover:border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-colors cursor-pointer'}
               bg-[url('data:image/svg+xml;charset=US-ASCII,<svg width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 7.5l3 3 3-3" stroke="%23666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')] 
@@ -102,8 +106,8 @@ const FormInput = React.memo(({
             type={type}
             name={name}
             value={value}
-            onChange={finalHandler as any} // Dùng as any vì đã được tối ưu
-            className={`w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border text-gray-900 
+            onChange={finalHandler as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
+            className={`w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border text-gray-900 ${customClasses}
               ${error ? 'border-red-500' : 'border-gray-200'} 
               focus:ring-2 focus:ring-green-100 focus:border-green-500 
               outline-none transition-colors
@@ -144,6 +148,7 @@ const initialData: CustomerFormData = {
 const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes, petBreeds }: CustomerModalProps) => {
   const [formData, setFormData] = useState<CustomerFormData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
+  
 
   // Bọc hàm validate bằng useCallback
   const validateForm = useCallback((): boolean => {

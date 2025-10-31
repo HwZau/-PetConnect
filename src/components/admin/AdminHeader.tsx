@@ -18,8 +18,7 @@ const AdminHeader: React.FC = () => {
     return () => clearTimeout(id);
   }, [local, setSearchQuery]);
 
-  const { language, theme, toggleTheme, setLanguage } = useSettings();
-  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
+  const { theme, toggleTheme } = useSettings();
 
   return (
     // THAY ĐỔI: header theme-aware
@@ -30,7 +29,7 @@ const AdminHeader: React.FC = () => {
           <input
             value={local}
             onChange={(e) => setLocal(e.target.value)}
-            placeholder={t('Tìm kiếm freelancer, khách hàng, công việc...', 'Search freelancers, customers, jobs...')}
+            placeholder="Tìm kiếm freelancer, khách hàng, công việc..."
             className={`w-full pl-10 pr-10 py-2 border rounded-xl ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500`}
           />
           {local && (
@@ -53,22 +52,18 @@ const AdminHeader: React.FC = () => {
         </button>
 
         {/* Theme toggle */}
-        <button onClick={toggleTheme} title={t('Chuyển giao diện', 'Toggle theme')} className="p-2 rounded-md hover:bg-gray-100">
+        <button onClick={toggleTheme} title="Chuyển giao diện" className="p-2 rounded-md hover:bg-gray-100">
           <AiOutlineBulb className="text-xl text-green-600" />
         </button>
 
-        {/* Language select */}
-        <select value={language} onChange={(e) => setLanguage(e.target.value as any)} className="rounded-md border-gray-200 px-2 py-1">
-          <option value="vi">VI</option>
-          <option value="en">EN</option>
-        </select>
+        {/* Language selection removed - managed globally (no UI) */}
 
         {/* Avatar Admin */}
         <div className="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:bg-gray-100 transition-colors">
           <img src="https://i.pravatar.cc/40" alt="avatar" className="w-10 h-10 rounded-full border-2 border-green-500" />
           <div className="text-sm hidden sm:block">
-            <div className="font-medium">{t('Quản Trị Viên','Administrator')}</div>
-            <div className="text-xs text-gray-500">{t('Người quản trị hệ thống','System administrator')}</div>
+            <div className="font-medium">Quản Trị Viên</div>
+            <div className="text-xs text-gray-500">Người quản trị hệ thống</div>
           </div>
         </div>
       </div>

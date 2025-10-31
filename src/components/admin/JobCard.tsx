@@ -63,6 +63,8 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
     }
   };
 
+  const getStatusLabel = (jobStatus: string) => getVietnameseStatus(jobStatus);
+
   // LOGIC XÁC ĐỊNH NÚT HÀNH ĐỘNG
   const renderActionButton = () => {
     let label = "Xem Chi Tiết";
@@ -100,7 +102,7 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
     );
   };
 
-  return (
+    return (
     <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl`}>
       <div className="flex items-start justify-between mb-4 pb-4 ">
         <div className="flex-1 min-w-0">
@@ -108,7 +110,7 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
           <div className={`text-sm mt-1 flex items-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
             <span className="font-medium">Trạng thái:</span>
             <span className={`text-xs ml-2 px-3 py-1 rounded-full font-medium ${getStatusStyle(status)}`}>
-              {getVietnameseStatus(status)}
+              {getStatusLabel(status)}
             </span>
           </div>
         </div>
@@ -116,12 +118,12 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
 
       {/* HIỂN THỊ 6 THÔNG TIN CHI TIẾT */}
       <div className="space-y-2">
-        <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
-        <DetailItem icon={<FaPaw />} label="Thú Cưng" value={pet} />
-        <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
-        <DetailItem icon={<AiOutlineClockCircle />} label="Thời Gian" value={time} />
-        <DetailItem icon={<AiOutlineEnvironment />} label="Địa Điểm" value={location} />
-        <DetailItem icon={<AiOutlineDollarCircle />} label="Giá" value={price} />
+  <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
+  <DetailItem icon={<FaPaw />} label="Thú Cưng" value={pet} />
+  <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
+  <DetailItem icon={<AiOutlineClockCircle />} label="Thời Gian" value={time} />
+  <DetailItem icon={<AiOutlineEnvironment />} label="Địa Điểm" value={location} />
+  <DetailItem icon={<AiOutlineDollarCircle />} label="Giá" value={price} />
       </div>
 
       {/* NÚT HÀNH ĐỘNG ĐỘNG */}

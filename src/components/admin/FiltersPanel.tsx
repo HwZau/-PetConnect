@@ -16,30 +16,36 @@ type Field<T> = {
   icon?: ReactNode
 }
 
-interface FiltersPanelProps<T extends Record<string, any>> {
+interface FiltersPanelProps<T extends Record<string, unknown>> {
   fields: Array<Field<T>>
   values: T
   onChange: (next: T) => void
   onReset?: () => void
   className?: string
 }
-function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange, onReset, className = '' }: FiltersPanelProps<T>) {
+function FiltersPanel<T extends Record<string, unknown>>({ fields, values, onChange, onReset, className = '' }: FiltersPanelProps<T>) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const { theme } = useSettings()
 
   const basicFields = useMemo(() => fields.filter(f => !f.advanced), [fields])
   const advancedFields = useMemo(() => fields.filter(f => f.advanced), [fields])
 
-  const handleChange = (key: keyof T, v: any) => {
-    onChange({ ...(values as any), [String(key)]: v } as T)
+  // Use unknown-based accessors to avoid explicit `any`. We accept `v` as unknown and
+  // cast back to T when calling onChange (safe as caller controls types of values).
+  const handleChange = <K extends keyof T>(key: K, v: unknown) => {
+    const base = values as unknown as Record<string, unknown>
+    const next = { ...(base as Record<string, unknown>), [String(key)]: v } as unknown as T
+    onChange(next)
   }
+
+  const getVal = (key: keyof T) => (values as unknown as Record<string, unknown>)[String(key)];
 
   return (
     <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl shadow-xl p-4 sm:p-5 mb-8 ${className}`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Bộ Lọc</h3>
+  <h3 className="text-lg font-semibold">Bộ Lọc</h3>
         {advancedFields.length > 0 && (
-          <button
+            <button
             aria-expanded={showAdvanced}
             className={`${theme === 'dark' ? 'text-gray-300 hover:text-gray-100' : 'text-sm text-gray-600 hover:text-gray-800'} flex items-center gap-2 transition-colors`}
             onClick={() => setShowAdvanced(s => !s)}
@@ -65,7 +71,10 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                   {f.icon ?? <AiOutlineFilter />}
                 </div>
                 <select
-                  value={(values as any)[f.key] ?? 'All'}
+                  value={(() => {
+                    const curr = getVal(f.key);
+                    return typeof curr === 'undefined' || curr === null ? 'All' : String(curr);
+                  })()}
                   onChange={(e) => handleChange(f.key, e.target.value)}
                   className={`${theme === 'dark' ? 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap' : 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap'}`}
                 >
@@ -83,25 +92,25 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   {f.icon ?? <AiOutlineCalendar />}
                 </div>
-                <input
-                  type="date"
-                  value={(values as any)[f.key] ?? ''}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500'}`}
-                />
+                    <input
+                      type="date"
+                      value={String(getVal(f.key) ?? '')}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500'}`}
+                    />
               </div>
             ) : (
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   {f.icon ?? <AiOutlineSearch />}
                 </div>
-                <input
-                  type="text"
-                  placeholder={f.placeholder ?? ''}
-                  value={(values as any)[f.key] ?? ''}
-                  onChange={(e) => handleChange(f.key, e.target.value)}
-                  className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate'}`}
-                />
+                  <input
+                    type="text"
+                    placeholder={f.placeholder ?? ''}
+                    value={String(getVal(f.key) ?? '')}
+                    onChange={(e) => handleChange(f.key, e.target.value)}
+                    className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate'}`}
+                  />
               </div>
             )}
           </div>
@@ -119,7 +128,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                         {f.icon ?? <AiOutlineFilter />}
                       </div>
                       <select
-                        value={(values as any)[f.key] ?? 'All'}
+                        value={(() => { const curr = getVal(f.key); return typeof curr === 'undefined' || curr === null ? 'All' : String(curr); })()}
                         onChange={(e) => handleChange(f.key, e.target.value)}
                         className={`${theme === 'dark' ? 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap' : 'appearance-none w-full rounded-xl pl-9 pr-8 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate whitespace-nowrap'}`}
                       >
@@ -139,7 +148,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                       </div>
                       <input
                         type="date"
-                        value={(values as any)[f.key] ?? ''}
+                        value={String(getVal(f.key) ?? '')}
                         onChange={(e) => handleChange(f.key, e.target.value)}
                         className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500'}`}
                       />
@@ -152,7 +161,7 @@ function FiltersPanel<T extends Record<string, any>>({ fields, values, onChange,
                       <input
                         type="text"
                         placeholder={f.placeholder ?? ''}
-                        value={(values as any)[f.key] ?? ''}
+                        value={String(getVal(f.key) ?? '')}
                         onChange={(e) => handleChange(f.key, e.target.value)}
                         className={`${theme === 'dark' ? 'w-full rounded-xl pl-9 px-3 py-2 bg-gray-700 text-sm border border-gray-600 focus:ring-green-500 focus:border-green-500 truncate' : 'w-full rounded-xl pl-9 px-3 py-2 bg-white text-sm border border-gray-200 focus:ring-green-500 focus:border-green-500 truncate'}`}
                       />

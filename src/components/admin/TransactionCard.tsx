@@ -71,6 +71,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         }
     };
 
+    const getStatusLabel = (jobStatus: string) => getVietnameseStatus(jobStatus);
+
     // LOGIC XÁC ĐỊNH NÚT HÀNH ĐỘNG (Giữ nguyên)
     const renderActionButtons = () => {
         switch (status) {
@@ -127,7 +129,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     <div className="min-w-0">
                         <div className={`text-md font-semibold ${textColor} truncate`} title={title}>{title}</div>
                         <div className={`${subText} text-xs mt-1 flex items-center gap-2`}>
-                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>{getVietnameseStatus(status)}</span>
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyle(status)}`}>{getStatusLabel(status)}</span>
                             <span className={`${muted}`}>•</span>
                             <span>{date}</span>
                         </div>

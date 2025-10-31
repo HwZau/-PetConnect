@@ -7,14 +7,14 @@ import {
   AiOutlineCamera,
 } from "react-icons/ai";
 
-interface Comment {
+export interface Comment {
   id: number;
   author: string;
   content: string;
   timestamp: string;
 }
 
-interface Post {
+export interface Post {
   id: number;
   author: {
     name: string;
