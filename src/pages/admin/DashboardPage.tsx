@@ -3,6 +3,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom"; 
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import type { ChartEvent, LegendItem, TooltipItem, ChartOptions } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { AiOutlineDollar, AiOutlineUser, AiOutlineFileText, AiOutlineProfile } from "react-icons/ai";
 import StatCard from "../../components/admin/StatCard";
@@ -146,8 +147,9 @@ const GrowthChart: React.FC = () => {
     plugins: {
       legend: {
         position: 'bottom' as const,
-  onClick: (_evt: any, legendItem: any) => {
-          const index = legendItem.datasetIndex;
+        // Typed legend click handler
+        onClick: (_evt: ChartEvent, legendItem: LegendItem) => {
+          const index = legendItem.datasetIndex ?? -1;
           const type = index === 0 ? 'revenue' : index === 1 ? 'freelancers' : 'customers';
           setVisibleDatasets(prev => ({
             ...prev,
@@ -171,15 +173,17 @@ const GrowthChart: React.FC = () => {
         padding: 12,
         boxPadding: 4,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: TooltipItem<'line'>) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
             }
+            const y = context.parsed?.y ?? context.parsed ?? 0;
             if (context.datasetIndex === 0) {
-              label += context.parsed.y + 'M VNĐ';
+              label += String(y) + 'M VNĐ';
             } else {
-              label += context.parsed.y.toLocaleString();
+              // y may be number
+              label += Number(y).toLocaleString();
             }
             return label;
           }
@@ -202,7 +206,7 @@ const GrowthChart: React.FC = () => {
         </select>
       </div>
       <div className="h-full pt-10">
-  <Line data={data} options={options as any} />
+  <Line data={data} options={options as ChartOptions<'line'>} />
       </div>
     </div>
   );
@@ -211,8 +215,33 @@ import TransactionCard from "../../components/admin/TransactionCard"; // Giữ n
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate(); 
-  const { language, theme } = useSettings();
-  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
+  const { theme } = useSettings();
+  // Map incoming (possibly-English) job status values to the Vietnamese literals
+  // that `JobCardDashboard` now expects.
+  type JobStatusVi = "Đang Chờ" | "Đã Hoàn Thành" | "Đang Xử Lý" | "Đã Giao" | "Đã Hủy";
+  const toJobStatus = (s: unknown): JobStatusVi => {
+    const ss = String(s);
+    switch (ss) {
+      case "Completed":
+        return "Đã Hoàn Thành";
+      case "In Progress":
+        return "Đang Xử Lý";
+      case "Assigned":
+        return "Đã Giao";
+      case "Cancelled":
+        return "Đã Hủy";
+      case "Pending":
+      default:
+        return "Đang Chờ";
+    }
+  };
+
+  type TransactionStatus = "Success" | "Pending" | "Failed";
+  const toTransactionStatus = (s: unknown): TransactionStatus => {
+    const allowed = ["Success", "Pending", "Failed"] as const;
+    const ss = String(s);
+    return (allowed as readonly string[]).includes(ss) ? (ss as TransactionStatus) : "Pending";
+  };
     
   const handleViewAllJobs = () => {
     navigate("/admin/jobs"); // Chuyển hướng đến trang JobsPage
@@ -257,15 +286,15 @@ const DashboardPage: React.FC = () => {
     <div className={`min-h-screen flex ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="flex-1">
         <main className="p-6 ">
-          <h2 className="text-3xl font-bold mb-2">{t('Tổng Quan Dashboard', 'Dashboard Overview')}</h2>
-          <p className="mb-6 text-gray-500">{t('Chào mừng trở lại! Dưới đây là hoạt động hôm nay của thị trường thú cưng.', "Welcome back! Here's today's activity across the pet marketplace.")}</p>
+          <h2 className="text-3xl font-bold mb-2">Tổng Quan Dashboard</h2>
+          <p className="mb-6 text-gray-500">Chào mừng trở lại! Dưới đây là hoạt động hôm nay của thị trường thú cưng.</p>
 
           {/* STAT CARDS (Giữ nguyên) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard title={t('Tổng Freelancers','Total Freelancers')} value="247" delta={t('+12% so với tháng trước', '+12% vs last month')} icon={<AiOutlineUser />} />
-            <StatCard title={t('Khách Hàng Hoạt Động','Active Customers')} value="1,834" delta={t('+8% so với tháng trước', '+8% vs last month')} icon={<AiOutlineFileText />} />
-            <StatCard title={t('Công Việc Đang Thực Hiện','Jobs In Progress')} value="89" delta={t('-3% so với tuần trước','-3% vs last week')} icon={<AiOutlineProfile />} />
-            <StatCard title={t('Tổng Doanh Thu','Total Revenue')} value="$48,392" delta={t('+22% so với tháng trước', '+22% vs last month')} icon={<AiOutlineDollar />} />
+            <StatCard title="Tổng Freelancers" value="247" delta="+12% so với tháng trước" icon={<AiOutlineUser />} />
+            <StatCard title="Khách Hàng Hoạt Động" value="1,834" delta="+8% so với tháng trước" icon={<AiOutlineFileText />} />
+            <StatCard title="Công Việc Đang Thực Hiện" value="89" delta="-3% so với tuần trước" icon={<AiOutlineProfile />} />
+            <StatCard title="Tổng Doanh Thu" value="$48,392" delta="+22% so với tháng trước" icon={<AiOutlineDollar />} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -282,23 +311,23 @@ const DashboardPage: React.FC = () => {
             {/* COLUMN 2: Recent Job Requests - ĐÃ CẬP NHẬT SỬ DỤNG CARD ĐƠN GIẢN */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}  rounded-2xl p-5 shadow-xl`}>
         <div className="flex justify-between items-center mb-4 pb-2 ">
-          <h3 className="font-bold text-xl">{t('Yêu Cầu Công Việc Gần Đây','Recent Job Requests')}</h3>
+          <h3 className="font-bold text-xl">Yêu Cầu Công Việc Gần Đây</h3>
                     {/* NÚT XEM TẤT CẢ */}
                     <button 
                         onClick={handleViewAllJobs} 
                         className="text-sm font-medium text-green-600 hover:text-green-700 transition-colors"
                     >
-            {t('Xem Tất Cả','View All')} &rarr;
+            Xem Tất Cả &rarr;
                     </button>
                 </div>
               <div className="space-y-4">
                 {recentJobs.map((j) => (
                     // Sử dụng JobCardDashboard với props đơn giản
-                    <JobCardDashboard 
+          <JobCardDashboard 
                         key={j.id} 
                         title={j.title} 
                         client={j.client} 
-                        status={j.status as any} 
+                        status={toJobStatus(j.status)} 
                         date={j.date}
                         price={j.price} 
                     />
@@ -311,12 +340,12 @@ const DashboardPage: React.FC = () => {
           <h3 className="font-bold text-xl mt-8 mb-4">Giao Dịch Gần Đây</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recentTransactions.map((t) => (
-              <TransactionCard 
+                <TransactionCard 
                 key={t.id} 
                 title={t.title} 
                 customer={t.customer} 
                 amount={t.amount} 
-                status={t.status as any} 
+                status={toTransactionStatus(t.status)} 
                 date={t.date} 
                 freelancer={t.freelancer}
                 service={t.service}

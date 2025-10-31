@@ -8,6 +8,7 @@ import FiltersPanel from "../../components/admin/FiltersPanel";
 import { useSearch } from "../../contexts/SearchContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import JobModal from "../../components/admin/modal/JobModal";
+import type { JobFormData } from "../../components/admin/modal/JobModal";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -63,10 +64,9 @@ const JobsPage: React.FC = () => {
   }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { language, theme } = useSettings();
-  const t = (vi: string, en: string) => (language === 'vi' ? vi : en);
+  const { theme } = useSettings();
 
-  const handleCreateJob = (data: any) => {
+  const handleCreateJob = (data: JobFormData) => {
     console.log('Creating job:', data);
     setIsModalOpen(false);
     // TODO: Implement job creation
@@ -131,7 +131,7 @@ const JobsPage: React.FC = () => {
         disabled={currentPage === 1}
         className={`px-4  rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-        {t('Trang Trước','Prev')}
+        Trang Trước
       </button>
 
       {[...Array(totalPages)].map((_, index) => (
@@ -149,7 +149,7 @@ const JobsPage: React.FC = () => {
         disabled={currentPage === totalPages}
           className={`px-4  rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
-          {t('Trang Sau','Next')}
+          Trang Sau
       </button>
     </div>
   );
@@ -159,14 +159,14 @@ const JobsPage: React.FC = () => {
     <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold">{t('Quản Lý Công Việc','Jobs Management')}</h2>
-          <p className="text-gray-500">{t('Theo dõi trạng thái và tiến độ của tất cả công việc.','Track status and progress of all jobs.')}</p>
+          <h2 className="text-3xl font-bold">Quản Lý Công Việc</h2>
+          <p className="text-gray-500">Theo dõi trạng thái và tiến độ của tất cả công việc.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
         >
-          {t('+ Tạo Công Việc Mới','+ Create Job')}
+          + Tạo Công Việc Mới
         </button>
       </div>
 
@@ -213,7 +213,7 @@ const JobsPage: React.FC = () => {
         onReset={() => setFilter({ status: "All", type: "All", petType: "All", freelancer: "All", createdDate: "All", region: "All" })}
       />
 
-  <h3 className="text-xl font-bold mb-4">{t('Danh Sách Công Việc','Job List')} ({filteredJobs.length})</h3>
+  <h3 className="text-xl font-bold mb-4">Danh Sách Công Việc ({filteredJobs.length})</h3>
 
       {/* DANH SÁCH JOB CARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -233,7 +233,7 @@ const JobsPage: React.FC = () => {
           ))
         ) : (
           <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
-            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>{t('Không tìm thấy công việc nào phù hợp với bộ lọc.','No jobs match the filters.')}</div>
+            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>Không tìm thấy công việc nào phù hợp với bộ lọc.</div>
           </div>
         )}
       </div>

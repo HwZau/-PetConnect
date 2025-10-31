@@ -39,12 +39,10 @@ const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string
 // Helper function để xử lý badge style
 const getBadgeClasses = (badge: string) => {
   switch (badge) {
-    case "Active":
     case "Hoạt động":
       return "bg-green-100 text-green-800";
     case "VIP":
       return "bg-yellow-100 text-yellow-800";
-    case "Inactive":
     case "Không hoạt động":
       return "bg-red-100 text-red-800";
     default:
@@ -68,19 +66,21 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
 }) => {
 
   const { theme } = useSettings();
+  
+ 
   const titleCls = theme === 'dark' ? 'text-gray-100' : 'text-gray-800';
   const subCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-500';
 
-  // Kiểm tra trạng thái không hoạt động (Hỗ trợ cả Tiếng Anh và Tiếng Việt)
-  const isInactive = badge === "Inactive" || badge === "Không hoạt động";
+  // Kiểm tra trạng thái không hoạt động
+  const isInactive = badge === "Không hoạt động";
 
   // LOGIC CHO NÚT BẤM
-  let buttonLabel = actionLabel || "Xem Chi Tiết";
+  let buttonLabel = actionLabel || 'Xem Chi Tiết';
   let buttonClass = "flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium transition-colors";
   let buttonIcon = null;
 
   if (isInactive) {
-    buttonLabel = "Liên hệ lại";
+    buttonLabel = 'Liên hệ lại';
     buttonClass = "flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors";
     buttonIcon = <AiOutlineMail className="mr-2" />;
   }
@@ -102,7 +102,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
       </div>
 
       {/* HIỂN THỊ 5 THÔNG TIN MỚI */}
-      {(pet || bookingCount !== undefined || totalSpent || lastBooking || region) && (
+          {(pet || bookingCount !== undefined || totalSpent || lastBooking || region) && (
           <div className={`space-y-2 pt-4 mt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'}`}>
           {pet && <DetailItem icon={<FaPaw />} label="Thú cưng" value={pet} />}
           {bookingCount !== undefined && <DetailItem icon={<AiOutlineCalendar />} label="Số lần đặt" value={`${bookingCount} lần`} />}

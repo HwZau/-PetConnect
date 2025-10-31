@@ -6,29 +6,19 @@ import { AiOutlineClockCircle, AiOutlineDollarCircle } from "react-icons/ai"; //
 interface JobCardDashboardProps {
   title: string;
   client: string; // Khách hàng
-  status: "Pending" | "Assigned" | "In Progress" | "Completed" | "Cancelled";
+    status: "Đang Chờ" | "Đã Giao" | "Đang Xử Lý" | "Đã Hoàn Thành" | "Đã Hủy";
   date: string; // Thời gian ngắn gọn (ví dụ: "2 giờ trước")
   price: string; // Giá
 }
 
-const getVietnameseStatus = (jobStatus: string) => {
-    switch (jobStatus) {
-        case "Completed": return "Đã Hoàn Thành";
-        case "In Progress": return "Đang Xử Lý";
-        case "Assigned": return "Đã Giao";
-        case "Pending": return "Đang Chờ";
-        case "Cancelled": return "Đã Hủy";
-        default: return "Không rõ";
-    }
-};
 
 const getStatusClasses = (jobStatus: string) => {
     switch (jobStatus) {
-        case "Completed": return "bg-green-100 text-green-700";
-        case "In Progress": return "bg-blue-100 text-blue-700";
-        case "Assigned": return "bg-indigo-100 text-indigo-700";
-        case "Pending": return "bg-yellow-100 text-yellow-700";
-        case "Cancelled": return "bg-red-100 text-red-700";
+        case "Đã Hoàn Thành": return "bg-green-100 text-green-700";
+        case "Đang Xử Lý": return "bg-blue-100 text-blue-700";
+        case "Đã Giao": return "bg-indigo-100 text-indigo-700";
+        case "Đang Chờ": return "bg-yellow-100 text-yellow-700";
+        case "Đã Hủy": return "bg-red-100 text-red-700";
         default: return "bg-gray-100 text-gray-700";
     }
 };
@@ -47,7 +37,7 @@ const JobCardDashboard: React.FC<JobCardDashboardProps> = ({ title, client, stat
                 </div>
                 {/* STATUS */}
                 <div className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusClasses(status)}`}>
-                    {getVietnameseStatus(status)}
+                    {status}
                 </div>
             </div>
 

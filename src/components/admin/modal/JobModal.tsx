@@ -5,7 +5,7 @@ import { FaDog } from 'react-icons/fa';
 
 // --- INTERFACES ---
 
-interface JobFormData {
+export interface JobFormData {
   title: string;
   customer: string;
   pet: string;
@@ -41,8 +41,8 @@ interface FormInputProps {
     handleSelectChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
     children?: ReactNode;
     readOnly?: boolean;
-    className?: string;
-    [key: string]: any;
+  className?: string;
+  [key: string]: unknown;
 }
 
 // Simple FormInput component used by JobModal
@@ -61,11 +61,14 @@ const FormInput = ({
   ...props
 }: FormInputProps) => {
   // Remove any externally passed value/onChange so our controlled value stays stable
-  const { value: _v, onChange: _oc, ...rest } = props;
+  const rest = { ...props } as Record<string, unknown>;
+  delete rest.value;
+  delete rest.onChange;
 
   const commonClasses = `w-full rounded-xl ${icon ? 'pl-9' : 'pl-4'} pr-4 py-2 border ${className || ''}`;
 
   const onChange = type === 'select' && handleSelectChange ? handleSelectChange : handleInputChange;
+  const customClasses = String(rest.className ?? '');
 
   return (
     <div className="mb-4">
@@ -79,8 +82,8 @@ const FormInput = ({
             {...rest}
             name={name}
             value={formData[name]}
-            onChange={onChange as any}
-            className={`${commonClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500 appearance-none cursor-pointer`}
+            onChange={onChange as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
+            className={`${commonClasses} ${customClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500 appearance-none cursor-pointer`}
           >
             {children}
           </select>
@@ -89,8 +92,8 @@ const FormInput = ({
             {...rest}
             name={name}
             value={formData[name] as string}
-            onChange={onChange as any}
-            className={`${commonClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500 min-h-[100px]`}
+            onChange={onChange as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
+            className={`${commonClasses} ${customClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500 min-h-[100px]`}
           />
         ) : (
           <input
@@ -98,9 +101,9 @@ const FormInput = ({
             type={type}
             name={name}
             value={formData[name]}
-            onChange={onChange as any}
+            onChange={onChange as React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>}
             readOnly={readOnly}
-            className={`${commonClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500`}
+            className={`${commonClasses} ${customClasses} ${error ? 'border-red-500' : 'border-gray-200'} focus:ring-2 focus:ring-green-200 focus:border-green-500`}
           />
         )}
       </div>
