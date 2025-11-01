@@ -20,6 +20,7 @@ export class ApiClient {
     this.axiosInstance = axios.create({
       baseURL,
       timeout: API_CONFIG.TIMEOUT,
+      withCredentials: true, // Enable credentials for CORS
       headers: {
         "Content-Type": "application/json",
       },
