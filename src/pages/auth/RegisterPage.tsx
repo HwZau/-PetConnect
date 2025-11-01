@@ -17,7 +17,7 @@ const RegisterPage = () => {
     email: "",
     phoneNumber: "",
     address: "",
-    role: "",
+    role: "Customer",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
@@ -72,7 +72,7 @@ const RegisterPage = () => {
 
       if (result.success) {
         // Navigate to login page after successful registration
-        showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+       showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
         navigate("/login");
       } else {
         setError("Đăng ký không thành công. Vui lòng thử lại.");
