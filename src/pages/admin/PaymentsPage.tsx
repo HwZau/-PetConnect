@@ -3,7 +3,14 @@ import React, { useState } from "react";
 // Loại bỏ AdminHeader và AdminSidebar theo các phiên bản làm việc trước
 import StatCard from "../../components/admin/StatCard";
 import TransactionCard from "../../components/admin/TransactionCard";
-import { AiOutlineDollarCircle, AiOutlineLineChart, AiOutlineSwap } from "react-icons/ai";
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { AiOutlineDollarCircle, AiOutlineLineChart, AiOutlineSwap, AiOutlineDownload, AiOutlineFilePdf, AiOutlineCalendar, AiOutlineUser } from "react-icons/ai";
+import FiltersPanel from "../../components/admin/FiltersPanel";
+import PaymentModal from "../../components/admin/modal/PaymentModal";
+import type { PaymentFormData } from "../../components/admin/modal/PaymentModal";
+import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -27,7 +34,52 @@ interface Transaction {
 }
 
 const PaymentsPage: React.FC = () => {
-  const [filter, setFilter] = useState({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { theme } = useSettings();
+
+  const handleCreatePayment = (data: PaymentFormData) => {
+    console.log('Creating payment:', data);
+    // Create new transaction from form data
+    const newTransaction: Transaction = {
+      id: allTransactions.length + 1,
+      title: `Thanh toán ${data.service} - ${data.customerName}`,
+      customer: data.customerName,
+      freelancer: data.freelancerName || 'N/A',
+      service: data.service,
+  method: data.method,
+      amount: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
+        .format(Number(data.amount))
+        .replace('₫', '')
+        .trim() + '₫',
+      platformFee: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
+        .format(Number(data.amount) * 0.05)
+        .replace('₫', '')
+        .trim() + '₫',
+      status: 'Pending',
+      type: 'Payment',
+      date: new Date().toLocaleDateString('vi-VN'),
+      userType: 'Customer',
+      totalAmount: Number(data.amount)
+    };
+
+    // TODO: Send to API
+    console.log('New transaction:', newTransaction);
+    setIsModalOpen(false);
+  };
+
+
+
+  // Kiểu cho bộ lọc trang Payments
+  type PaymentsFilter = {
+    status: string
+    method: string
+    type: string
+    amountRange: string
+    dateRange: string
+    userType: string
+  }
+
+  const [filter, setFilter] = useState<PaymentsFilter>({
     status: "All",
     method: "All",
     type: "All",
@@ -36,6 +88,32 @@ const PaymentsPage: React.FC = () => {
     userType: "All"
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const { searchQuery } = useSearch();
+
+  // Mock data for the entire page
+  const mockData = {
+    customers: [
+      { id: '1', name: 'Nguyễn Thị Lan Anh' },
+      { id: '2', name: 'Trần Văn Minh' },
+      { id: '3', name: 'Võ Thị Mai' },
+      { id: '4', name: 'Phạm Văn Lợi' },
+      { id: '5', name: 'Trịnh Quang Hùng' },
+      { id: '6', name: 'Bùi Thị Yến' },
+      { id: '7', name: 'Ngô Văn Phát' },
+      { id: '8', name: 'Lê Văn Tám' }
+    ],
+    freelancers: [
+      { id: '1', name: 'Nguyễn Văn A' },
+      { id: '2', name: 'Trần Văn A' },
+      { id: '3', name: 'Lê Thị B' }
+    ],
+    services: [
+      { id: '1', name: 'Grooming', price: 1200000 },
+      { id: '2', name: 'Sitting', price: 500000 },
+      { id: '3', name: 'Training', price: 300000 },
+      { id: '4', name: 'Medical', price: 750000 }
+    ]
+  };
 
   // Dữ liệu giả định đầy đủ chi tiết
   const allTransactions: Transaction[] = [
@@ -49,7 +127,7 @@ const PaymentsPage: React.FC = () => {
     { id: 8, title: "Thanh toán Huấn luyện", customer: "Ngô Văn Phát", freelancer: "Nguyễn Văn A", service: "Training", method: "Credit Card", amount: "300,000₫", platformFee: "15,000₫", status: "Success", date: "16/10/2025", type: "Payment", userType: "Customer", totalAmount: 300000 },
     { id: 9, title: "Thanh toán cho dịch vụ Khác", customer: "Lê Văn Tám", freelancer: "Trần Văn A", service: "Medical", method: "Bank Transfer", amount: "750,000₫", platformFee: "37,500₫", status: "Success", date: "17/10/2025", type: "Payment", userType: "Customer", totalAmount: 750000 },
     { id: 10, title: "Rút tiền hoa hồng (Freelancer B)", customer: "N/A", freelancer: "Lê Thị B", service: "N/A", method: "Bank Transfer", amount: "1,500,000₫", platformFee: "5,000₫", status: "Success", date: "18/10/2025", type: "Refund", userType: "Freelancer", totalAmount: 1500000 },
-  ];
+    ];
 
   // LOGIC LỌC
   const filteredTransactions = allTransactions.filter(t => {
@@ -63,6 +141,12 @@ const PaymentsPage: React.FC = () => {
       if (filter.amountRange === "High" && amount <= 1500000) return false;
     }
     if (filter.userType !== "All" && t.userType !== filter.userType as Transaction['userType']) return false;
+    // Search query filter (title, customer, freelancer, service) from header search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${t.title} ${t.customer} ${t.freelancer} ${t.service} ${t.method}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     return true;
   });
 
@@ -123,18 +207,187 @@ const PaymentsPage: React.FC = () => {
     </div>
   );
 
+  // Export CSV helper
+  const exportCsv = (rows: Transaction[]) => {
+    if (!rows || rows.length === 0) return;
+    const headers = ["id","title","customer","freelancer","service","method","amount","platformFee","status","type","date","userType","totalAmount"];
+    // Prepend UTF-8 BOM so Excel/other apps detect UTF-8 and show Vietnamese characters properly
+    const csv = ['\uFEFF' + headers.join(',')]
+      .concat(rows.map(r => headers.map(h => {
+        const rowRecord = r as unknown as Record<string, unknown>;
+        const v = rowRecord[h];
+        if (v === null || v === undefined) return '""';
+        // escape quotes
+        const s = String(v).replace(/"/g, '""');
+        return `"${s}"`;
+      }).join(',')))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date();
+    a.download = `payments-${now.toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportPdf = async (rows: Transaction[]) => {
+    if (!rows || rows.length === 0) return;
+
+    // Ensure the Google Noto Sans font is available for correct Vietnamese rendering
+    if (!document.getElementById('noto-font')) {
+      const link = document.createElement('link');
+      link.id = 'noto-font';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap';
+      document.head.appendChild(link);
+      try {
+        // wait for font to load (best-effort)
+        const fonts = (document as unknown as { fonts?: { load: (spec: string) => Promise<unknown> } }).fonts;
+        await fonts?.load('16px "Noto Sans"');
+      } catch (fontErr) {
+        // ignore font load failure; browser will fallback (log debug)
+        console.debug('Noto Sans font load failed', fontErr);
+      }
+    }
+
+    // Build an offscreen HTML table with the rows so the browser (which supports the webfont) renders Vietnamese correctly
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '1000px';
+    container.style.padding = '20px';
+    container.style.background = '#ffffff';
+    container.style.fontFamily = "'Noto Sans', sans-serif";
+
+    const headerHtml = `<h2 style="font-size:18px;margin:0 0 12px 0">Báo cáo Thanh toán</h2>`;
+    const tableStyle = 'border-collapse:collapse;width:100%';
+    const thStyle = 'border:1px solid #ddd;padding:6px 8px;background:#f7f7f7;text-align:left;font-size:12px';
+    const tdStyle = 'border:1px solid #ddd;padding:6px 8px;font-size:12px';
+
+    const headers = ['ID','Khách hàng','Dịch vụ','Số tiền','Trạng thái','Ngày'];
+
+    let html = `${headerHtml}<table style="${tableStyle}"><thead><tr>`;
+    headers.forEach(h => { html += `<th style="${thStyle}">${h}</th>`; });
+    html += `</tr></thead><tbody>`;
+    rows.forEach(r => {
+      html += '<tr>';
+      html += `<td style="${tdStyle}">${r.id}</td>`;
+      html += `<td style="${tdStyle}">${r.customer}</td>`;
+      html += `<td style="${tdStyle}">${r.service}</td>`;
+      html += `<td style="${tdStyle}">${r.amount}</td>`;
+      html += `<td style="${tdStyle}">${r.status}</td>`;
+      html += `<td style="${tdStyle}">${r.date}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
+    try {
+      const canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const typedPdf = pdf as unknown as { getImageProperties: (dataUrl: string) => { width: number; height: number } };
+      const imgProps = typedPdf.getImageProperties(imgData);
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`payments_${Date.now()}.pdf`);
+    } catch (err) {
+      // fallback: still try simple text PDF (may not render Vietnamese correctly)
+  console.error(err);
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      doc.text('Báo cáo Thanh toán (Không thể render HTML)', 40, 40);
+      doc.save(`payments_${Date.now()}.pdf`);
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
 
   return (
-    // Đã thay đổi cấu trúc để phù hợp với phiên bản bạn cung cấp nhưng bỏ Sidebar/Header để độc lập
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-800">Quản Lý Giao Dịch</h2>
-          <p className="text-gray-500">Tổng quan về doanh thu và các hoạt động thanh toán.</p>
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
+      {/* HERO / PAGE HEADER */}
+      <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`lg:col-span-2 rounded-2xl p-6 shadow-xl overflow-hidden ${theme === 'dark' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white'}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-3xl font-bold">Quản Lý Giao Dịch</h2>
+              <p className="opacity-90 mt-1">Tổng quan doanh thu, phí và hoạt động thanh toán trên PawNest.</p>
+              <div className="mt-4 flex items-center gap-4">
+                <div className="bg-white/10 px-3 py-2 rounded-lg">
+                  <div className="text-sm opacity-90">Tổng doanh thu (tháng)</div>
+                  <div className="text-2xl font-semibold">{totalRevenue.toFixed(1)}M ₫</div>
+                </div>
+                <div className="bg-white/10 px-3 py-2 rounded-lg">
+                  <div className="text-sm opacity-90">Phí nền tảng</div>
+                  <div className="text-2xl font-semibold">{totalFees.toFixed(0)}K ₫</div>
+                </div>
+              </div>
+            </div>
+            <div className="text-right flex flex-col items-end gap-2">
+              <div className="text-sm opacity-90">Giao dịch hôm nay</div>
+              <div className="text-2xl font-semibold">{allTransactions.filter(t => t.date === new Date().toLocaleDateString('vi-VN')).length || 0}</div>
+              <div className="mt-4 flex items-center gap-2">
+                <button 
+                  onClick={() => setIsModalOpen(true)} 
+                  className="px-3 py-2 bg-white text-green-600 rounded-lg font-medium hover:scale-105 transition-transform"
+                >
+                  + Tạo Giao Dịch Mới
+                </button>
+              </div>
+
+              <PaymentModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleCreatePayment}
+                customers={Array.from(new Set(
+                  allTransactions
+                    .filter(t => t.customer !== 'N/A')
+                    .map(t => ({ id: t.id.toString(), name: t.customer }))
+                ))}
+                freelancers={Array.from(new Set(
+                  allTransactions
+                    .filter(t => t.freelancer !== 'N/A')
+                    .map(t => ({ id: t.id.toString(), name: t.freelancer }))
+                ))}
+                services={mockData.services}
+              />
+            </div>
+          </div>
+          {/* small sparkline / decorative svg */}
+          <div className="mt-6 opacity-80">
+            <svg viewBox="0 0 200 40" className="w-full h-10">
+              <polyline fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" points="0,30 20,20 40,22 60,10 80,12 100,6 120,8 140,4 160,2 180,8 200,6" />
+            </svg>
+          </div>
         </div>
-        {/* Giữ lại nút tạo giao dịch từ template cũ của bạn */}
-        <div>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium">+ Tạo Giao Dịch</button>
+
+  <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-md flex flex-col gap-3 justify-between`}>
+          <div>
+            <h3 className="text-lg font-semibold">Tổng quan nhanh</h3>
+            <p className="text-sm text-gray-500">Những con số chính và trạng thái hệ thống</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm text-gray-500">Thành công</div>
+              <div className="font-semibold text-green-600">{allTransactions.filter(t => t.status === 'Success').length}</div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm text-gray-500">Đang chờ</div>
+              <div className="font-semibold text-amber-500">{allTransactions.filter(t => t.status === 'Pending').length}</div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm text-gray-500">Thất bại</div>
+              <div className="font-semibold text-red-500">{allTransactions.filter(t => t.status === 'Failed').length}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -166,111 +419,25 @@ const PaymentsPage: React.FC = () => {
         />
       </div>
 
-      {/* KHỐI LỌC (6 trường lọc) */}
-      <div className="bg-white rounded-2xl shadow-xl  p-5 mb-8">
-        <h3 className="text-lg font-semibold mb-4">Bộ Lọc Giao Dịch</h3>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          {/* 1. Trạng Thái */}
-          <select
-            className="border rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.status}
-            onChange={(e) => {
-              setFilter({ ...filter, status: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Trạng Thái</option>
-            <option value="Success">Thành Công</option>
-            <option value="Pending">Đang Chờ</option>
-            <option value="Failed">Thất Bại</option>
-          </select>
-
-          {/* 2. Phương Thức */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.method}
-            onChange={(e) => {
-              setFilter({ ...filter, method: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Phương Thức</option>
-            <option value="Credit Card">Credit Card</option>
-            <option value="Bank Transfer">Chuyển Khoản</option>
-            <option value="Wallet">Ví Điện Tử</option>
-          </select>
-
-          {/* 3. Loại Giao Dịch */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.type}
-            onChange={(e) => {
-              setFilter({ ...filter, type: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Loại Giao Dịch</option>
-            <option value="Payment">Thanh Toán Dịch Vụ</option>
-            <option value="Refund">Hoàn Tiền/Rút Tiền</option>
-            <option value="Fee">Phí Nền Tảng</option>
-          </select>
-
-          {/* 4. Khoảng Tiền */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.amountRange}
-            onChange={(e) => {
-              setFilter({ ...filter, amountRange: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Khoảng Tiền</option>
-            <option value="Low">Dưới 500K ₫</option>
-            <option value="Medium">500K - 1.5M ₫</option>
-            <option value="High">Trên 1.5M ₫</option>
-          </select>
-
-          {/* 5. Ngày Giao Dịch */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.dateRange}
-            onChange={(e) => {
-              setFilter({ ...filter, dateRange: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Ngày Giao Dịch</option>
-            <option value="Today">Hôm nay</option>
-            <option value="This Week">Tuần này</option>
-            <option value="This Month">Tháng này</option>
-          </select>
-
-          {/* 6. Người Dùng */}
-          <select
-            className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500"
-            value={filter.userType}
-            onChange={(e) => {
-              setFilter({ ...filter, userType: e.target.value });
-              setCurrentPage(1); // RESET TRANG
-            }}
-          >
-            <option value="All">Người Dùng</option>
-            <option value="Customer">Khách Hàng</option>
-            <option value="Freelancer">Freelancer</option>
-          </select>
-          
-          {/* Nút thao tác */}
-          <div className="col-span-2 md:col-span-6 flex items-center gap-2 justify-end mt-2">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
-              onClick={() => setFilter({ status: "All", method: "All", type: "All", amountRange: "All", dateRange: "All", userType: "All" })}
-            >
-              Đặt Lại Bộ Lọc
-            </button>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">Áp Dụng</button>
-          </div>
-        </div>
+      {/* ACTIONS */}
+      <div className="mb-6 flex items-center justify-end gap-2">
+        <button onClick={() => exportCsv(filteredTransactions)} className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}><AiOutlineDownload /> Xuất CSV</button>
+        <button onClick={() => exportPdf(filteredTransactions)} className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}><AiOutlineFilePdf /> Xuất PDF</button>
       </div>
+{/* FILTER */}
+      <FiltersPanel
+        fields={[
+          { key: 'status', label: 'Trạng Thái', type: 'select', icon: <AiOutlineLineChart />, options: [{ value: 'Success', label: 'Thành Công' }, { value: 'Pending', label: 'Đang Chờ' }, { value: 'Failed', label: 'Thất Bại' }] },
+          { key: 'method', label: 'Phương Thức', type: 'select', icon: <AiOutlineDollarCircle />, options: [{ value: 'Credit Card', label: 'Credit Card' }, { value: 'Bank Transfer', label: 'Chuyển Khoản' }, { value: 'Wallet', label: 'Ví Điện Tử' }] },
+          { key: 'type', label: 'Loại Giao Dịch', type: 'select', icon: <AiOutlineSwap />, options: [{ value: 'Payment', label: 'Thanh Toán Dịch Vụ' }, { value: 'Refund', label: 'Hoàn Tiền/Rút Tiền' }, { value: 'Fee', label: 'Phí Nền Tảng' }] },
+          { key: 'amountRange', label: 'Khoảng Tiền', type: 'select', icon: <AiOutlineDollarCircle />, options: [{ value: 'Low', label: 'Dưới 500K' }, { value: 'Medium', label: '500K - 1.5M' }, { value: 'High', label: 'Trên 1.5M' }] },
+          { key: 'dateRange', label: 'Ngày Giao Dịch', type: 'select', icon: <AiOutlineCalendar />, options: [{ value: 'Today', label: 'Hôm nay' }, { value: 'This Week', label: 'Tuần này' }, { value: 'This Month', label: 'Tháng này' }] },
+          { key: 'userType', label: 'Người Dùng', type: 'select', icon: <AiOutlineUser />, options: [{ value: 'Customer', label: 'Khách Hàng' }, { value: 'Freelancer', label: 'Freelancer' }] },
+        ]}
+  values={filter}
+  onChange={(next: PaymentsFilter) => { setFilter(next); setCurrentPage(1); }}
+        onReset={() => setFilter({ status: "All", method: "All", type: "All", amountRange: "All", dateRange: "All", userType: "All" })}
+      />
 
       <h3 className="text-xl font-bold mb-4">Danh Sách Giao Dịch ({filteredTransactions.length})</h3>
 

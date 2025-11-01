@@ -7,7 +7,9 @@ import FreelancersPage from "./pages/admin/FreelancersPage";
 import CustomersPage from "./pages/admin/CustomersPage";
 import JobsPage from "./pages/admin/JobsPage";
 import PaymentsPage from "./pages/admin/PaymentsPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 import AdminLayout from "./layouts/AdminLayout";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import ProtectedProfile from "./components/common/ProtectedProfile";
 
 // Lazy load all pages
@@ -62,14 +64,15 @@ const AppRoutes = () => {
           element={user ? <BookingPage /> : <Navigate to="/login" />}
         />
 
-        {/* 🛠️ Admin routes */}
-        <Route path="/admin/*" element={<AdminLayout />}>
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="freelancers" element={<FreelancersPage />} />
-          <Route path="customers" element={<CustomersPage />} />
-          <Route path="jobs" element={<JobsPage />} />
-          <Route path="payments" element={<PaymentsPage />} />
-        </Route>
+          {/* 🛠️ Admin routes */}
+          <Route path="/admin/*" element={<AdminLayout />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="freelancers" element={<FreelancersPage />} />
+            <Route path="customers" element={<CustomersPage />} />
+            <Route path="jobs" element={<JobsPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
 
         {/* 🛠️ Admin routes neu co usecontext */}
         {/* <Route
@@ -102,9 +105,12 @@ const AppRoutes = () => {
 function App() {
   return (
     <UserProvider>
-      <BrowserRouter>
+      <SettingsProvider >
+         <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      </SettingsProvider>
+     
     </UserProvider>
   );
 }

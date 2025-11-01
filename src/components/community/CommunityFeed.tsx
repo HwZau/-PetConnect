@@ -7,14 +7,14 @@ import {
   AiOutlineCamera,
 } from "react-icons/ai";
 
-interface Comment {
+export interface Comment {
   id: number;
   author: string;
   content: string;
   timestamp: string;
 }
 
-interface Post {
+export interface Post {
   id: number;
   author: {
     name: string;
@@ -37,7 +37,6 @@ interface CommunityFeedProps {
   onLike: (id: number) => void;
   onComment: (id: number, text: string) => void;
   onDelete: (id: number) => void;
-  onEdit: (id: number, newContent: string) => void;
   onShare: (id: number) => void;
   onView: (id: number) => void;
   onAddPost: (newPost: {

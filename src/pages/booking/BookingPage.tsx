@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   BookingHeader,
@@ -10,6 +11,7 @@ import {
   BookingSummary,
 } from "../../components/booking";
 import Header from "../../components/profile/Header";
+// UserContext intentionally not imported here (not used in this page)
 import {
   validateEmail,
   validatePhoneVN,
@@ -27,6 +29,8 @@ import type {
 const BookingPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  // user context is available via UserContext but not used in this page; keep hook if we need it later
+  // const { user } = useContext(UserContext);
   const freelancerData = location.state?.freelancer as Freelancer;
 
   // Mock user data - always use for demo

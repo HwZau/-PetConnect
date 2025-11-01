@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FilterState } from "../../types";
 import Navbar from "../../components/common/Navbar";
 import Footer from "../../components/common/Footer";
 import EventHeroSection from "../../components/events/EventHeroSection";

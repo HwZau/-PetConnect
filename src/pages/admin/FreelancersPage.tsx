@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import StatCard from "../../components/admin/StatCard";
 import FreelancerCard from "../../components/admin/FreelancerCard";
+import FiltersPanel from "../../components/admin/FiltersPanel";
 import { AiOutlineUser, AiOutlineStar, AiOutlineDollar, AiOutlineTrophy } from "react-icons/ai";
 
 const ITEMS_PER_PAGE = 6;
@@ -34,8 +35,38 @@ const allFreelancers: Freelancer[] = [
   { id: 10, name: "Trịnh Thị Thảo", subtitle: "Pet Sitter tại nhà", avatar: "https://i.pravatar.cc/84?img=30", badge: "Hoạt động", experience: "1 năm", rating: 4.4, jobsCompleted: 30, servicePrice: "180,000₫/ngày", region: "Cần Thơ" },
 ];
 
+import { useSearch } from "../../contexts/SearchContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import type { FreelancerFormData } from "../../components/admin/modal/FreelancerModal";
+import { AiOutlineEnvironment } from 'react-icons/ai';
+import FreelancerModal from "../../components/admin/modal/FreelancerModal";
+
 const FreelancersPage: React.FC = () => {
-  const [filter, setFilter] = useState({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { theme } = useSettings();
+
+  const handleCreateFreelancer = (data: FreelancerFormData) => {
+    console.log('Creating freelancer:', data);
+    // TODO: Implement freelancer creation
+  };
+
+  // Mock data for modal dropdowns
+  const mockServices = [
+    { id: 'grooming', name: 'Grooming', price: 250000 },
+    { id: 'training', name: 'Training', price: 350000 },
+    { id: 'sitting', name: 'Pet Sitting', price: 200000 },
+    { id: 'medical', name: 'Medical Care', price: 500000 }
+  ];
+  // Kiểu cho bộ lọc của trang Freelancers
+  type FreelancerFilter = {
+    status: string
+    service: string
+    experience: string
+    rating: string
+    region: string
+  }
+
+  const [filter, setFilter] = useState<FreelancerFilter>({
     status: "All",
     service: "All",
     experience: "All",
@@ -43,6 +74,7 @@ const FreelancersPage: React.FC = () => {
     region: "All"
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const { searchQuery } = useSearch();
 
   // LOGIC LỌC
   const filteredFreelancers = allFreelancers.filter(f => {
@@ -75,6 +107,13 @@ const FreelancersPage: React.FC = () => {
     // 5. Khu vực
     if (filter.region !== "All" && f.region !== filter.region) return false;
 
+    // Header search (toàn cục) - tìm theo tên, subtitle hoặc khu vực
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const hay = `${f.name} ${f.subtitle} ${f.region}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+
     return true;
   });
 
@@ -103,7 +142,7 @@ const FreelancersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
         Trang Trước
       </button>
@@ -112,8 +151,7 @@ const FreelancersPage: React.FC = () => {
         <button
           key={index}
           onClick={() => handlePageChange(index + 1)}
-          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
+          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${currentPage === index + 1 ? 'bg-green-600 text-white shadow-md' : 'bg-gray-200 hover:bg-gray-300'}`}
         >
           {index + 1}
         </button>
@@ -122,7 +160,7 @@ const FreelancersPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-4 py-2 rounded-xl bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
+        className={`px-4 py-2 rounded-xl ${theme === 'dark' ? 'bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400' : 'bg-white disabled:bg-gray-100 disabled:text-gray-400'} transition-colors`}
       >
         Trang Sau
       </button>
@@ -136,103 +174,41 @@ const FreelancersPage: React.FC = () => {
 
 
   return (
-    <div className="p-8">
+    <div className={`p-8 ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-800'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Quản Lý Freelancers</h2>
+          <h2 className="text-3xl font-bold">Quản Lý Freelancers</h2>
           <p className="text-gray-500">Quản lý hồ sơ, dịch vụ và hiệu suất của freelancers.</p>
         </div>
-        <button className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors">+ Thêm Freelancer</button>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
+        >
+          + Thêm Freelancer
+        </button>
       </div>
-
-      {/* STAT CARDS (Đã cập nhật số liệu thật) */}
+  {/* STAT CARDS (Đã cập nhật số liệu thật) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard title="Tổng Freelancers" value={allFreelancers.length} delta="12% so với tháng trước" icon={<AiOutlineUser />} />
         <StatCard title="Đánh Giá Trung Bình" value={`${avgRating}/5`} delta="Tăng 0.1 điểm" icon={<AiOutlineStar />} />
         <StatCard title="Tổng Việc Hoàn Thành" value={totalJobsCompleted} delta="25% so với tháng trước" icon={<AiOutlineTrophy />} />
         <StatCard title="Hoạt Động/Tổng" value={`${activeFreelancers}/${allFreelancers.length}`} delta="Cần xem xét" icon={<AiOutlineDollar />} className="border-red-300" />
       </div>
+      {/* Filters: use shared FiltersPanel component */}
+      <FiltersPanel
+        fields={[
+          { key: 'status', label: 'Trạng Thái', type: 'select', icon: <AiOutlineUser />, options: [{ value: 'Hoạt động', label: 'Hoạt Động' }, { value: 'Bận', label: 'Bận' }, { value: 'Tạm ngưng', label: 'Tạm Ngưng' }] },
+          { key: 'service', label: 'Dịch vụ', type: 'select', icon: <AiOutlineDollar />, options: [{ value: 'Grooming', label: 'Grooming' }, { value: 'Training', label: 'Training' }, { value: 'Sitting', label: 'Sitting' }, { value: 'Medical', label: 'Medical' }] },
+          { key: 'experience', label: 'Kinh nghiệm', type: 'select', icon: <AiOutlineTrophy />, options: [{ value: '1+', label: 'Dưới 1 năm' }, { value: '3+', label: '1-5 năm' }, { value: '5+', label: 'Trên 5 năm' }] },
+          { key: 'rating', label: 'Đánh Giá', type: 'select', icon: <AiOutlineStar />, options: [{ value: '4+', label: '4.0+' }, { value: '4.5+', label: '4.5+' }] },
+          { key: 'region', label: 'Khu Vực', type: 'select', icon: <AiOutlineEnvironment />, options: [{ value: 'Hà Nội', label: 'Hà Nội' }, { value: 'TP.HCM', label: 'TP.HCM' }, { value: 'Đà Nẵng', label: 'Đà Nẵng' }, { value: 'Khác', label: 'Khác' }] },
+        ]}
+          values={filter}
+          onChange={(next: FreelancerFilter) => { setFilter(next); setCurrentPage(1); }}
+        onReset={() => { resetFilters(); }}
+      />
 
-      {/* KHỐI LỌC */}
-      <div className="bg-white rounded-2xl shadow-xl p-5 mb-8">
-        <h3 className="text-lg font-semibold mb-3">Bộ Lọc Freelancer</h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-
-          {/* 1. Trạng Thái */}
-          <select className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500" value={filter.status} onChange={(e) => {
-            setFilter({ ...filter, status: e.target.value });
-            setCurrentPage(1); // Reset về trang 1
-          }}
-          >
-            <option value="All">Trạng Thái</option>
-            <option value="Hoạt động">Hoạt Động</option>
-            <option value="Bận">Bận</option>
-            <option value="Tạm ngưng">Tạm Ngưng</option>
-          </select>
-
-          {/* 2. Dịch vụ */}
-          <select className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500" value={filter.service} onChange={(e) => {
-            setFilter({ ...filter, status: e.target.value });
-            setCurrentPage(1); // Reset về trang 1
-          }}
-          >
-            <option value="All">Dịch vụ</option>
-            <option value="Grooming">Grooming (Tắm, Cắt tỉa)</option>
-            <option value="Training">Training (Huấn luyện)</option>
-            <option value="Sitting">Sitting (Chăm sóc/Pet Sitter)</option>
-            <option value="Medical">Medical (Y tế/Dinh dưỡng)</option>
-          </select>
-
-          {/* 3. Kinh nghiệm */}
-          <select className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500" value={filter.experience} onChange={(e) => {
-            setFilter({ ...filter, status: e.target.value });
-            setCurrentPage(1); // Reset về trang 1
-          }}
-          >
-            <option value="All">Kinh nghiệm</option>
-            <option value="1+">Dưới 1 năm</option>
-            <option value="3+">1-5 năm</option>
-            <option value="5+">Trên 5 năm</option>
-          </select>
-
-          {/* 4. Đánh giá */}
-          <select className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500" value={filter.rating} onChange={(e) => {
-            setFilter({ ...filter, status: e.target.value });
-            setCurrentPage(1); // Reset về trang 1
-          }}
-          >
-            <option value="All">Đánh giá</option>
-            <option value="4+">4.0 sao trở lên</option>
-            <option value="4.5+">4.5 sao trở lên</option>
-          </select>
-
-          {/* 5. Khu vực */}
-          <select className=" rounded-xl px-3 py-2 bg-white text-sm focus:ring-green-500 focus:border-green-500" value={filter.region} onChange={(e) => {
-            setFilter({ ...filter, status: e.target.value });
-            setCurrentPage(1); // Reset về trang 1
-          }}
-          >
-            <option value="All">Khu vực</option>
-            <option value="Hà Nội">Hà Nội</option>
-            <option value="TP.HCM">TP.HCM</option>
-            <option value="Đà Nẵng">Đà Nẵng</option>
-            <option value="Khác">Khác</option>
-          </select>
-
-          {/* Nút thao tác */}
-          <div className="col-span-2 md:col-span-5 flex items-center gap-2 justify-end mt-2">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors"
-              onClick={resetFilters}
-            >
-              Đặt Lại Bộ Lọc
-            </button>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">Áp Dụng</button>
-          </div>
-        </div>
-      </div>
-
-      <h3 className="text-xl font-bold mb-4">Danh Sách Freelancer ({filteredFreelancers.length})</h3>
+  <h3 className="text-xl font-bold mb-4">Danh Sách Freelancer ({filteredFreelancers.length})</h3>
 
       {/* DANH SÁCH FREELANCER CARD (Sử dụng dữ liệu đã lọc) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -252,14 +228,22 @@ const FreelancersPage: React.FC = () => {
             />
           ))
         ) : (
-          <div className="md:col-span-3 text-center py-10 bg-white rounded-2xl text-gray-500 shadow-md">
-            Không tìm thấy freelancer nào phù hợp với bộ lọc.
+          <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
+            <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-500'} rounded-2xl py-6`}>Không tìm thấy freelancer nào phù hợp với bộ lọc.</div>
           </div>
         )}
       </div>
 
       {/* PHÂN TRANG */}
       {totalPages > 1 && renderPagination()}
+
+      {/* Modal */}
+      <FreelancerModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateFreelancer}
+        services={mockServices}
+      />
     </div>
   );
 };

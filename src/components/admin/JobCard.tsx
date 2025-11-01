@@ -1,5 +1,6 @@
 // file: JobCard.tsx
 import React from "react";
+import { useSettings } from "../../contexts/SettingsContext";
 // Import icons cần thiết
 import { AiOutlineDollarCircle, AiOutlineClockCircle, AiOutlineEnvironment, AiOutlineUser, AiOutlineTeam } from "react-icons/ai";
 import { FaPaw, FaStar, FaUserPlus } from "react-icons/fa"; // Thêm icon cho Phân Công và Xem Đánh Giá
@@ -16,17 +17,23 @@ interface JobCardProps {
 }
 
 // Helper component for displaying details inside the card
-const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => (
-  <div className="flex items-center text-sm text-gray-700">
-    <div className="text-green-500 mr-2">{icon}</div>
-    <div className="flex-1">
-      <span className="font-medium">{label}:</span> {value}
+const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => {
+  const { theme } = useSettings();
+  const textCls = theme === 'dark' ? 'text-gray-300' : 'text-gray-700';
+  const iconCls = theme === 'dark' ? 'text-green-400' : 'text-green-500';
+  return (
+    <div className={`flex items-center text-sm ${textCls}`}>
+      <div className={`${iconCls} mr-2`}>{icon}</div>
+      <div className="flex-1">
+        <span className="font-medium">{label}:</span> {value}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, time, location, status, price }) => {
 
+  const { theme } = useSettings();
   // Helper function để quyết định màu sắc dựa trên status
   const getStatusStyle = (jobStatus: string) => {
     switch (jobStatus) {
@@ -56,6 +63,8 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
     }
   };
 
+  const getStatusLabel = (jobStatus: string) => getVietnameseStatus(jobStatus);
+
   // LOGIC XÁC ĐỊNH NÚT HÀNH ĐỘNG
   const renderActionButton = () => {
     let label = "Xem Chi Tiết";
@@ -83,7 +92,7 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
         break;
     }
 
-    if (status === "Cancelled") return null; // Không hiển thị nút nếu bị Hủy
+  if (status === "Cancelled") return null; // Không hiển thị nút nếu bị Hủy
 
     return (
       <button className={`px-4 py-2 text-white rounded-xl font-medium transition-colors flex items-center ${className}`}>
@@ -93,15 +102,15 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
     );
   };
 
-  return (
-    <div className="bg-white rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl">
+    return (
+    <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl`}>
       <div className="flex items-start justify-between mb-4 pb-4 ">
         <div className="flex-1 min-w-0">
-          <div className="text-xl font-bold text-gray-800 truncate" title={title}>{title}</div>
-          <div className="text-sm text-gray-500 mt-1 flex items-center">
+          <div className="text-xl font-bold truncate" title={title}>{title}</div>
+          <div className={`text-sm mt-1 flex items-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
             <span className="font-medium">Trạng thái:</span>
             <span className={`text-xs ml-2 px-3 py-1 rounded-full font-medium ${getStatusStyle(status)}`}>
-              {getVietnameseStatus(status)}
+              {getStatusLabel(status)}
             </span>
           </div>
         </div>
@@ -109,12 +118,12 @@ const JobCard: React.FC<JobCardProps> = ({ title, customer, pet, freelancer, tim
 
       {/* HIỂN THỊ 6 THÔNG TIN CHI TIẾT */}
       <div className="space-y-2">
-        <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
-        <DetailItem icon={<FaPaw />} label="Thú Cưng" value={pet} />
-        <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
-        <DetailItem icon={<AiOutlineClockCircle />} label="Thời Gian" value={time} />
-        <DetailItem icon={<AiOutlineEnvironment />} label="Địa Điểm" value={location} />
-        <DetailItem icon={<AiOutlineDollarCircle />} label="Giá" value={price} />
+  <DetailItem icon={<AiOutlineUser />} label="Khách Hàng" value={customer} />
+  <DetailItem icon={<FaPaw />} label="Thú Cưng" value={pet} />
+  <DetailItem icon={<AiOutlineTeam />} label="Freelancer" value={freelancer} />
+  <DetailItem icon={<AiOutlineClockCircle />} label="Thời Gian" value={time} />
+  <DetailItem icon={<AiOutlineEnvironment />} label="Địa Điểm" value={location} />
+  <DetailItem icon={<AiOutlineDollarCircle />} label="Giá" value={price} />
       </div>
 
       {/* NÚT HÀNH ĐỘNG ĐỘNG */}
