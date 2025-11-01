@@ -1,7 +1,11 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+// import { showSuccess } from "../../utils/toastUtils";
+import { AiOutlineClose, AiOutlineHeart, AiOutlineUserAdd, AiOutlineTrophy, AiOutlineCheckCircle } from "react-icons/ai";
 
 const CommunityHeroSection: React.FC = () => {
-  const [isMember, setIsMember] = useState(false);
+  const navigate = useNavigate();
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const createPostRef = useRef<HTMLDivElement>(null);
 
   const handleShareNow = () => {
@@ -9,14 +13,12 @@ const CommunityHeroSection: React.FC = () => {
   };
 
   const handleJoinCommunity = () => {
-    if (isMember) return;
-    const confirmed = window.confirm(
-      "Bạn có muốn tham gia cộng đồng PawNest không?"
-    );
-    if (confirmed) {
-      setIsMember(true);
-      alert("Chào mừng bạn đến với cộng đồng PawNest 🐾!");
-    }
+    setShowJoinModal(true);
+  };
+
+  const handleConfirmJoin = () => {
+    setShowJoinModal(false);
+    navigate("/register");
   };
 
   return (
@@ -198,23 +200,18 @@ const CommunityHeroSection: React.FC = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-2">
-              {!isMember ? (
-                <button
-                  onClick={handleJoinCommunity}
-                  className="group bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-black px-5 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl"
-                >
-                  <span className="flex items-center gap-2 text-xs">
-                    Tham Gia Ngay
-                    <span className="group-hover:translate-x-1 transition-transform">
-                      →
-                    </span>
+              <button
+                onClick={handleJoinCommunity}
+                className="group bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-black px-5 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl"
+              >
+                <span className="flex items-center gap-2 text-xs">
+                  <AiOutlineUserAdd className="w-4 h-4" />
+                  Tham Gia Ngay
+                  <span className="group-hover:translate-x-1 transition-transform">
+                    →
                   </span>
-                </button>
-              ) : (
-                <button className="bg-green-600 text-white font-black px-5 py-2 rounded-2xl shadow-xl cursor-default text-xs">
-                  ✓ Chào Mừng Bạn!
-                </button>
-              )}
+                </span>
+              </button>
               <button
                 onClick={handleShareNow}
                 className="bg-white hover:bg-gray-50 text-gray-900 font-bold px-5 py-2 rounded-2xl transition-all duration-300 shadow-lg border-2 border-gray-200 text-xs"
@@ -225,6 +222,87 @@ const CommunityHeroSection: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Join Community Modal */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:p-0">
+            {/* Overlay với animation */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 backdrop-blur-sm"
+              aria-hidden="true"
+              onClick={() => setShowJoinModal(false)}
+            />
+
+            {/* Modal panel */}
+            <div className="relative inline-block w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+              {/* Modal header với gradient */}
+              <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white relative">
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="absolute right-4 top-4 p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <AiOutlineClose className="w-5 h-5" />
+                </button>
+                <h3 className="text-2xl font-bold flex items-center gap-2">
+                  <AiOutlineHeart className="w-6 h-6" />
+                  Tham gia PawNest
+                </h3>
+                <p className="mt-2 text-sm opacity-90">
+                  Cộng đồng dành cho những người yêu thú cưng
+                </p>
+              </div>
+
+              {/* Modal body */}
+              <div className="bg-white px-6 py-4">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-xl">
+                    <AiOutlineUserAdd className="w-6 h-6 text-teal-600" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Kết nối</h4>
+                      <p className="text-sm text-gray-600">Gặp gỡ những người yêu thú cưng khác</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-cyan-50 rounded-xl">
+                    <AiOutlineTrophy className="w-6 h-6 text-cyan-600" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Học hỏi</h4>
+                      <p className="text-sm text-gray-600">Chia sẻ kinh nghiệm chăm sóc thú cưng</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl">
+                    <AiOutlineCheckCircle className="w-6 h-6 text-emerald-600" />
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Hỗ trợ</h4>
+                      <p className="text-sm text-gray-600">Được tư vấn từ các chuyên gia</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Để sau
+                </button>
+                <button
+                  onClick={handleConfirmJoin}
+                  className="group bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 px-6 py-2 text-sm font-medium text-white rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+                >
+                  <AiOutlineUserAdd className="w-5 h-5" />
+                  Tham Gia Ngay
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scroll Anchor */}
       <div ref={createPostRef} className="absolute bottom-0"></div>

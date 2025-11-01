@@ -38,7 +38,6 @@ export const postService = {
   },
 
   async createPost(data: Partial<Post>): Promise<ApiResponse<Post>> {
-    // CREATE_POST currently maps to same path as POSTS but use explicit key for clarity
     return apiClient.post<Post>(API_ENDPOINTS.COMMUNITY.CREATE_POST, data);
   },
 
@@ -47,23 +46,11 @@ export const postService = {
   },
 
   async updatePost(id: string | number, data: Partial<Post>): Promise<ApiResponse<Post>> {
-    return apiClient.put<Post>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)), data);
+    return apiClient.put<Post>(API_ENDPOINTS.COMMUNITY.UPDATE_POST(String(id)), data);
   },
 
   async deletePost(id: string | number): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)));
-  },
-
-  async likePost(id: string | number): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(API_ENDPOINTS.COMMUNITY.LIKE_POST(String(id)));
-  },
-
-  async commentPost(id: string | number, comment: { content: string }): Promise<ApiResponse<ServiceComment>> {
-    return apiClient.post<ServiceComment>(API_ENDPOINTS.COMMUNITY.COMMENT(String(id)), comment);
-  },
-
-  async trending(): Promise<ApiResponse<Post[]>> {
-    return apiClient.get<Post[]>(API_ENDPOINTS.COMMUNITY.TRENDING);
+    return apiClient.delete<void>(API_ENDPOINTS.COMMUNITY.DELETE_POST(String(id)));
   },
 };
 

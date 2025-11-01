@@ -65,55 +65,26 @@ const CommunityPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   const handleLike = (id: number) => {
-    // optimistic with rollback
-    const prev = posts;
-    const next = posts.map((p) =>
+    // Chức năng like tạm thời chỉ cập nhật UI, không gọi API
+    setPosts(posts.map((p) =>
       p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-    );
-    setPosts(next);
-
-    const target = next.find((p) => p.id === id);
-    if (!target) return;
-
-    postService
-      .likePost(id)
-      .then((res) => {
-        if (!res.success) {
-          setPosts(prev);
-          showError(res.error || res.message || "Cập nhật like thất bại");
-        }
-      })
-      .catch(() => {
-        setPosts(prev);
-        showError("Cập nhật like thất bại (network)");
-      });
+    ));
+    showError("Tính năng like đang được phát triển");
   };
 
   const handleAddComment = (id: number, text: string) => {
     if (!text.trim()) return;
-    const prev = posts;
+    // Chức năng comment tạm thời chỉ cập nhật UI, không gọi API
     const newComment = { id: Date.now(), author: "Bạn", content: text, timestamp: "Vừa xong" };
-    setPosts((prevPosts) =>
+    setPosts(prevPosts =>
       prevPosts.map((p) => (p.id === id ? { ...p, comments: [...p.comments, newComment] } : p))
     );
-
-    postService
-      .commentPost(id, { content: text })
-      .then((res) => {
-        if (!res.success) {
-          setPosts(prev);
-          showError(res.error || res.message || "Gửi bình luận thất bại");
-        }
-      })
-      .catch(() => {
-        setPosts(prev);
-        showError("Gửi bình luận thất bại (network)");
-      });
+    showError("Tính năng bình luận đang được phát triển");
   };
 
   const handleDeletePost = (id: number) => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để xóa bài viết");
+      showError("Vui lòng đăng nhập để xóa bài viết");
       return;
     }
 
@@ -179,7 +150,7 @@ const CommunityPage: React.FC = () => {
 
   const handleAddPost = async (newPost: { author: string; caption: string; image?: string }) => {
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để đăng bài");
+      showError("Vui lòng đăng nhập để đăng bài");
       return;
     }
 
