@@ -1,88 +1,116 @@
-import CatImage from "../../assets/image/Cat.png";
-
 const HeroSection = () => {
   return (
-    <section className="min-h-screen bg-white relative overflow-hidden pt-16 px-3">
-      {/* Banner with rounded corners and gradient background - allow overflow for large cat */}
-      <div className="w-[95%] mx-auto bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100 rounded-t-3xl relative overflow-visible min-h-screen">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0">
-          {/* Large circle decoration behind cat area - adjusted for larger cat */}
-          <div className="absolute top-1/2 right-1/5 transform -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-br from-cyan-200/20 to-teal-200/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-64 h-64 bg-gradient-to-br from-emerald-200/25 to-green-200/25 rounded-full blur-2xl"></div>
-          <div className="absolute top-20 right-10 w-32 h-32 bg-gradient-to-br from-cyan-300/20 to-blue-200/20 rounded-full blur-xl"></div>
-        </div>
+    <section className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 relative overflow-hidden flex items-center">
+      {/* Animated Pattern Background */}
+      <div className="absolute inset-0 opacity-5">
+        <div
+          className="absolute top-0 left-0 w-full h-full"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        ></div>
+      </div>
 
-        {/* Content inside banner */}
-        <div className="px-12 py-16 pt-20 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center h-full">
-            {/* Left side - Content */}
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                  Chăm sóc thú cưng{" "}
-                  <span className="text-emerald-600">chưa bao giờ</span>
-                  <br />
-                  <span className="text-emerald-600">dễ dàng đến thế</span>
-                </h1>
-
-                <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
-                  Tìm người chăm thú phù hợp - an tâm, nhanh chóng, có bảo cảo
-                  đầy đủ.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button className="btn bg-white text-gray-900 hover:bg-gray-50 font-semibold px-8 py-4 rounded-full text-lg shadow-lg transform hover:scale-105 transition-all border border-gray-200">
-                  Đặt Lịch ngay !!
-                </button>
-                <button className="btn border-2 border-gray-400 text-gray-700 hover:scale-105 font-medium px-8 py-4 rounded-full text-lg transition-all !underline">
-                  Tìm hiểu thêm
-                </button>
-              </div>
+      <div className="container mx-auto px-6 lg:px-16 py-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div className="space-y-3">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-100 to-amber-100 px-5 py-2 rounded-full border-2 border-orange-200">
+              <span className="text-2xl">🏡</span>
+              <span className="text-orange-800 font-bold text-sm">
+                Chào Mừng Đến PawNest
+              </span>
             </div>
 
-            {/* Right side - Cat Image */}
-            <div className="relative">
-              {/* Main cat image container with cyan oval background */}
-              <div className="relative z-10 flex justify-center">
-                <div className="relative">
-                  {/* Larger cyan oval background - centered for large cat */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[500px] bg-gradient-to-br from-cyan-200/70 to-teal-200/70 rounded-full max-lg:w-[450px] max-lg:h-[400px]"></div>
+            {/* Main Heading */}
+            <div className="space-y-2">
+              <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black leading-tight">
+                <span className="text-gray-900">Ngôi Nhà</span>
+                <br />
+                <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 bg-clip-text text-transparent">
+                  Hạnh Phúc Của Boss
+                </span>
+              </h1>
+              <p className="text-lg lg:text-xl text-gray-700 leading-relaxed max-w-xl font-medium">
+                Mọi thứ boss cưng của bạn cần - từ sản phẩm cao cấp đến dịch vụ
+                chăm sóc chuyên nghiệp.
+              </p>
+            </div>
 
-                  {/* Cat image container - improved responsive handling */}
-                  <div className="relative flex items-center justify-center -mt-16 max-lg:-mt-12">
-                    {/* Cat image - responsive sizing */}
-                    <div className="relative z-10">
-                      <img
-                        src={CatImage}
-                        alt="Cat"
-                        className="w-auto h-auto max-h-[700px] object-contain filter drop-shadow-2xl lg:max-h-[800px]"
-                      />
-                    </div>
-                  </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/80 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-orange-100">
+                <div className="text-2xl font-black text-orange-600">5K+</div>
+                <div className="text-xs text-gray-600 font-semibold">
+                  Boss Vui Vẻ
                 </div>
               </div>
+              <div className="bg-white/80 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-amber-100">
+                <div className="text-2xl font-black text-amber-600">1K+</div>
+                <div className="text-xs text-gray-600 font-semibold">
+                  Sản Phẩm
+                </div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-yellow-100">
+                <div className="text-2xl font-black text-yellow-600">24/7</div>
+                <div className="text-xs text-gray-600 font-semibold">
+                  Hỗ Trợ
+                </div>
+              </div>
+            </div>
 
-              {/* Decorative floating elements - adjusted for larger layout */}
-              <div className="absolute top-16 left-2 w-10 h-10 bg-emerald-200/40 rounded-full animate-pulse"></div>
-              <div className="absolute bottom-16 right-4 w-6 h-6 bg-teal-200/40 rounded-full animate-pulse delay-1000"></div>
-              <div className="absolute top-1/4 left-0 w-4 h-4 bg-cyan-200/40 rounded-full animate-pulse delay-500"></div>
-              <div className="absolute top-1/5 right-2 w-3 h-3 bg-emerald-300/40 rounded-full animate-pulse delay-700"></div>
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-3">
+              <button className="group bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold px-8 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-xl flex items-center gap-2">
+                Mua Ngay
+                <span className="group-hover:translate-x-1 transition-transform">
+                  →
+                </span>
+              </button>
+              <button className="bg-white hover:bg-gray-50 text-gray-900 font-bold px-8 py-3 rounded-xl transition-all duration-300 shadow-lg border-2 border-gray-200">
+                Tìm Hiểu Thêm
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Additional floating elements outside banner */}
-      <div className="absolute top-1/4 left-1/4 animate-float">
-        <div className="w-6 h-6 bg-emerald-300/30 rounded-full"></div>
-      </div>
-      <div className="absolute top-1/3 right-1/3 animate-float delay-1000">
-        <div className="w-4 h-4 bg-teal-300/30 rounded-full"></div>
-      </div>
-      <div className="absolute bottom-1/4 left-1/3 animate-float delay-500">
-        <div className="w-8 h-8 bg-cyan-300/30 rounded-full"></div>
+          {/* Right Content - Image */}
+          <div className="relative flex items-center justify-center">
+            <div className="relative w-full max-w-[500px]">
+              <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-500">
+                <img
+                  src="https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=700&h=700&fit=crop"
+                  alt="Happy pets"
+                  className="w-full h-[400px] lg:h-[450px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              </div>
+
+              {/* Floating Cards */}
+              <div className="absolute -top-4 -right-4 bg-white p-4 rounded-xl shadow-2xl animate-bounce">
+                <div className="text-3xl mb-1">⭐</div>
+                <div className="text-xs font-bold text-gray-800">Uy Tín</div>
+              </div>
+
+              <div
+                className="absolute -bottom-6 -left-4 bg-white p-4 rounded-xl shadow-2xl animate-bounce"
+                style={{ animationDelay: "0.5s" }}
+              >
+                <div className="text-3xl mb-1">💝</div>
+                <div className="text-xs font-bold text-gray-800">
+                  Yêu Thương
+                </div>
+              </div>
+            </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute top-10 right-5 w-24 h-24 bg-orange-300/30 rounded-full blur-2xl animate-pulse"></div>
+            <div
+              className="absolute bottom-10 left-5 w-32 h-32 bg-amber-300/30 rounded-full blur-2xl animate-pulse"
+              style={{ animationDelay: "1s" }}
+            ></div>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -15,6 +15,20 @@
   animation: float 3s ease-in-out infinite;
 }
 
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.animate-wiggle {
+  animation: wiggle 1s ease-in-out infinite;
+}
+
 /* Animation delay utilities */
 .delay-100 {
   animation-delay: 100ms;

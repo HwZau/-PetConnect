@@ -1,325 +1,323 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   AiOutlineHome,
-  AiOutlineUser,
-  AiOutlineTeam,
+  AiOutlineSearch,
+  AiOutlineBell,
   AiOutlineCalendar,
-  AiOutlineQuestionCircle,
-  AiOutlineDown,
-  AiOutlineMenu,
-  AiOutlineLogin,
+  AiOutlineSetting,
   AiOutlineLogout,
+  AiOutlineUser,
+  AiOutlineMenu,
+  AiOutlineClose,
 } from "react-icons/ai";
-import ReactCountryFlag from "react-country-flag";
+import { FaPaw } from "react-icons/fa";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../assets/image/Logo.png";
-import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks";
 
-const Navbar = () => {
+const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  // Detect scroll để thay đổi navbar style
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 100); // Thay đổi style khi scroll > 100px
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showUserMenu && !target.closest(".user-menu-container")) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setShowUserMenu(false);
       }
     };
 
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    if (showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [showUserMenu]);
 
-  // Xử lý đăng nhập/đăng xuất
-  const handleAuthAction = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (user) {
-      setShowUserMenu(!showUserMenu);
-    } else {
-      navigate("/login");
-    }
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
-    navigate("/");
+  // Function to get user avatar with fallback
+  const getUserAvatar = () => {
+    if (user?.avatar) {
+      return user.avatar;
+    }
+    return "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
+  };
+
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.name) {
+      return user.name;
+    }
+    if (user?.email) {
+      return user.email.split("@")[0];
+    }
+    return "User";
+  };
+
+  // Check if current route is active
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
   return (
-    <>
-      {/* Spacer để tránh content jump khi navbar becomes fixed */}
-      <div
-        className={`transition-all duration-300 ${
-          isScrolled ? "h-16 scale-100" : "h-0 scale-95"
-        }`}
-      />
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+            <img src={Logo} alt="PawNest" className="h-8 w-8" />
+            <span className="text-xl font-bold text-emerald-600">PawNest</span>
+          </Link>
 
-      <nav
-        className={`bg-white shadow-lg shadow-gray-300/30 border border-gray-100 z-50 overflow-visible transition-all duration-300 ${
-          isScrolled
-            ? "fixed top-0 left-0 w-full rounded-none scale-100"
-            : "absolute top-8 left-1/2 -translate-x-1/2 w-[80%] rounded-4xl scale-95"
-        }`}
-      >
-        <div className={`${isScrolled ? "px-6" : "px-4"}`}>
-          <div
-            className={`flex items-center justify-between relative ${
-              isScrolled ? "h-16" : "h-14"
-            }`}
-          >
-            {/* Logo */}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
             <Link
               to="/"
-              className={`flex items-center z-10 transition-all duration-300 ${
-                isScrolled
-                  ? "flex-row space-x-2 scale-100"
-                  : "flex-col -mt-4 ml-2 scale-110"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`}
             >
-              <div className="flex items-center justify-center">
-                <img
-                  src={Logo}
-                  alt="Logo"
-                  className={`transition-all duration-300 ${
-                    isScrolled ? "w-8 h-8 scale-100" : "w-15 h-15 scale-105"
-                  }`}
-                />
-              </div>
-              <span
-                className={`font-bold text-emerald-600 transition-all duration-300 ${
-                  isScrolled
-                    ? "text-lg ml-0 scale-100"
-                    : "text-xs -mt-1 ml-2 scale-110"
-                }`}
-              >
-                PawNest
-              </span>
-            </Link>
-
-            {/* Navigation Links */}
-            <div className="hidden md:flex items-center space-x-6">
-              <Link
-                to="/"
-                className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
-              >
+              <div className="flex items-center space-x-2">
                 <AiOutlineHome className="w-4 h-4" />
                 <span>Trang chủ</span>
-              </Link>
-              <Link
-                to="/freelancers"
-                className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
-              >
+              </div>
+            </Link>
+
+            <Link
+              to="/freelancers"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/freelancers")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
                 <AiOutlineUser className="w-4 h-4" />
                 <span>Tìm Người</span>
-              </Link>
-              <Link
-                to="/community"
-                className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
-              >
-                <AiOutlineTeam className="w-4 h-4" />
-                <span>Công Đồng</span>
-              </Link>
-              <Link
-                to="/events"
-                className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
-              >
+              </div>
+            </Link>
+
+            <Link
+              to="/community"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/community")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <FaPaw className="w-4 h-4" />
+                <span>Cộng Đồng</span>
+              </div>
+            </Link>
+
+            <Link
+              to="/events"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/events")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
                 <AiOutlineCalendar className="w-4 h-4" />
                 <span>Sự kiện</span>
-              </Link>
-              <Link
-                to="/support"
-                className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-150 text-sm"
-              >
-                <AiOutlineQuestionCircle className="w-4 h-4" />
+              </div>
+            </Link>
+
+            <Link
+              to="/support"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/support")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <AiOutlineSetting className="w-4 h-4" />
                 <span>Hỗ Trợ</span>
-              </Link>
+              </div>
+            </Link>
+          </nav>
+
+          {/* Right Section */}
+          <div className="flex items-center space-x-3">
+            {/* Language Selector */}
+            <div className="hidden md:flex items-center space-x-1 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors">
+              <img
+                src="https://flagcdn.com/w40/vn.png"
+                alt="Vietnam"
+                className="w-5 h-3 object-cover"
+              />
+              <span className="text-gray-700 font-medium text-sm">VI</span>
             </div>
 
-            {/* Language & User */}
-            <div className="flex items-center space-x-3">
-              {/* Language Selector */}
-              <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-lg transition-colors duration-150">
-                <ReactCountryFlag
-                  countryCode="VN"
-                  svg
-                  style={{
-                    width: "1.5rem",
-                    height: "1rem",
-                  }}
-                  title="Vietnam"
-                />
-                <span className="text-gray-700 font-medium text-sm">VI</span>
-              </div>
+            {/* Notifications - Only show when logged in */}
+            {user && (
+              <button className="relative p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                <AiOutlineBell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            )}
 
-              {/* Conditional User Avatar or Login Button */}
-              {user ? (
-                <div className="relative user-menu-container">
-                  <div
-                    className="flex items-center space-x-2 cursor-pointer group"
-                    onClick={handleAuthAction}
-                  >
-                    <div className="w-7 h-7 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={user.name || "User"}
-                          className="w-full h-full rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <AiOutlineUser className="w-4 h-4 text-white" />
+            {/* Settings - Only show when logged in */}
+            {user && (
+              <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                <AiOutlineSetting className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* User Profile */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <img
+                    src={getUserAvatar()}
+                    alt={getUserDisplayName()}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src =
+                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
+                    }}
+                  />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {getUserDisplayName()}
+                      </p>
+                      {user.email && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {user.email}
+                        </p>
                       )}
                     </div>
-                    <AiOutlineDown className="w-3 h-3 text-gray-500 group-hover:text-gray-700 transition-colors duration-150" />
-                  </div>
 
-                  {/* User Dropdown Menu */}
-                  {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-                      <Link
-                        to="/profile"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <AiOutlineUser className="w-4 h-4 mr-3" />
-                        Hồ sơ của tôi
-                      </Link>
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <AiOutlineUser className="w-4 h-4 mr-3 text-gray-400" />
+                      Hồ sơ của tôi
+                    </Link>
+
+                    <Link
+                      to="/settings"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <AiOutlineSetting className="w-4 h-4 mr-3 text-gray-400" />
+                      Cài đặt
+                    </Link>
+
+                    <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <AiOutlineLogout className="w-4 h-4 mr-3" />
                         Đăng xuất
                       </button>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={handleAuthAction}
-                  className="flex items-center space-x-1 bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors duration-150 text-sm font-medium"
-                >
-                  <AiOutlineLogin className="w-4 h-4" />
-                  <span>Đăng nhập</span>
-                </button>
-              )}
-
-              {/* Mobile Menu Button */}
+                  </div>
+                )}
+              </div>
+            ) : (
               <button
-                className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-150"
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                onClick={() => navigate("/login")}
+                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
               >
-                <AiOutlineMenu className="w-6 h-6 text-gray-600" />
+                Đăng nhập
               </button>
-            </div>
-          </div>
+            )}
 
-          {/* Mobile Menu */}
-          <div
-            className={`md:hidden border-t border-gray-200 overflow-hidden transition-all duration-200 ease-out ${
-              showMobileMenu ? "max-h-96 py-4" : "max-h-0 py-0"
-            }`}
-          >
-            <div className="space-y-2">
-              <Link
-                to="/"
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <AiOutlineHome className="w-4 h-4" />
-                <span>Trang chủ</span>
-              </Link>
-              <Link
-                to="/freelancers"
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <AiOutlineUser className="w-4 h-4" />
-                <span>Tìm Người</span>
-              </Link>
-              <Link
-                to="/community"
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <AiOutlineTeam className="w-4 h-4" />
-                <span>Công Đồng</span>
-              </Link>
-              <Link
-                to="/events"
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <AiOutlineCalendar className="w-4 h-4" />
-                <span>Sự kiện</span>
-              </Link>
-              <Link
-                to="#"
-                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                onClick={() => setShowMobileMenu(false)}
-              >
-                <AiOutlineQuestionCircle className="w-4 h-4" />
-                <span>Hỗ Trợ</span>
-              </Link>
-
-              {/* Login/Profile in mobile menu */}
-              {!user && (
-                <button
-                  onClick={handleAuthAction}
-                  className="flex items-center w-full space-x-2 px-4 py-2 text-emerald-600 hover:bg-emerald-50 rounded-lg font-medium transition-colors duration-150"
-                >
-                  <AiOutlineLogin className="w-4 h-4" />
-                  <span>Đăng nhập</span>
-                </button>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+            >
+              {showMobileMenu ? (
+                <AiOutlineClose className="w-6 h-6" />
+              ) : (
+                <AiOutlineMenu className="w-6 h-6" />
               )}
-              {user && (
-                <>
-                  <Link
-                    to="/profile"
-                    className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150"
-                    onClick={() => setShowMobileMenu(false)}
-                  >
-                    <AiOutlineUser className="w-4 h-4" />
-                    <span>Hồ sơ của tôi</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setShowMobileMenu(false);
-                    }}
-                    className="flex items-center w-full space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                  >
-                    <AiOutlineLogout className="w-4 h-4" />
-                    <span>Đăng xuất</span>
-                  </button>
-                </>
-              )}
-            </div>
+            </button>
           </div>
         </div>
-      </nav>
-    </>
+      </div>
+
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="px-4 py-3 space-y-1">
+            <Link
+              to="/"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <AiOutlineHome className="w-5 h-5" />
+              <span>Trang chủ</span>
+            </Link>
+            <Link
+              to="/freelancers"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <AiOutlineUser className="w-5 h-5" />
+              <span>Tìm Người</span>
+            </Link>
+            <Link
+              to="/community"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <FaPaw className="w-5 h-5" />
+              <span>Cộng Đồng</span>
+            </Link>
+            <Link
+              to="/events"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <AiOutlineCalendar className="w-5 h-5" />
+              <span>Sự kiện</span>
+            </Link>
+            <Link
+              to="/support"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <AiOutlineSetting className="w-5 h-5" />
+              <span>Hỗ Trợ</span>
+            </Link>
+          </div>
+        </div>
+      )}
+    </header>
   );
 };
 
-export default Navbar;
+export default Header;

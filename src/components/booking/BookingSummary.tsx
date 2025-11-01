@@ -192,7 +192,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onSubmit();
+          onSubmit?.();
         }}
         type="button"
         className="w-full py-3 px-4 rounded-lg transition-colors font-medium bg-purple-600 text-white hover:bg-purple-700"

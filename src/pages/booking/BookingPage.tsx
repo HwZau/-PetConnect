@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   BookingHeader,
@@ -10,7 +10,6 @@ import {
   BookingSummary,
 } from "../../components/booking";
 import Header from "../../components/profile/Header";
-import { UserContext } from "../../contexts/UserContext";
 import {
   validateEmail,
   validatePhoneVN,
@@ -28,8 +27,6 @@ import type {
 const BookingPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { user } = useContext(UserContext);
   const freelancerData = location.state?.freelancer as Freelancer;
 
   // Mock user data - always use for demo
@@ -66,15 +63,18 @@ const BookingPage: React.FC = () => {
       petSize: "",
       duration: "",
       petName: mockUser.pets.length > 0 ? mockUser.pets[0].name : "",
-      petAge: mockUser.pets.length > 0 ? mockUser.pets[0].age : "",
+      petAge: mockUser.pets.length > 0 ? mockUser.pets[0].age || "" : "",
       petWeight: "",
     },
   ]);
   const [dateTimeData, setDateTimeData] = useState<DateTimeData>({
-    date: "",
-    time: "",
+    selectedDate: "",
+    selectedTime: "",
     recurringService: false,
     frequency: "",
+    // Backward compatibility
+    date: "",
+    time: "",
   });
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoData>({
@@ -121,18 +121,12 @@ const BookingPage: React.FC = () => {
     setPetInfo((prev) => prev.filter((_, index) => index !== petIndex));
   };
 
-  const handleDateTimeChange = (
-    field: keyof DateTimeData,
-    value: string | boolean
-  ) => {
+  const handleDateTimeChange = (field: string, value: string | boolean) => {
     setDateTimeData((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  const handleCustomerInfoChange = (
-    field: keyof CustomerInfoData,
-    value: string
-  ) => {
+  const handleCustomerInfoChange = (field: string, value: string) => {
     // Real-time validation for phone and email
     if (field === "phone") {
       // Allow only digits, spaces, parentheses, and hyphens
@@ -213,7 +207,7 @@ const BookingPage: React.FC = () => {
 
   const handlePetInfoChange = (
     petIndex: number,
-    field: keyof PetInfoData,
+    field: string,
     value: string
   ) => {
     // For weight field, validate and format input

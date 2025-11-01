@@ -3,14 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import registerImage from "../../assets/image/register.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
-import { useScrollToTop } from "../../hooks";
-import { authService } from "../../services";
+import { useScrollToTop, useAuth } from "../../hooks";
 import { showError, showSuccess } from "../../utils/toastUtils";
 
 const RegisterPage = () => {
   // Scroll to top when page loads
   useScrollToTop();
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -43,21 +43,24 @@ const RegisterPage = () => {
         !formData.confirmPassword
       ) {
         setError("Vui lòng điền đầy đủ thông tin");
+        setIsLoading(false);
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
         setError("Mật khẩu không khớp!");
+        setIsLoading(false);
         return;
       }
 
       if (!formData.agreeToTerms) {
         setError("Vui lòng đồng ý với điều khoản dịch vụ");
+        setIsLoading(false);
         return;
       }
 
-      // Call register API
-      const registerResponse = await authService.register({
+      // Call register with useAuth hook
+      const result = await register({
         name: formData.name,
         email: formData.email,
         phoneNumber: formData.phoneNumber,
@@ -67,17 +70,13 @@ const RegisterPage = () => {
         confirmPassword: formData.confirmPassword,
       });
 
-      if (!registerResponse.success) {
-        showError(
-          registerResponse.error ||
-            "Đăng ký không thành công. Vui lòng thử lại."
-        );
-        return;
+      if (result.success) {
+        // Navigate to login page after successful registration
+        showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+        navigate("/login");
+      } else {
+        setError("Đăng ký không thành công. Vui lòng thử lại.");
       }
-
-      // Show success message and redirect
-      showSuccess("Đăng ký thành công!");
-      navigate("/login");
     } catch (err) {
       showError("Lỗi đăng ký. Vui lòng thử lại.");
       console.log(err);

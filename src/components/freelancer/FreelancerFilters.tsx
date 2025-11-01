@@ -38,7 +38,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
               Danh mục
             </label>
             <select
-              value={filters.category}
+              value={filters?.category || ""}
               onChange={(e) => onFilterChange?.({ category: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >
@@ -57,7 +57,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
               Khu vực
             </label>
             <select
-              value={filters.location}
+              value={filters?.location || ""}
               onChange={(e) => onFilterChange?.({ location: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >
@@ -77,7 +77,7 @@ const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
               Đánh giá
             </label>
             <select
-              value={filters.rating}
+              value={filters?.rating || ""}
               onChange={(e) => onFilterChange?.({ rating: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm"
             >

@@ -6,13 +6,7 @@ import EventListSection from "../../components/events/EventListSection";
 import IncomingEventsSection from "../../components/events/IncomingEventsSection";
 import EventFilters from "../../components/events/EventFilters";
 import { useScrollToTop } from "../../hooks";
-
-interface FilterState {
-  search: string;
-  category: string;
-  location: string;
-  dateRange: string;
-}
+import type { FilterState } from "../../types";
 
 const EventPage = () => {
   // Scroll to top when page loads

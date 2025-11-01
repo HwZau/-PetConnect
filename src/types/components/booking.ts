@@ -9,6 +9,7 @@ import type {
   BookingRequest,
   CustomerInfo,
   ServiceAddon,
+  CustomerInfoData,
 } from "../domains/booking";
 import type { BaseComponentProps } from "./common";
 
@@ -57,7 +58,7 @@ export interface DateTimeSelectionProps extends BaseComponentProps {
 }
 
 export interface CustomerInformationProps extends BaseComponentProps {
-  customerInfo?: Partial<CustomerInfo>;
+  customerInfo?: Partial<CustomerInfo> | CustomerInfoData;
   onInfoChange?: (info: Partial<CustomerInfo>) => void;
   errors?: Record<string, string>;
   isEditable?: boolean;

@@ -5,6 +5,7 @@ import type {
   FreelancerStats,
 } from "../domains/freelancer";
 import type { FreelancerProfile } from "../domains/profile";
+import type { FilterState } from "../domains/events";
 import type { BaseComponentProps } from "./common";
 
 /* ===================================
@@ -74,8 +75,8 @@ export interface FreelancerSidebarProps extends BaseComponentProps {
  * ================================= */
 
 export interface FreelancerListProps extends BaseComponentProps {
-  filters: FreelancerFilters;
-  freelancers: FreelancerProfile[];
+  filters: FreelancerFilters | FilterState;
+  freelancers?: FreelancerProfile[];
   onFreelancerClick?: (freelancer: FreelancerProfile) => void;
   isLoading?: boolean;
   hasMore?: boolean;

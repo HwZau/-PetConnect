@@ -52,14 +52,16 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
   onLike,
   onComment,
   onDelete,
-  onEdit,
+  // onEdit,
   onShare,
   onView,
   onAddPost,
 }) => {
   const [newPost, setNewPost] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<number, string>>(
+    {}
+  );
 
   // 🧩 Xử lý đăng bài
   const handleAddPost = () => {

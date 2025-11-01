@@ -18,30 +18,32 @@ export const API_ENDPOINTS = {
     LOGIN: "/login",
     REGISTER: "/register",
     LOGOUT: "/logout",
-    REFRESH: "/refresh",
-    PROFILE: "/profile",
-    CHANGE_PASSWORD: "/change-password",
-    FORGOT_PASSWORD: "/forgot-password",
-    RESET_PASSWORD: "/reset-password",
+    RESET: "/reset",
+    VERIFIED_RESET: "/verified/reset",
+    DISABLE: "/disable",
+    VERIFIED_DISABLE: "/verified/disable",
   },
 
   // Users
   USERS: {
-    LIST: "/users",
-    PROFILE: "/user/",
-    UPDATE: "/user/",
-    AVATAR: "/user/avatar",
-    DELETE: "/user/",
+    LIST: "/users/getall",
+    DETAIL: "/user/:id",
+    UPDATE: "/user/:id",
+    CREATE: "/user/create",
+    DELETE: "/user/:id",
+    PROFILE: "/user/profile/me",
   },
 
   // Pets
   PETS: {
-    LIST: "/pets",
-    CREATE: "/pets",
-    DETAIL: (id: string) => `/pets/${id}`,
-    UPDATE: (id: string) => `/pets/${id}`,
-    DELETE: (id: string) => `/pets/${id}`,
-    PHOTOS: (id: string) => `/pets/${id}/photos`,
+    LIST: "/api/v1/pet/getall",
+    DETAIL: (id: string) => `/api/v1/pet/${id}`,
+    USER_PETS: (userId: string) => `/api/v1/pet/user/${userId}/pets`,
+    CREATE: "/api/v1/pet/create",
+    UPDATE: (id: string) => `/api/v1/pet/update/${id}`,
+    DELETE: (id: string) => `/api/v1/pet/delete/${id}`,
+    ADD_PET: (id: string) => `/api/v1/pet/add/${id}`,
+    CREATE_USER_PET: (userId: string) => `/api/v1/pet/${userId}`,
   },
 
   // Services
