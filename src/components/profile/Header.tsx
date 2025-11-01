@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   AiOutlineHome,
-  AiOutlineSearch,
   AiOutlineBell,
   AiOutlineCalendar,
   AiOutlineSetting,

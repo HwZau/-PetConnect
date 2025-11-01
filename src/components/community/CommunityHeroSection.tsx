@@ -141,7 +141,7 @@ const CommunityHeroSection: React.FC = () => {
             <div className="space-y-1">
               <h1 className="text-5xl lg:text-5xl xl:text-6xl font-black leading-tight">
                 <span className="text-gray-900">Chia Sẻ </span>
-                
+
                 <span className="text-gray-900">Kết Nối.</span>
                 <br />
                 <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
@@ -229,7 +229,7 @@ const CommunityHeroSection: React.FC = () => {
       {/* Scroll Anchor */}
       <div ref={createPostRef} className="absolute bottom-0"></div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes float {
           0%,
           100% {

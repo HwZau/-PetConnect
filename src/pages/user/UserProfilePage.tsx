@@ -1,36 +1,69 @@
-import React, { useState, useEffect } from "react";
-import Header from "../../components/profile/Header";
+﻿import { useState, useEffect } from "react";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { petService } from "../../services";
 import { useNavigate } from "react-router-dom";
 import type { Pet } from "../../types/domains/booking";
+import { showSuccess } from "../../utils";
 import {
-  fetchUserStats,
-  fetchRecentBookings,
-  fetchFavoriteServices,
-} from "../../services/Profile/User/mockUserService";
-import {
-  AiOutlineEdit,
-  AiOutlineMail,
-  AiOutlinePhone,
-  AiOutlineEnvironment,
-  AiOutlineCalendar,
-  AiOutlineTeam,
-  AiOutlineStar,
-} from "react-icons/ai";
-import { FaPaw, FaCheck } from "react-icons/fa";
+  FaUser,
+  FaPaw,
+  FaChartLine,
+  FaBriefcase,
+  FaStar,
+  FaCalendarAlt,
+  FaGift,
+  FaPencilAlt,
+  FaDog,
+  FaBolt,
+  FaCog,
+  FaAward,
+  FaCheckCircle,
+  FaHeadset,
+  FaBullseye,
+  FaCalendarCheck,
+} from "react-icons/fa";
 
-const UserProfilePage: React.FC = () => {
+import Header from "../../components/profile/Header";
+import ProfileMainContent from "../../components/profile/ProfileMainContent";
+import UpgradePlanCard from "../../components/profile/UpgradePlanCard";
+import FreelancerContactsCard from "../../components/profile/FreelancerContactsCard";
+import EditProfileModal from "../../components/profile/EditProfileModal";
+import UpgradeModal from "../../components/profile/UpgradeModal";
+import ChatBox from "../../components/profile/ChatBox";
+
+interface EditFormData {
+  name: string;
+  phone: string;
+  location: string;
+  bio: string;
+}
+
+interface Freelancer {
+  id: string;
+  name: string;
+  avatar: string;
+  online?: boolean;
+}
+
+const UserProfilePage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<string>("profile");
   const [userPets, setUserPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [selectedFreelancer, setSelectedFreelancer] =
+    useState<Freelancer | null>(null);
+  const [editForm, setEditForm] = useState<EditFormData>({
+    name: "",
+    phone: "",
+    location: "Hà Nội",
+    bio: "Yêu thích thú cưng!",
+  });
 
-  // Scroll to top when page loads
   useScrollToTop();
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -43,271 +76,293 @@ const UserProfilePage: React.FC = () => {
         setLoading(false);
         return;
       }
-
       try {
         const pets = await petService.getUserPets(user.id);
         if (pets.success && pets.data) {
           setUserPets(pets.data);
         }
+        setEditForm({
+          name: user?.name || "",
+          phone: user?.phoneNumber || "",
+          location: "Hà Nội",
+          bio: "Yêu thích thú cưng!",
+        });
       } catch (error) {
         console.error("Failed to load user data:", error);
       } finally {
         setLoading(false);
       }
     };
-
     loadUserData();
   }, [user?.id]);
+
+  const handleFormChange = (field: string, value: string) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    console.log("Saving:", editForm);
+    showSuccess("Cập nhật hồ sơ thành công!");
+    setShowEditModal(false);
+  };
+
+  const handleUpgrade = (plan: "monthly" | "yearly") => {
+    console.log("Upgrading to:", plan);
+    showSuccess(
+      `Đã nâng cấp gói ${plan === "monthly" ? "tháng" : "năm"} thành công!`
+    );
+    setShowUpgradeModal(false);
+  };
+
+  const handleSelectFreelancer = (freelancerId: string) => {
+    // Mock data - in real app, fetch from API
+    const freelancer: Freelancer = {
+      id: freelancerId,
+      name: "Nguyễn Văn A",
+      avatar:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100",
+      online: true,
+    };
+    setSelectedFreelancer(freelancer);
+  };
 
   if (loading || !user) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
       </div>
     );
   }
 
-  const getUserAvatar = () => {
-    if (user?.avatar) return user.avatar;
-    return "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400";
-  };
-
-  const getUserDisplayName = () => {
-    if (user?.name) return user.name;
-    if (user?.email) return user.email.split("@")[0];
-    return "User";
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-cyan-50">
       <Header />
 
-      {/* Hero Background */}
-      <div className="relative h-64 bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-20"></div>
-      </div>
+      {/* Pet Background Section - Covers top half */}
+      <div className="relative w-full">
+        {/* Pet Image Background with Teal Overlay */}
+        <div className="absolute top-0 left-0 right-0 h-[350px] rounded-b-[3rem] overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url('https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1920&q=80')`,
+            }}
+          ></div>
+          {/* Teal/Cyan Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-teal-500/90 via-cyan-500/85 to-emerald-500/90"></div>
+        </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Profile Section - 2 columns */}
-          <div className="lg:col-span-2">
-            {/* Profile Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              {/* Profile Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
-                <div className="flex items-start space-x-4">
-                  {/* Avatar */}
+        {/* Profile Header on Pet Background */}
+        <div className="relative z-20 w-full px-6 pt-8 pb-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-start gap-6">
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <div className="w-32 h-32 bg-white rounded-2xl shadow-xl p-3">
                   <img
-                    src={getUserAvatar()}
-                    alt={getUserDisplayName()}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                    src={
+                      user?.avatar ||
+                      "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400"
+                    }
+                    alt={user?.name || "User"}
+                    className="w-full h-full rounded-xl object-cover"
                     onError={(e) => {
-                      e.currentTarget.onerror = null;
                       e.currentTarget.src =
                         "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400";
                     }}
                   />
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
+              </div>
 
-                  {/* User Info */}
-                  <div className="pt-2">
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                      {getUserDisplayName()}
-                      {user.isActive && (
-                        <span className="ml-2 inline-flex items-center justify-center w-6 h-6 bg-emerald-500 rounded-full">
-                          <FaCheck className="w-3 h-3 text-white" />
-                        </span>
-                      )}
+              {/* Profile Info */}
+              <div className="flex-1 text-white">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold mb-2">
+                      {user?.name || "Người dùng"}
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {user.role === "admin"
-                        ? "Administrator"
-                        : user.role === "freelancer"
-                        ? "Pet Care Provider"
-                        : "Pet Owner"}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-gray-500">
-                      {user.email && (
-                        <span className="flex items-center">
-                          <AiOutlineMail className="w-4 h-4 mr-1" />
-                          {user.email}
-                        </span>
-                      )}
-                      {user.phoneNumber && (
-                        <span className="flex items-center">
-                          <AiOutlinePhone className="w-4 h-4 mr-1" />
-                          {user.phoneNumber}
-                        </span>
-                      )}
+                    <p className="text-teal-100 text-sm mb-3">Since 2024</p>
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
+                        <FaStar className="text-yellow-300" /> Khách hàng thân
+                        thiết
+                      </span>
+                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
+                        {user?.email || "user@example.com"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-2">
+                        <FaDog className="text-orange-300" />
+                        <span>3 thú cưng</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaCalendarCheck className="text-green-300" />
+                        <span>12 lượt đặt</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaStar className="text-yellow-300" />
+                        <span>5.0 đánh giá</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Edit Button */}
-                <button className="mt-4 sm:mt-0 flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium">
-                  <AiOutlineEdit className="w-4 h-4" />
-                  <span>Edit Profile</span>
-                </button>
-              </div>
-
-              {/* Summary Section */}
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Summary
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Passionate pet lover with {userPets.length || 0} adorable
-                  pets. Member of the PawNest community, dedicated to providing
-                  the best care for furry friends.
-                </p>
-              </div>
-
-              {/* Ask Me About Section */}
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <span className="mr-2">💡</span>
-                  Ask Me About
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                    Pet Care
-                  </span>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                    Training Tips
-                  </span>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                    Health & Nutrition
-                  </span>
+                  {/* Edit Profile Button */}
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="bg-white hover:bg-gray-50 text-teal-600 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg flex items-center gap-2"
+                  >
+                    <FaPencilAlt /> EDIT PROFILE
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Tabs Navigation */}
-            <div className="bg-white rounded-lg shadow-sm mb-6">
-              <nav className="flex border-b border-gray-200">
-                <button
-                  onClick={() => setActiveTab("overview")}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "overview"
-                      ? "border-emerald-500 text-emerald-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Overview
-                </button>
-                <button
-                  onClick={() => setActiveTab("pets")}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "pets"
-                      ? "border-emerald-500 text-emerald-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Pets
-                </button>
-                <button
-                  onClick={() => setActiveTab("posts")}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "posts"
-                      ? "border-emerald-500 text-emerald-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Posts
-                </button>
-                <button
-                  onClick={() => setActiveTab("events")}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "events"
-                      ? "border-emerald-500 text-emerald-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Events
-                </button>
-                <button
-                  onClick={() => setActiveTab("more")}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === "more"
-                      ? "border-emerald-500 text-emerald-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  More
-                </button>
-              </nav>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === "overview" && (
-              <div className="space-y-6">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">Bookings</span>
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <AiOutlineCalendar className="w-4 h-4 text-blue-600" />
-                      </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">12</p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">Pets</span>
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <FaPaw className="w-4 h-4 text-green-600" />
-                      </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {userPets.length}
-                    </p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">Reviews</span>
-                      <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">
-                        <AiOutlineStar className="w-4 h-4 text-yellow-600" />
-                      </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">24</p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">Following</span>
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-                        <AiOutlineTeam className="w-4 h-4 text-purple-600" />
-                      </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900">48</p>
+        {/* Main Content - 2 Column Layout with elevated cards */}
+        <div className="relative z-10 w-full px-6 py-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* MIDDLE Column - Main Content (9/12) */}
+              <div className="lg:col-span-9 space-y-6">
+                {/* Tab Navigation */}
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+                  <div className="flex border-b border-gray-200 overflow-x-auto">
+                    <button
+                      onClick={() => setActiveTab("profile")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "profile"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaUser className="text-lg" />
+                      <span>Hồ sơ</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("pets")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "pets"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaPaw className="text-lg" />
+                      <span>Thú cưng</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("activity")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "activity"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaChartLine className="text-lg" />
+                      <span>Hoạt động</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("freelancers")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "freelancers"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaBriefcase className="text-lg" />
+                      <span>Freelancer</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("upgrade")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "upgrade"
+                          ? "text-purple-600 border-b-3 border-purple-600 bg-gradient-to-r from-purple-50 to-pink-50"
+                          : "text-gray-600 hover:text-purple-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaStar className="text-lg" />
+                      <span>Nâng cấp</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* My Pets */}
-                {userPets.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      My Pets
+                {/* Tab Content */}
+                {activeTab === "profile" && (
+                  <ProfileMainContent
+                    bio={editForm.bio}
+                    onEdit={() => setShowEditModal(true)}
+                  />
+                )}
+
+                {activeTab === "pets" && (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                      <FaPaw className="mr-3 text-2xl text-teal-600" />
+                      Thú cưng của tôi
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {userPets.map((pet) => (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {userPets.length > 0 ? (
+                        userPets.map((pet) => (
+                          <div
+                            key={pet.id}
+                            className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all hover:scale-105"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-3xl shadow-lg">
+                                <FaDog className="text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-800 text-lg">
+                                  {pet.name}
+                                </h4>
+                                <p className="text-sm text-gray-600">
+                                  {pet.type}
+                                </p>
+                                <span className="inline-flex items-center gap-1 mt-1 text-xs bg-green-500 text-white px-3 py-1 rounded-full font-medium">
+                                  <FaCheckCircle /> Khỏe mạnh
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-2 text-center py-12 text-gray-500">
+                          <FaPaw className="text-6xl mb-4 mx-auto text-gray-400" />
+                          <p className="text-lg font-medium">
+                            Chưa có thú cưng nào
+                          </p>
+                          <button className="mt-4 px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-full hover:from-orange-600 hover:to-pink-600 transition-all shadow-md">
+                            + Thêm thú cưng
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "activity" && (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                      <FaChartLine className="mr-3 text-2xl text-teal-600" />
+                      Hoạt động gần đây
+                    </h3>
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
                         <div
-                          key={pet.id}
-                          className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                          key={i}
+                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <FaPaw className="w-6 h-6 text-emerald-600" />
+                          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                            <FaCalendarAlt className="text-white text-xl" />
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">
-                              {pet.name}
-                            </h4>
-                            <p className="text-xs text-gray-500">
-                              {pet.type} • {pet.breed || "Mixed"}
+                            <p className="font-medium text-gray-800">
+                              Đặt dịch vụ chăm sóc thú cưng
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {i} ngày trước
                             </p>
                           </div>
                         </div>
@@ -315,182 +370,142 @@ const UserProfilePage: React.FC = () => {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === "pets" && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  All My Pets
-                </h3>
-                {userPets.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    No pets added yet
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {userPets.map((pet) => (
-                      <div
-                        key={pet.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-16 h-16 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                            <FaPaw className="w-8 h-8 text-emerald-600" />
+                {activeTab === "freelancers" && (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                      <FaBriefcase className="mr-3 text-2xl text-teal-600" />
+                      Freelancer đã liên hệ
+                    </h3>
+                    <FreelancerContactsCard
+                      onSelectFreelancer={handleSelectFreelancer}
+                    />
+                  </div>
+                )}
+
+                {activeTab === "upgrade" && (
+                  <div className="space-y-6">
+                    <UpgradePlanCard
+                      onUpgrade={() => setShowUpgradeModal(true)}
+                    />
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-lg border-2 border-purple-200 p-6">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <FaAward className="mr-3 text-2xl text-purple-600" />
+                        Đặc quyền VIP
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {[
+                          { Icon: FaGift, text: "Quà tặng hàng tháng" },
+                          { Icon: FaCalendarAlt, text: "Ưu tiên đặt lịch" },
+                          { Icon: FaStar, text: "Giảm 20% tất cả dịch vụ" },
+                          {
+                            Icon: FaBullseye,
+                            text: "Freelancer chất lượng cao",
+                          },
+                          { Icon: FaHeadset, text: "Hỗ trợ 24/7" },
+                          { Icon: FaAward, text: "Huy hiệu VIP độc quyền" },
+                        ].map((benefit, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 bg-white rounded-lg border border-purple-200 hover:shadow-md transition-all"
+                          >
+                            <benefit.Icon className="text-2xl text-purple-600" />
+                            <span className="font-medium text-gray-700">
+                              {benefit.text}
+                            </span>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900">
-                              {pet.name}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {pet.type} • {pet.breed || "Mixed"}
-                            </p>
-                            <div className="mt-2 flex items-center space-x-2 text-xs text-gray-500">
-                              <span>Age: {pet.age || "N/A"}</span>
-                              <span>•</span>
-                              <span>Weight: {pet.weight || "N/A"} kg</span>
-                            </div>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 )}
               </div>
-            )}
 
-            {(activeTab === "posts" ||
-              activeTab === "events" ||
-              activeTab === "more") && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <p className="text-gray-500 text-center py-8">
-                  Content coming soon...
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar - 1 column */}
-          <div className="space-y-6">
-            {/* My Manager Section */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                My Manager
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <img
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100"
-                    alt="Manager"
-                    className="w-10 h-10 rounded-full object-cover"
+              {/* RIGHT Column - Chat & Freelancers (3/12) */}
+              <div className="lg:col-span-3">
+                <div className="space-y-6">
+                  {/* Chat Box */}
+                  <ChatBox
+                    isOpen={!!selectedFreelancer}
+                    selectedFreelancer={selectedFreelancer}
+                    onClose={() => setSelectedFreelancer(null)}
                   />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Roy Benali
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Chief Executive Officer
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-center space-x-3">
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100"
-                    alt="Manager"
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      James Botosh
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Chief Operating Officer
-                    </p>
+                  {/* Quick Stats */}
+                  <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl shadow-lg p-6 text-white">
+                    <h3 className="font-bold text-lg mb-4 flex items-center">
+                      <FaBolt className="mr-2" />
+                      Thống kê nhanh
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-teal-100">Tổng đặt lịch:</span>
+                        <span className="font-bold text-2xl">12</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-teal-100">Số thú cưng:</span>
+                        <span className="font-bold text-2xl">3</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-teal-100">Đánh giá:</span>
+                        <span className="font-bold text-xl flex items-center gap-2">
+                          <FaStar /> 5.0
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center space-x-3 bg-emerald-50 p-2 rounded-lg">
-                  <img
-                    src={getUserAvatar()}
-                    alt="You"
-                    className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {getUserDisplayName()}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      VP of Customer Operations
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Details */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="mr-2">✨</span>
-                Additional Details
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <AiOutlineMail className="w-5 h-5 text-emerald-500 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm text-emerald-600 font-medium">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <AiOutlinePhone className="w-5 h-5 text-emerald-500 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500">Phone</p>
-                    <p className="text-sm text-gray-900">
-                      {user.phoneNumber || "Not provided"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <AiOutlineEnvironment className="w-5 h-5 text-emerald-500 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500">Location</p>
-                    <p className="text-sm text-gray-900">
-                      Ho Chi Minh City, Vietnam
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <AiOutlineCalendar className="w-5 h-5 text-emerald-500 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500">Member Since</p>
-                    <p className="text-sm text-gray-900">
-                      {new Date().toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <span className="text-emerald-500 mr-3 mt-0.5">🏆</span>
-                  <div>
-                    <p className="text-xs text-gray-500">Status</p>
-                    <p className="text-sm font-medium text-emerald-600">
-                      {user.isActive ? "Verified Member" : "Member"}
-                    </p>
+                  {/* Quick Actions */}
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="font-bold text-gray-800 mb-4 flex items-center">
+                      <FaCog className="mr-2" />
+                      Thao tác nhanh
+                    </h3>
+                    <div className="space-y-2">
+                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200">
+                        <FaCalendarAlt className="text-xl text-blue-600" />
+                        <span className="font-medium text-gray-700">
+                          Đặt lịch mới
+                        </span>
+                      </button>
+                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 rounded-lg transition-all flex items-center gap-3 border border-teal-200">
+                        <FaPaw className="text-xl text-teal-600" />
+                        <span className="font-medium text-gray-700">
+                          Quản lý thú cưng
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setShowEditModal(true)}
+                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 hover:from-orange-100 hover:to-pink-100 rounded-lg transition-all flex items-center gap-3 border border-orange-200"
+                      >
+                        <FaPencilAlt className="text-xl text-orange-600" />
+                        <span className="font-medium text-gray-700">
+                          Chỉnh sửa hồ sơ
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Edit Profile Modal */}
+        <EditProfileModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleSaveProfile}
+          formData={editForm}
+          onChange={handleFormChange}
+        />
+
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          onConfirm={handleUpgrade}
+        />
       </div>
     </div>
   );
