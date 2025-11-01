@@ -1,6 +1,6 @@
 import React from "react";
 import type { ServiceSelectionProps } from "../../types";
-import { ServiceManager } from "../../services/serviceManager";
+import { ServiceManager } from "../../services/booking/serviceManager";
 
 const ServiceSelection: React.FC<ServiceSelectionProps> = ({
   selectedService,
@@ -23,7 +23,7 @@ const ServiceSelection: React.FC<ServiceSelectionProps> = ({
                 ? "border-purple-500 bg-purple-50"
                 : "border-gray-200 hover:border-purple-300"
             }`}
-            onClick={() => onServiceChange(service.id)}
+            onClick={() => onServiceChange?.(service.id)}
           >
             <h3 className="font-semibold text-gray-800">{service.name}</h3>
             <p className="text-sm text-gray-600 mt-1">{service.description}</p>

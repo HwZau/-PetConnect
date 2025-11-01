@@ -10,7 +10,11 @@ import {
 } from "react-icons/ai";
 
 interface CommunitySidebarProps {
-  onAddPost: (post: { author: string; caption: string; image?: string }) => void;
+  onAddPost: (post: {
+    author: string;
+    caption: string;
+    image?: string;
+  }) => void;
 }
 
 const CommunitySidebar: React.FC<CommunitySidebarProps> = ({ onAddPost }) => {
@@ -287,11 +291,12 @@ const CommunitySidebar: React.FC<CommunitySidebarProps> = ({ onAddPost }) => {
                   accept="image/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    setFormData({
-                      ...formData,
-                      image: URL.createObjectURL(file),
-                    });
+                    if (file) {
+                      setFormData({
+                        ...formData,
+                        image: URL.createObjectURL(file),
+                      });
+                    }
                   }}
                 />
                 {formData.image && (
@@ -313,7 +318,9 @@ const CommunitySidebar: React.FC<CommunitySidebarProps> = ({ onAddPost }) => {
             {/* Freelancer & Event giữ nguyên */}
             {modalType === "freelancer" && (
               <>
-                <h3 className="text-lg font-semibold mb-4">🔍 Tìm freelancer</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  🔍 Tìm freelancer
+                </h3>
                 <input
                   type="text"
                   value={formData.freelancer}

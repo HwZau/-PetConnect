@@ -31,12 +31,12 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
           </label>
           <input
             type="date"
-            value={dateTimeData.date}
-            onChange={(e) => onDateTimeChange("date", e.target.value)}
+            value={dateTimeData?.date || dateTimeData?.selectedDate || ""}
+            onChange={(e) => onDateTimeChange?.("date", e.target.value)}
             min={new Date().toISOString().split("T")[0]}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
-          {errors.date && (
+          {errors?.date && (
             <p className="text-red-500 text-sm mt-1">{errors.date}</p>
           )}
         </div>
@@ -46,8 +46,8 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
             Giờ
           </label>
           <select
-            value={dateTimeData.time}
-            onChange={(e) => onDateTimeChange("time", e.target.value)}
+            value={dateTimeData?.time || dateTimeData?.selectedTime || ""}
+            onChange={(e) => onDateTimeChange?.("time", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="">Chọn giờ</option>
@@ -57,7 +57,7 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
               </option>
             ))}
           </select>
-          {errors.time && (
+          {errors?.time && (
             <p className="text-red-500 text-sm mt-1">{errors.time}</p>
           )}
         </div>
@@ -68,9 +68,9 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
         <input
           type="checkbox"
           id="recurring"
-          checked={dateTimeData.recurringService}
+          checked={dateTimeData?.recurringService || false}
           onChange={(e) =>
-            onDateTimeChange("recurringService", e.target.checked)
+            onDateTimeChange?.("recurringService", e.target.checked)
           }
           className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
         />
@@ -79,14 +79,14 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
         </label>
       </div>
 
-      {dateTimeData.recurringService && (
+      {dateTimeData?.recurringService && (
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Tần suất
           </label>
           <select
             value={dateTimeData.frequency || ""}
-            onChange={(e) => onDateTimeChange("frequency", e.target.value)}
+            onChange={(e) => onDateTimeChange?.("frequency", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="">Chọn tần suất</option>

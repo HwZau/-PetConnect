@@ -19,7 +19,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
   useEffect(() => {
     const mockFreelancers: Freelancer[] = [
       {
-        id: 1,
+        id: "1",
         name: "Nguyễn Thị Mai",
         avatar:
           "https://images.unsplash.com/photo-1494790108755-2616b60b2bb4?w=150&h=150&fit=crop&crop=face",
@@ -36,7 +36,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         responseTime: "Trong 1 giờ",
       },
       {
-        id: 2,
+        id: "2",
         name: "Trần Văn Đức",
         avatar:
           "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
@@ -53,7 +53,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         responseTime: "Trong 30 phút",
       },
       {
-        id: 3,
+        id: "3",
         name: "Lê Thị Hoa",
         avatar:
           "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
@@ -70,7 +70,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         responseTime: "Trong 2 giờ",
       },
       {
-        id: 4,
+        id: "4",
         name: "Phạm Minh Tuấn",
         avatar:
           "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
@@ -87,7 +87,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         responseTime: "Trong 3 giờ",
       },
       {
-        id: 5,
+        id: "5",
         name: "Võ Thị Lan",
         avatar:
           "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
@@ -104,7 +104,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         responseTime: "Trong 4 giờ",
       },
       {
-        id: 6,
+        id: "6",
         name: "Đặng Văn Nam",
         avatar:
           "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
@@ -133,7 +133,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       !freelancer.name
         .toLowerCase()
         .includes(filters.searchTerm.toLowerCase()) &&
-      !(freelancer.title ?? "")
+      !(freelancer.title || "")
         .toLowerCase()
         .includes(filters.searchTerm.toLowerCase()) &&
       !freelancer.description
@@ -184,37 +184,36 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
           return b.rating - a.rating;
         }
         // Nếu rating bằng nhau, ưu tiên số lượng đánh giá nhiều hơn
-        return (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
+        return (b.reviewCount || 0) - (a.reviewCount || 0);
 
       case "newest":
-  // Mới nhất - ưu tiên completed jobs ít hơn (mới vào nghề)
-  return (a.completedJobs ?? 0) - (b.completedJobs ?? 0);
+        // Mới nhất - ưu tiên completed jobs ít hơn (mới vào nghề)
+        return (a.completedJobs || 0) - (b.completedJobs || 0);
 
       case "experience":
-  // Kinh nghiệm nhiều nhất
-  return (b.completedJobs ?? 0) - (a.completedJobs ?? 0);
+        // Kinh nghiệm nhiều nhất
+        return (b.completedJobs || 0) - (a.completedJobs || 0);
 
-      case "response": // Phản hồi nhanh nhất
-      {
+      case "response": { // Phản hồi nhanh nhất
         const responseTimeA = parseInt(
-          a.responseTime?.match(/\d+/)?.[0] ?? "999"
+          a.responseTime?.match(/\d+/)?.[0] || "999"
         );
         const responseTimeB = parseInt(
-          b.responseTime?.match(/\d+/)?.[0] ?? "999"
+          b.responseTime?.match(/\d+/)?.[0] || "999"
         );
         return responseTimeA - responseTimeB;
       }
 
       case "relevant":
-      default: // Độ phù hợp - kết hợp rating, completed jobs và verified status
-      {
+      default: {
+        // Độ phù hợp - kết hợp rating, completed jobs và verified status
         const scoreA =
           a.rating * 0.4 +
-          Math.min((a.completedJobs ?? 0) / 10, 10) * 0.3 +
+          Math.min((a.completedJobs || 0) / 10, 10) * 0.3 +
           (a.isVerified ? 2 : 0);
         const scoreB =
           b.rating * 0.4 +
-          Math.min((b.completedJobs ?? 0) / 10, 10) * 0.3 +
+          Math.min((b.completedJobs || 0) / 10, 10) * 0.3 +
           (b.isVerified ? 2 : 0);
         return scoreB - scoreA;
       }

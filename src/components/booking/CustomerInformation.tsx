@@ -6,6 +6,22 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
   onCustomerInfoChange,
   errors,
 }) => {
+  const getStringValue = (value: any): string => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return value.toString();
+    if (value && typeof value === "object") {
+      // Handle emergency contact object
+      if ("name" in value || "phone" in value) {
+        return "";
+      }
+      // Handle address object
+      if ("street" in value || "city" in value) {
+        return "";
+      }
+    }
+    return "";
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
@@ -18,13 +34,17 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
           </label>
           <input
             type="text"
-            value={customerInfo.fullName}
-            onChange={(e) => onCustomerInfoChange("fullName", e.target.value)}
+            value={
+              (customerInfo as any)?.name ||
+              (customerInfo as any)?.fullName ||
+              ""
+            }
+            onChange={(e) => onCustomerInfoChange?.("name", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Nhập họ và tên"
           />
-          {errors.fullName && (
-            <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+          {errors?.name && (
+            <p className="text-red-500 text-sm mt-1">{errors.name}</p>
           )}
         </div>
 
@@ -34,12 +54,12 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
           </label>
           <input
             type="email"
-            value={customerInfo.email}
-            onChange={(e) => onCustomerInfoChange("email", e.target.value)}
+            value={customerInfo?.email || ""}
+            onChange={(e) => onCustomerInfoChange?.("email", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="example@gmail.com"
           />
-          {errors.email && (
+          {errors?.email && (
             <p className="text-red-500 text-sm mt-1">{errors.email}</p>
           )}
         </div>
@@ -50,12 +70,12 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
           </label>
           <input
             type="tel"
-            value={customerInfo.phone}
-            onChange={(e) => onCustomerInfoChange("phone", e.target.value)}
+            value={customerInfo?.phone || ""}
+            onChange={(e) => onCustomerInfoChange?.("phone", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="0987654321"
           />
-          {errors.phone && (
+          {errors?.phone && (
             <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
           )}
         </div>
@@ -66,9 +86,9 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
           </label>
           <input
             type="tel"
-            value={customerInfo.emergencyContact}
+            value={getStringValue(customerInfo?.emergencyContact)}
             onChange={(e) =>
-              onCustomerInfoChange("emergencyContact", e.target.value)
+              onCustomerInfoChange?.("emergencyContact", e.target.value)
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Số điện thoại khẩn cấp"
@@ -81,12 +101,12 @@ const CustomerInformation: React.FC<CustomerInformationProps> = ({
           </label>
           <input
             type="text"
-            value={customerInfo.address}
-            onChange={(e) => onCustomerInfoChange("address", e.target.value)}
+            value={getStringValue(customerInfo?.address)}
+            onChange={(e) => onCustomerInfoChange?.("address", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             placeholder="Số nhà, đường, quận/huyện, thành phố"
           />
-          {errors.address && (
+          {errors?.address && (
             <p className="text-red-500 text-sm mt-1">{errors.address}</p>
           )}
         </div>

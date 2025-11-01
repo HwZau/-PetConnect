@@ -1,7 +1,7 @@
 import React from "react";
 import { formatDate } from "../../utils";
 import type { BookingSummaryProps } from "../../types";
-import { ServiceManager } from "../../services/serviceManager";
+import { ServiceManager } from "../../services/booking/serviceManager";
 
 const BookingSummary: React.FC<BookingSummaryProps> = ({
   selectedFreelancer,
@@ -192,7 +192,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onSubmit();
+          onSubmit?.();
         }}
         type="button"
         className="w-full py-3 px-4 rounded-lg transition-colors font-medium bg-purple-600 text-white hover:bg-purple-700"

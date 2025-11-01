@@ -1,7 +1,7 @@
 // Authentication services
-import { apiClient } from "./apiClient";
-import type { User, ApiResponse } from "../types";
-import { API_ENDPOINTS } from "../config/api";
+import { apiClient } from "../apiClient";
+import type { User, ApiResponse } from "../../types";
+import { API_ENDPOINTS } from "../../config/api";
 
 export interface LoginCredentials {
   email: string;
@@ -55,29 +55,50 @@ export const authService = {
   async logout(): Promise<ApiResponse<void>> {
     const response = await apiClient.post<void>(API_ENDPOINTS.AUTH.LOGOUT);
     apiClient.setToken(null);
+    // Clear localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     return response;
   },
 
-  async getCurrentUser(id: string): Promise<ApiResponse<User>> {
-    return apiClient.get<User>(`${API_ENDPOINTS.USERS.PROFILE}/${id}`);
+  // Get current user profile from /user/profile/me
+  async getProfile(): Promise<ApiResponse<User>> {
+    return apiClient.get<User>("/user/profile/me");
   },
 
   async forgotPassword(email: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+    return apiClient.post<void>(API_ENDPOINTS.AUTH.RESET, { email });
   },
 
-  async resetPassword(
-    token: string,
+  async verifiedEmailReset(
+    code: string,
+    email: string,
     newPassword: string
   ): Promise<ApiResponse<void>> {
-    return apiClient.post<void>("/auth/reset-password", { token, newPassword });
+    return apiClient.post<void>(API_ENDPOINTS.AUTH.VERIFIED_RESET, {
+      code,
+      email,
+      newPassword,
+    });
   },
 
-  async verifyEmail(token: string): Promise<ApiResponse<void>> {
-    return apiClient.post<void>("/auth/verify-email", { token });
+  async disableAccount(
+    email: string,
+    userName: string
+  ): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(API_ENDPOINTS.AUTH.DISABLE, {
+      email,
+      userName,
+    });
   },
 
-  async resendVerificationEmail(): Promise<ApiResponse<void>> {
-    return apiClient.post<void>("/auth/resend-verification");
+  async verifiedDisableAccount(
+    email: string,
+    code: string
+  ): Promise<ApiResponse<void>> {
+    return apiClient.post<void>(API_ENDPOINTS.AUTH.VERIFIED_DISABLE, {
+      email,
+      code,
+    });
   },
 };

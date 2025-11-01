@@ -10,6 +10,7 @@ import PaymentsPage from "./pages/admin/PaymentsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import AdminLayout from "./layouts/AdminLayout";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import ProtectedProfile from "./components/common/ProtectedProfile";
 
 // Lazy load all pages
 const HomePage = lazy(() => import("./pages/home/HomePage"));
@@ -24,7 +25,10 @@ const PaymentStatusPage = lazy(
 );
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
-const UserProfilePage = lazy(() => import("./pages/user/UserProfilePage"));
+const ForgotPasswordPage = lazy(
+  () => import("./pages/auth/ForgotPasswordPage")
+);
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
 const FreelancerProfilePage = lazy(
   () => import("./pages/freelancer/FreelancerProfilePage")
 );
@@ -34,41 +38,31 @@ const AppRoutes = () => {
   const { user } = useContext(UserContext);
 
   return (
-    <div className="min-h-screen">
-      <Suspense fallback={<PageLoader text="Đang tải trang..." />}>
-        <Routes>
-          {/* Public routes */}
+    <Suspense fallback={<PageLoader text="Đang tải trang..." />}>
+      <Routes>
+        {/* Public routes */}
 
-          <Route path="/" element={<HomePage />} />
-          <Route path="/events" element={<EventPage />} />
-          <Route path="/freelancers" element={<FreelancerPage />} />
-          <Route path="/freelancers/:id" element={<FreelancerProfilePage />} />
-          <Route path="/community" element={<CommunityPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/support" element={<SupportPage />} />
-          {/* Booking route - only accessible via freelancer selection */}
-          <Route path="/booking" element={<BookingPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/events" element={<EventPage />} />
+        <Route path="/freelancers" element={<FreelancerPage />} />
+        <Route path="/freelancers/:id" element={<FreelancerProfilePage />} />
+        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/support" element={<SupportPage />} />
 
-          {/* Payment routes */}
-          <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/payment-status" element={<PaymentStatusPage />} />
+        {/* Payment routes */}
+        <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/payment-status" element={<PaymentStatusPage />} />
 
-          {/* Protected routes - requires authentication */}
-          <Route
-            path="/profile"
-            element={user ? <UserProfilePage /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/bookings"
-            element={
-              user ? (
-                <div>Bookings Page (To be implemented)</div>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
+        {/* Protected routes - requires authentication */}
+        <Route path="/profile" element={<ProtectedProfile />} />
+        <Route
+          path="/booking"
+          element={user ? <BookingPage /> : <Navigate to="/login" />}
+        />
 
           {/* 🛠️ Admin routes */}
           <Route path="/admin/*" element={<AdminLayout />}>
@@ -80,8 +74,8 @@ const AppRoutes = () => {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* 🛠️ Admin routes neu co usecontext */}
-          {/* <Route
+        {/* 🛠️ Admin routes neu co usecontext */}
+        {/* <Route
   path="/admin/*"
   element={
     user?.role === "admin" ? <AdminLayout /> : <Navigate to="/" />
@@ -94,22 +88,17 @@ const AppRoutes = () => {
   <Route path="payments" element={<PaymentsPage />} />
 </Route> */}
 
-
-          {/* 404 - Not Found */}
-          <Route
-            path="*"
-            element={
-              <div className="p-10 text-center">
-                <h1 className="text-4xl font-bold">
-                  404 - Không tìm thấy trang
-                </h1>
-              </div>
-            }
-          />
-
-        </Routes>
-      </Suspense>
-    </div>
+        {/* 404 - Not Found */}
+        <Route
+          path="*"
+          element={
+            <div className="p-10 text-center">
+              <h1 className="text-4xl font-bold">404 - Không tìm thấy trang</h1>
+            </div>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 };
 

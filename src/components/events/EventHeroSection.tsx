@@ -1,64 +1,101 @@
-import eventImage from "../../assets/image/event.png";
-
 const EventHeroSection = () => {
   return (
-    <section className="min-h-screen bg-white relative overflow-hidden pt-16 px-3">
-      {/* Banner with rounded corners and event background image */}
-      <div
-        className="w-[95%] mx-auto rounded-t-3xl relative overflow-visible min-h-screen"
-        style={{
-          backgroundImage: `url(${eventImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/40 rounded-t-3xl"></div>
-
-        {/* Background decorative elements */}
-        <div className="absolute inset-0">
-          {/* Large circle decoration */}
-          <div className="absolute top-1/2 right-1/5 transform -translate-y-1/2 w-[400px] h-[400px] bg-gradient-to-br from-white/10 to-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-64 h-64 bg-gradient-to-br from-white/15 to-white/5 rounded-full blur-2xl"></div>
-          <div className="absolute top-20 right-10 w-32 h-32 bg-gradient-to-br from-white/10 to-white/5 rounded-full blur-xl"></div>
-        </div>
-
-        {/* Content inside banner */}
-        <div className="px-12 py-16 pt-20 relative z-10 flex items-center justify-center min-h-screen">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="space-y-6">
-              <h1 className="text-5xl md:text-5xl lg:text-5xl font-bold text-white leading-tight">
-                Những sự kiện cộng đồng
+    <section className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 relative overflow-hidden flex items-center">
+      <div className="container mx-auto px-6 lg:px-16 relative z-10">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+          {/* Left Content */}
+          <div className="flex-1 space-y-2 text-white">
+            {/* Animated Icon */}
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full animate-pulse">
+              <span className="font-bold text-xs">Sự Kiện Sắp Tới</span>
+            </div>
+            {/* Main Heading with Animation */}
+            <div className="space-y-4">
+              <h1 className="text-5xl lg:text-5xl xl:text-6xl font-black leading-tight">
+                <span className="text-white drop-shadow-2xl">Tiệc Boss</span>
+                <br />
+                <span className="text-yellow-300 drop-shadow-2xl">
+                  Vui Nhộn!
+                </span>
               </h1>
-
-              <p className="text-lg md:text-xl text-white/90 leading-relaxed max-w-3xl mx-auto">
-                Kết nối với những người yêu thú cưng và người chăm sóc chuyên
-                nghiệp trong khu vực của bạn
+              <p className="text-base lg:text-lg text-white/90 leading-relaxed max-w-xl font-medium">
+                Kết nối, vui chơi và ăn mừng cùng các sen thú cưng tại sự kiện
+                cộng đồng sôi động!
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-              <button className="btn bg-white hover:bg-gray-50 font-semibold px-8 py-4 rounded-full text-lg shadow-lg transform hover:scale-105 transition-all text-blue-700">
-                Tìm kiếm
+            {/* Event Highlights */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl">
+                <span className="text-lg">🏆</span>
+                <span className="font-semibold text-xs">
+                  Thi đấu & giải thưởng hàng tuần
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl">
+                <span className="text-lg">🎨</span>
+                <span className="font-semibold text-xs">
+                  Hội thảo sáng tạo & huấn luyện
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl">
+                <span className="text-lg">🤝</span>
+                <span className="font-semibold text-xs">
+                  Gặp gỡ bạn mới cùng thú cưng
+                </span>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap gap-2">
+              <button className="group bg-white hover:bg-yellow-300 text-purple-600 font-black px-5 py-2 rounded-full transition-all duration-300 transform hover:scale-110 hover:rotate-3 shadow-2xl">
+                <span className="flex items-center gap-2 text-xs">
+                  Tham Gia
+                  <span className="text-lg group-hover:animate-bounce">🎊</span>
+                </span>
               </button>
-              <button className="btn !border-2 border-white text-white hover:bg-white hover:text-gray-900 font-medium px-8 py-4 rounded-full text-lg transition-all ">
-                Tạo Event
+              <button className="bg-transparent border-2 border-white hover:bg-white/20 text-white font-bold px-6 py-2.5 rounded-full transition-all duration-300 backdrop-blur-sm text-xs">
+                Xem Lịch
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Additional floating elements outside banner */}
-      <div className="absolute top-1/4 left-1/4 animate-float">
-        <div className="w-6 h-6 bg-white/20 rounded-full"></div>
-      </div>
-      <div className="absolute top-1/3 right-1/3 animate-float delay-1000">
-        <div className="w-4 h-4 bg-white/20 rounded-full"></div>
-      </div>
-      <div className="absolute bottom-1/4 left-1/3 animate-float delay-500">
-        <div className="w-8 h-8 bg-white/20 rounded-full"></div>
+          {/* Right Content - Event Gallery Grid */}
+          <div className="flex-1 relative">
+            <div className="grid grid-cols-2 gap-2 max-w-[450px]">
+              {/* Large Image */}
+              <div className="col-span-2 rounded-3xl overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                <img
+                  src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop"
+                  alt="Sự kiện thú cưng"
+                  className="w-full h-44 object-cover"
+                />
+              </div>
+
+              {/* Small Images */}
+              <div className="rounded-2xl overflow-hidden shadow-xl transform hover:scale-105 transition-transform duration-300">
+                <img
+                  src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=300&h=300&fit=crop"
+                  alt="Chó vui chơi"
+                  className="w-full h-28 object-cover"
+                />
+              </div>
+              <div className="rounded-2xl overflow-hidden shadow-xl transform hover:scale-105 transition-transform duration-300">
+                <img
+                  src="https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=300&h=300&fit=crop"
+                  alt="Thi đua thú cưng"
+                  className="w-full h-28 object-cover"
+                />
+              </div>
+            </div>
+
+            {/* Floating Badge */}
+            <div className="absolute -top-3 -right-3 bg-yellow-400 text-purple-900 px-3 py-1.5 rounded-full shadow-2xl transform rotate-12 animate-bounce">
+              <div className="font-black text-sm">50+ Sự Kiện</div>
+              <div className="text-xs font-bold">Hàng Tháng</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -59,7 +59,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
       </div>
 
       <div className="space-y-6">
-        {petInfo.map((pet, index) => (
+        {petInfo?.map((pet, index) => (
           <div key={index} className="relative">
             {/* Pet card header */}
             <div className="flex items-center justify-between mb-4">
@@ -71,10 +71,10 @@ const PetInformation: React.FC<PetInformationProps> = ({
                   {pet.petName || `Thú cưng ${index + 1}`}
                 </h3>
               </div>
-              {petInfo.length > 1 && (
+              {(petInfo?.length || 0) > 1 && (
                 <button
                   type="button"
-                  onClick={() => onRemovePet(index)}
+                  onClick={() => onRemovePet?.(index)}
                   className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
                   title="Xóa thú cưng này"
                 >
@@ -105,9 +105,9 @@ const PetInformation: React.FC<PetInformationProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={pet.petName || ""}
+                    value={pet.petAge || ""}
                     onChange={(e) =>
-                      onPetInfoChange(index, "petName", e.target.value)
+                      onPetInfoChange?.(index, "petAge", e.target.value)
                     }
                     placeholder="Nhập tên thú cưng"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -121,7 +121,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
                   <select
                     value={pet.petType}
                     onChange={(e) =>
-                      onPetInfoChange(index, "petType", e.target.value)
+                      onPetInfoChange?.(index, "petType", e.target.value)
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
@@ -132,7 +132,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
                       </option>
                     ))}
                   </select>
-                  {errors[`petType_${index}`] && (
+                  {errors?.[`petType_${index}`] && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors[`petType_${index}`]}
                     </p>
@@ -147,9 +147,9 @@ const PetInformation: React.FC<PetInformationProps> = ({
                     Kích thước
                   </label>
                   <select
-                    value={pet.petSize}
+                    value={pet.petSize || ""}
                     onChange={(e) =>
-                      onPetInfoChange(index, "petSize", e.target.value)
+                      onPetInfoChange?.(index, "petSize", e.target.value)
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
@@ -160,7 +160,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
                       </option>
                     ))}
                   </select>
-                  {errors[`petSize_${index}`] && (
+                  {errors?.[`petSize_${index}`] && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors[`petSize_${index}`]}
                     </p>
@@ -173,9 +173,9 @@ const PetInformation: React.FC<PetInformationProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={pet.petAge || ""}
+                    value={pet.petType || ""}
                     onChange={(e) =>
-                      onPetInfoChange(index, "petAge", e.target.value)
+                      onPetInfoChange?.(index, "petType", e.target.value)
                     }
                     placeholder="VD: 2 tuổi"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -190,7 +190,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
                     type="text"
                     value={pet.petWeight || ""}
                     onChange={(e) =>
-                      onPetInfoChange(index, "petWeight", e.target.value)
+                      onPetInfoChange?.(index, "petWeight", e.target.value)
                     }
                     placeholder="VD: 5kg"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"

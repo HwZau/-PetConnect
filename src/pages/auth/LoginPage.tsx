@@ -4,8 +4,7 @@ import loginImage from "../../assets/image/login.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
 import { useScrollToTop, useAuth } from "../../hooks";
-import { authService } from "../../services";
-import { showError, showSuccess } from "../../utils/toastUtils";
+import { showError } from "../../utils/toastUtils";
 
 const LoginPage = () => {
   // Scroll to top when page loads
@@ -32,29 +31,27 @@ const LoginPage = () => {
       // Basic validation
       if (!formData.email || !formData.password) {
         setError("Vui lòng điền đầy đủ thông tin");
+        setIsLoading(false);
         return;
       }
 
-      // Call login API
-      const loginResponse = await authService.login({
+      // Call login with useAuth hook - this will handle API call and context update
+      const result = await login({
         email: formData.email,
         password: formData.password,
       });
 
-      if (!loginResponse.success) {
+      if (result.success) {
+        // Navigate based on user role
+        if (result.user?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
+      } else {
         setError(
-          loginResponse.error || "Đăng nhập không thành công. Vui lòng thử lại."
+          "Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin."
         );
-        return;
-      }
-
-      const token = loginResponse.data?.token;
-
-      // Save user to context if login successful
-      if (token) {
-        login(token);
-        showSuccess("Đăng nhập thành công!");
-        navigate("/");
       }
     } catch (err) {
       showError("Lỗi đăng nhập. Vui lòng thử lại.");
@@ -227,7 +224,7 @@ const LoginPage = () => {
                       </label>
                     </div>
                     <Link
-                      to="/forgot-password"
+                      to="/auth/forgot-password"
                       className="text-sm font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
                     >
                       Quên mật khẩu?
