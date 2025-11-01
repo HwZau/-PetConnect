@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { Navigate } from "react-router-dom";
 import { UserContext } from "../../contexts/UserContext";
 import UserProfilePage from "../../pages/user/UserProfilePage";
-import FreelancerProfilePage from "../../pages/freelancer/FreelancerProfilePage";
+import FreelancerOwnProfilePage from "../../pages/freelancer/FreelancerOwnProfilePage";
 
 const ProtectedProfile: React.FC = () => {
   const { user } = useContext(UserContext);
@@ -15,14 +15,14 @@ const ProtectedProfile: React.FC = () => {
   // Dựa vào role để hiển thị trang profile phù hợp
   switch (user.role) {
     case "Freelancer":
-      // Freelancer vào trang FreelancerProfilePage
-      return <FreelancerProfilePage />;
+      // Freelancer vào trang FreelancerOwnProfilePage (chỉnh sửa profile của chính mình)
+      return <FreelancerOwnProfilePage />;
     case "Customer":
       // Customer vào trang UserProfilePage
       return <UserProfilePage />;
     default:
       // Role không xác định, mặc định là customer
-      return "Không xác định role người dùng.";
+      return <UserProfilePage />;
   }
 };
 

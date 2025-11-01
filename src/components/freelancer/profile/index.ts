@@ -6,3 +6,4 @@ export { default as FreelancerTabNavigation } from "./FreelancerTabNavigation";
 export { default as FreelancerSidebar } from "./FreelancerSidebar";
 export { default as FreelancerLoadingState } from "./FreelancerLoadingState";
 export { default as FreelancerNotFound } from "./FreelancerNotFound";
+export { default as FreelancerServiceCard } from "./FreelancerServiceCard";
