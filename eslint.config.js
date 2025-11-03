@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  // Ignore editor history folder and build/dist outputs
+  globalIgnores(['dist', '.history']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

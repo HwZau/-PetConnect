@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import registerImage from "../../assets/image/register.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
-import { useScrollToTop } from "../../hooks";
+import { useScrollToTop, useAuth } from "../../hooks";
+import { showError, showSuccess } from "../../utils/toastUtils";
 
 const RegisterPage = () => {
   // Scroll to top when page loads
   useScrollToTop();
+  const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
-    fullName: "",
+    phoneNumber: "",
+    address: "",
+    role: "Customer",
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
@@ -28,33 +34,52 @@ const RegisterPage = () => {
     try {
       // Basic validation
       if (
+        !formData.name ||
         !formData.email ||
-        !formData.fullName ||
+        !formData.phoneNumber ||
+        !formData.address ||
+        !formData.role ||
         !formData.password ||
         !formData.confirmPassword
       ) {
         setError("Vui lòng điền đầy đủ thông tin");
+        setIsLoading(false);
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
         setError("Mật khẩu không khớp!");
+        setIsLoading(false);
         return;
       }
 
       if (!formData.agreeToTerms) {
         setError("Vui lòng đồng ý với điều khoản dịch vụ");
+        setIsLoading(false);
         return;
       }
 
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Call register with useAuth hook
+      const result = await register({
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
+        role: formData.role,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
 
-      // Handle register logic here
-      console.log("Register form submitted:", formData);
+      if (result.success) {
+        // Navigate to login page after successful registration
+       showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+        navigate("/login");
+      } else {
+        setError("Đăng ký không thành công. Vui lòng thử lại.");
+      }
     } catch (err) {
-      setError("Đăng ký không thành công. Vui lòng thử lại.");
-      console.error("Register error:", err);
+      showError("Lỗi đăng ký. Vui lòng thử lại.");
+      console.log(err);
     } finally {
       setIsLoading(false);
     }
@@ -206,15 +231,61 @@ const RegisterPage = () => {
                   {/* Full Name */}
                   <div>
                     <input
-                      id="fullName"
-                      name="fullName"
+                      id="name"
+                      name="name"
                       type="text"
                       required
-                      value={formData.fullName}
+                      value={formData.name}
                       onChange={handleChange}
                       className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all duration-300 text-sm"
                       placeholder="Họ và tên"
                     />
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <input
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      type="text"
+                      required
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all duration-300 text-sm"
+                      placeholder="Số điện thoại"
+                    />
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      required
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all duration-300 text-sm"
+                      placeholder="Địa chỉ"
+                    />
+                  </div>
+
+                  {/* Role Selection */}
+                  <div className="flex space-x-4 mb-2">
+                    <select
+                      id="role"
+                      name="role"
+                      required
+                      value={formData.role}
+                      onChange={handleChange}
+                      typeof="select"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white transition-all duration-300 text-sm"
+                    >
+                      <option value="Customer" defaultChecked>
+                        Khách hàng
+                      </option>
+                      <option value="Freelancer">Freelancer</option>
+                    </select>
                   </div>
 
                   {/* Email */}

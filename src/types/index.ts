@@ -1,138 +1,69 @@
-// Core types for PawNest application
+/* ===================================
+ * ORGANIZED TYPE SYSTEM
+ *
+ * This file serves as the main entry point for all type definitions.
+ * Types are organized into two categories:
+ *
+ * 1. DOMAINS: Business logic interfaces (User, Payment, etc.)
+ * 2. COMPONENTS: React component prop interfaces
+ *
+ * See /types/README.md for detailed explanation
+ * ================================= */
 
+// Export all domain types (business logic interfaces)
+export * from "./domains/payment";
+export * from "./domains/freelancer";
+export * from "./domains/events";
+export * from "./domains/community";
+export * from "./domains/booking";
+export * from "./domains/profile";
+
+// Export all component prop types (React component interfaces)
+export * from "./components/common";
+export * from "./components/payment";
+export * from "./components/freelancer";
+export * from "./components/events";
+export * from "./components/community";
+export * from "./components/booking";
+export * from "./components/profile";
+
+/* ===================================
+ * LEGACY INTERFACES (MIGRATION IN PROGRESS)
+ *
+ * These are kept temporarily for backward compatibility.
+ * Please use the organized types from domains/ and components/ instead.
+ *
+ * Migration Guide:
+ * - User -> UserProfile (domains/profile.ts)
+ * - Pet -> Pet (domains/booking.ts)
+ * - Component props -> components/[domain].ts
+ * ================================= */
+
+// Legacy User interface - use UserProfile from domains/profile.ts instead
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  name?: string;
   phoneNumber?: string;
   avatar?: string;
-  role: "owner" | "caregiver" | "admin";
-  isEmailVerified: boolean;
-  isPhoneVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  role: string;
+  isActive?: boolean;
 }
 
-export interface Pet {
-  id: string;
-  ownerId: string;
-  name: string;
-  species: "dog" | "cat" | "bird" | "rabbit" | "other";
-  breed?: string;
-  age: number;
-  weight?: number;
-  gender: "male" | "female";
-  isNeutered: boolean;
-  photos: string[];
-  description?: string;
-  medicalNotes?: string;
-  emergencyContact?: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+// Legacy Context Types - update with new domain types when migrating
+export interface UserContextType {
+  user: User | null;
+  setUser: (user: User | null) => void;
 }
 
-export interface Caregiver {
-  id: string;
-  userId: string;
-  bio: string;
-  hourlyRate: number;
-  availableServices: ServiceType[];
-  rating: number;
-  totalReviews: number;
-  isVerified: boolean;
-  location: {
-    address: string;
-    city: string;
-    latitude: number;
-    longitude: number;
-  };
-  availability: Availability[];
-  photos: string[];
-  createdAt: Date;
-  updatedAt: Date;
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
-export interface Booking {
-  id: string;
-  ownerId: string;
-  caregiverId: string;
-  petIds: string[];
-  serviceType: ServiceType;
-  startDate: Date;
-  endDate: Date;
-  totalAmount: number;
-  status: BookingStatus;
-  specialInstructions?: string;
-  reviews?: Review[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Review {
-  id: string;
-  bookingId: string;
-  reviewerId: string;
-  revieweeId: string;
-  rating: number;
-  comment?: string;
-  createdAt: Date;
-}
-
-export interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  bookingId?: string;
-  content: string;
-  isRead: boolean;
-  createdAt: Date;
-}
-
-export type ServiceType =
-  | "pet-sitting"
-  | "dog-walking"
-  | "pet-boarding"
-  | "daycare"
-  | "grooming";
-
-export type BookingStatus =
-  | "pending"
-  | "confirmed"
-  | "in-progress"
-  | "completed"
-  | "cancelled"
-  | "disputed";
-
-export interface Availability {
-  dayOfWeek: number; // 0-6 (Sunday-Saturday)
-  startTime: string; // HH:MM format
-  endTime: string; // HH:MM format
-}
-
-export interface SearchFilters {
-  location?: {
-    city?: string;
-    radius?: number; // in kilometers
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  serviceType?: ServiceType;
-  priceRange?: {
-    min: number;
-    max: number;
-  };
-  rating?: number;
-  availability?: {
-    startDate: Date;
-    endDate: Date;
-  };
-  petSpecies?: string[];
-}
-
+// Common API Response Types - can be used with organized types
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -150,21 +81,4 @@ export interface PaginatedResponse<T> {
     hasNext: boolean;
     hasPrevious: boolean;
   };
-}
-
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-}
-
-export interface NotificationPreferences {
-  email: boolean;
-  sms: boolean;
-  push: boolean;
-  bookingUpdates: boolean;
-  messages: boolean;
-  reviews: boolean;
-  marketing: boolean;
 }

@@ -1,12 +1,15 @@
-import {
-  Navbar,
-  HeroSection,
-  SearchSection,
-  FeaturesSection,
-  ServicesSection,
-  TestimonialsSection,
-  Footer,
-} from "../../components/common";
+import HeroSection from "../../components/home/HeroSection";
+import SearchSection from "../../components/home/SearchSection";
+import FeaturesSection from "../../components/home/FeaturesSection";
+import ServicesSection from "../../components/home/ServicesSection";
+import TestimonialsSection from "../../components/home/TestimonialsSection";
+import HowItWorksSection from "../../components/home/HowItWorksSection";
+import StatsSection from "../../components/home/StatsSection";
+import PetCareTipsSection from "../../components/home/PetCareTipsSection";
+import TestimonialsReviewsSection from "../../components/home/TestimonialsReviewsSection";
+import FAQSection from "../../components/home/FAQSection";
+import Navbar from "../../components/common/Navbar";
+import Footer from "../../components/common/Footer";
 import { useScrollToTop } from "../../hooks";
 
 const HomePage = () => {
@@ -16,9 +19,14 @@ const HomePage = () => {
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <SearchSection />
       <FeaturesSection />
+      <SearchSection />
       <ServicesSection />
+      <HowItWorksSection />
+      <StatsSection />
+      <PetCareTipsSection />
+      <TestimonialsReviewsSection />
+      <FAQSection />
       <TestimonialsSection />
       <Footer />
     </div>

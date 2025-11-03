@@ -1,9 +1,4 @@
-interface FilterState {
-  search: string;
-  category: string;
-  location: string;
-  dateRange: string;
-}
+import type { FilterState } from "../../types";
 
 interface IncomingEventsSectionProps {
   filters?: FilterState;

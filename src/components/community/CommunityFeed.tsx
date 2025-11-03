@@ -1,21 +1,17 @@
 import React, { useState } from "react";
-import {
-  AiOutlineLike,
-  AiFillLike,
-  AiOutlineComment,
-  AiOutlineShareAlt,
-  AiOutlineCamera,
-} from "react-icons/ai";
+import { AiOutlineCamera } from "react-icons/ai";
 
-interface Comment {
-  id: number;
+import { PostCategory, PostCategoryLabels } from "../../types/domains/PostCategory";
+export interface Comment {
+  id: string;
+  postId?: string; // Reference to parent post
   author: string;
   content: string;
   timestamp: string;
 }
 
-interface Post {
-  id: number;
+export interface Post {
+  id: string;
   author: {
     name: string;
     avatar: string;
@@ -24,42 +20,36 @@ interface Post {
   };
   content: string;
   images?: string[];
+  imageUrl?: string;
   timestamp: string;
   likes: number;
-  comments: Comment[];
+  comments: Comment[]; // Required field with default empty array
   shares: number;
   views: number;
   liked: boolean;
+  postStatus?: number;
+  postCategory?: number;
+  staffId?: string;
 }
 
 interface CommunityFeedProps {
   posts: Post[];
-  onLike: (id: number) => void;
-  onComment: (id: number, text: string) => void;
-  onDelete: (id: number) => void;
-  onEdit: (id: number, newContent: string) => void;
-  onShare: (id: number) => void;
-  onView: (id: number) => void;
   onAddPost: (newPost: {
     author: string;
     caption: string;
     image?: string;
+    category: PostCategory;
   }) => void;
 }
 
 const CommunityFeed: React.FC<CommunityFeedProps> = ({
   posts,
-  onLike,
-  onComment,
-  onDelete,
-  onEdit,
-  onShare,
-  onView,
   onAddPost,
 }) => {
   const [newPost, setNewPost] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const [selectedCategory, setSelectedCategory] = useState<PostCategory>(PostCategory.DogCare);
+
 
   // 🧩 Xử lý đăng bài
   const handleAddPost = () => {
@@ -68,6 +58,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
       author: "Bạn",
       caption: newPost,
       image: imagePreview || undefined,
+      category: selectedCategory
     });
     setNewPost("");
     setImagePreview(null);
@@ -82,16 +73,12 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // 🧩 Gửi comment
-  const handleSendComment = (postId: number) => {
-    const text = commentInputs[postId]?.trim();
-    if (!text) return;
-    onComment(postId, text);
-    setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
-  };
+
 
   return (
     <div className="space-y-6">
+      {/* Top title / hero (matches provided screenshot) */}
+      
       {/* 🧩 Ô đăng bài */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-start gap-4">
@@ -123,29 +110,49 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
                 </button>
               </div>
             )}
-            <div className="flex justify-between mt-4">
-              <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
-                <AiOutlineCamera className="text-orange-500 w-5 h-5" />
-                <span>Thêm ảnh</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-              <button
-                onClick={handleAddPost}
-                className="bg-orange-600 text-white px-5 py-2 rounded-lg hover:bg-orange-700"
-              >
-                Đăng bài
-              </button>
+            <div className="space-y-4 mt-4">
+              {/* Category tags */}
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(PostCategoryLabels).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => setSelectedCategory(Number(value) as PostCategory)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+                      ${selectedCategory === Number(value)
+                        ? 'bg-orange-100 text-orange-600 border-orange-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Bottom actions */}
+              <div className="flex justify-between items-center border-t pt-4">
+                <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
+                  <AiOutlineCamera className="text-orange-500 w-5 h-5" />
+                  <span>Thêm ảnh</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </label>
+                
+                <button
+                  onClick={handleAddPost}
+                  className="bg-orange-600 text-white px-5 py-2 rounded-lg hover:bg-orange-700"
+                >
+                  Đăng bài
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 🧩 Danh sách bài đăng */}
+     
       {posts.map((post) => (
         <div
           key={post.id}
@@ -153,30 +160,40 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
         >
           <div className="p-5">
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
                 <img
                   src={post.author.avatar}
                   alt={post.author.name}
-                  className="w-10 h-10 rounded-full"
+                  className="w-10 h-10 rounded-full object-cover"
                 />
                 <div>
-                  <h4 className="font-semibold text-gray-800">
-                    {post.author.name}{" "}
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-800 leading-5">
+                      {post.author.name}
+                    </h4>
                     {post.author.isVerified && (
-                      <span className="text-blue-500">✔️</span>
+                      <span className="text-blue-500 text-sm">✔️</span>
                     )}
-                  </h4>
-                  <p className="text-sm text-gray-500">{post.author.title}</p>
-                  <p className="text-xs text-gray-400">{post.timestamp}</p>
+                    {/* title displayed next to name */}
+                    <span className="text-sm text-gray-500 ml-2">{post.author.title}</span>
+                  </div>
+
+                  {/* Category badge shown under author title when available */}
+                  {typeof post.postCategory === 'number' && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                        {PostCategoryLabels[post.postCategory as PostCategory]}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <button
-                className="text-red-500 text-sm hover:text-red-600"
-                onClick={() => onDelete(post.id)}
-              >
-                Xóa
-              </button>
+
+              {/* Timestamp moved to the right and aligned to top so it won't share line with title */}
+              <div className="text-right ml-4">
+                <p className="text-xs text-gray-400">{post.timestamp}</p>
+              </div>
             </div>
 
             {/* Nội dung */}
@@ -190,83 +207,6 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({
                 />
               </div>
             )}
-
-            {/* Actions */}
-            <div className="flex justify-around text-gray-600 text-sm mt-4 pt-3">
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onLike(post.id)}
-              >
-                {post.liked ? (
-                  <AiFillLike className="text-orange-500" />
-                ) : (
-                  <AiOutlineLike />
-                )}
-                <span>Thích ({post.likes})</span>
-              </button>
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onView(post.id)}
-              >
-                <AiOutlineComment />
-                <span>Bình luận ({post.comments.length})</span>
-              </button>
-              <button
-                className="flex items-center gap-2 hover:text-orange-500"
-                onClick={() => onShare(post.id)}
-              >
-                <AiOutlineShareAlt />
-                <span>Chia sẻ ({post.shares})</span>
-              </button>
-            </div>
-
-            {/* Bình luận */}
-            <div className="mt-4 space-y-3 border-t border-gray-100 pt-3">
-              {post.comments.map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                    alt={c.author}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <div className="bg-gray-100 rounded-lg p-2">
-                    <p className="text-sm font-semibold">{c.author}</p>
-                    <p className="text-gray-700 text-sm">{c.content}</p>
-                    <span className="text-xs text-gray-400">{c.timestamp}</span>
-                  </div>
-                </div>
-              ))}
-
-              {/* Ô nhập comment */}
-              <div className="flex items-center gap-3 mt-2">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
-                  alt="user"
-                  className="w-8 h-8 rounded-full"
-                />
-                <input
-                  type="text"
-                  placeholder="Viết bình luận..."
-                  className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none"
-                  value={commentInputs[post.id] || ""}
-                  onChange={(e) =>
-                    setCommentInputs({
-                      ...commentInputs,
-                      [post.id]: e.target.value,
-                    })
-                  }
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && handleSendComment(post.id)
-                  }
-                />
-                <button
-                  onClick={() => handleSendComment(post.id)}
-                  className="text-orange-600 font-semibold text-sm"
-                >
-                  Gửi
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       ))}

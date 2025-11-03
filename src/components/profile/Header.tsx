@@ -1,205 +1,316 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   AiOutlineHome,
-  AiOutlineUser,
-  AiOutlineTeam,
-  AiOutlineCalendar,
-  AiOutlineQuestionCircle,
-  AiOutlineMenu,
-  AiOutlineLogin,
   AiOutlineBell,
+  AiOutlineCalendar,
   AiOutlineSetting,
+  AiOutlineLogout,
+  AiOutlineUser,
+  AiOutlineMenu,
+  AiOutlineClose,
 } from "react-icons/ai";
-import ReactCountryFlag from "react-country-flag";
-import { Link, useNavigate } from "react-router-dom";
+import { FaPaw } from "react-icons/fa";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../assets/image/Logo.png";
+import { useAuth } from "../../hooks";
 
 const Header = () => {
   const navigate = useNavigate();
-  // Giả lập thông tin user, khi có API thì lấy từ backend
-  const [user] = useState<null | { name: string; avatar: string }>({
-    name: "Lý Hồng Thư",
-    avatar: "/images/avatars/user-1.jpg",
-  });
+  const location = useLocation();
+  const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Xử lý đăng nhập: chuyển sang login page hoặc cập nhật user giả lập
-  const handleAuthAction = () => {
-    if (user) {
-      // Hiển thị menu profile hoặc logout
-      console.log("Toggling profile menu");
-    } else {
-      // Chuyển hướng sang trang /login với React Router
-      navigate("/login");
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
     }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showUserMenu]);
+
+  const handleLogout = async () => {
+    await logout();
+    setShowUserMenu(false);
   };
 
-  // Function to get random avatar
-
-  // Function to get fixed avatar image
-  const getFixedAvatar = () => {
+  // Function to get user avatar with fallback
+  const getUserAvatar = () => {
+    if (user?.avatar) {
+      return user.avatar;
+    }
     return "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
   };
 
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (user?.name) {
+      return user.name;
+    }
+    if (user?.email) {
+      return user.email.split("@")[0];
+    }
+    return "User";
+  };
+
+  // Check if current route is active
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   return (
-    <header className="bg-white shadow-md border-b border-gray-100 w-full">
-      <div className="container mx-auto px-4">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <img src={Logo} alt="Logo" className="w-8 h-8" />
-              <span className="text-lg font-bold text-emerald-600 ml-2">
-                PawNest
-              </span>
-            </Link>
-          </div>
+          <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+            <img src={Logo} alt="PawNest" className="h-8 w-8" />
+            <span className="text-xl font-bold text-emerald-600">PawNest</span>
+          </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
             <Link
               to="/"
-              className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <AiOutlineHome className="w-4 h-4" />
-              <span>Trang chủ</span>
+              <div className="flex items-center space-x-2">
+                <AiOutlineHome className="w-4 h-4" />
+                <span>Trang chủ</span>
+              </div>
             </Link>
+
             <Link
-              to="/find"
-              className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200"
+              to="/freelancers"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/freelancers")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <AiOutlineUser className="w-4 h-4" />
-              <span>Tìm Người</span>
+              <div className="flex items-center space-x-2">
+                <AiOutlineUser className="w-4 h-4" />
+                <span>Tìm Người</span>
+              </div>
             </Link>
+
             <Link
               to="/community"
-              className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/community")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <AiOutlineTeam className="w-4 h-4" />
-              <span>Cộng Đồng</span>
+              <div className="flex items-center space-x-2">
+                <FaPaw className="w-4 h-4" />
+                <span>Cộng Đồng</span>
+              </div>
             </Link>
+
             <Link
               to="/events"
-              className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/events")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <AiOutlineCalendar className="w-4 h-4" />
-              <span>Sự kiện</span>
+              <div className="flex items-center space-x-2">
+                <AiOutlineCalendar className="w-4 h-4" />
+                <span>Sự kiện</span>
+              </div>
             </Link>
+
             <Link
               to="/support"
-              className="flex items-center space-x-1 text-gray-700 hover:text-emerald-600 font-medium transition-colors duration-200"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive("/support")
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
-              <AiOutlineQuestionCircle className="w-4 h-4" />
-              <span>Hỗ Trợ</span>
+              <div className="flex items-center space-x-2">
+                <AiOutlineSetting className="w-4 h-4" />
+                <span>Hỗ Trợ</span>
+              </div>
             </Link>
-          </div>
+          </nav>
 
-          {/* Right Section - Notifications, Settings & User */}
-          <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <button className="text-gray-600 hover:text-gray-800">
-              <AiOutlineBell className="w-5 h-5" />
-            </button>
-
-            {/* Settings */}
-            <button className="text-gray-600 hover:text-gray-800">
-              <AiOutlineSetting className="w-5 h-5" />
-            </button>
-
+          {/* Right Section */}
+          <div className="flex items-center space-x-3">
             {/* Language Selector */}
             <div className="hidden md:flex items-center space-x-1 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors">
-              <ReactCountryFlag
-                countryCode="VN"
-                svg
-                style={{
-                  width: "1.5rem",
-                  height: "1rem",
-                }}
-                title="Vietnam"
+              <img
+                src="https://flagcdn.com/w40/vn.png"
+                alt="Vietnam"
+                className="w-5 h-3 object-cover"
               />
               <span className="text-gray-700 font-medium text-sm">VI</span>
             </div>
 
-            {/* User Avatar */}
+            {/* Notifications */}
+            <button className="relative p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+              <AiOutlineBell className="w-5 h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+
+            {/* Settings */}
+            <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+              <AiOutlineSetting className="w-5 h-5" />
+            </button>
+
+            {/* User Profile */}
             {user ? (
-              <div
-                className="flex items-center space-x-1 cursor-pointer group"
-                onClick={handleAuthAction}
-              >
-                <div className="w-8 h-8 rounded-full overflow-hidden">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-50 transition-colors"
+                >
                   <img
-                    src={user.avatar || getFixedAvatar()}
-                    alt={user.name}
-                    className="w-full h-full object-cover"
+                    src={getUserAvatar()}
+                    alt={getUserDisplayName()}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
                       e.currentTarget.src =
                         "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
                     }}
                   />
-                </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {getUserDisplayName()}
+                      </p>
+                      {user.email && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <AiOutlineUser className="w-4 h-4 mr-3 text-gray-400" />
+                      Hồ sơ của tôi
+                    </Link>
+
+                    <Link
+                      to="/settings"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <AiOutlineSetting className="w-4 h-4 mr-3 text-gray-400" />
+                      Cài đặt
+                    </Link>
+
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <AiOutlineLogout className="w-4 h-4 mr-3" />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <button
-                onClick={handleAuthAction}
-                className="flex items-center space-x-1 bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700 transition-colors text-sm font-medium"
+                onClick={() => navigate("/login")}
+                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
               >
-                <AiOutlineLogin className="w-4 h-4" />
-                <span>Đăng nhập</span>
+                Đăng nhập
               </button>
             )}
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden p-2 rounded hover:bg-gray-100 transition-colors"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="md:hidden p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
-              <AiOutlineMenu className="w-6 h-6 text-gray-600" />
+              {showMobileMenu ? (
+                <AiOutlineClose className="w-6 h-6" />
+              ) : (
+                <AiOutlineMenu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Menu */}
-        {showMobileMenu && (
-          <div className="md:hidden border-t border-gray-200 py-4 space-y-2">
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div className="md:hidden border-t border-gray-200 bg-white">
+          <div className="px-4 py-3 space-y-1">
             <Link
               to="/"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
             >
-              <AiOutlineHome className="w-4 h-4" />
+              <AiOutlineHome className="w-5 h-5" />
               <span>Trang chủ</span>
             </Link>
             <Link
-              to="/find"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded"
+              to="/freelancers"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
             >
-              <AiOutlineUser className="w-4 h-4" />
+              <AiOutlineUser className="w-5 h-5" />
               <span>Tìm Người</span>
             </Link>
             <Link
               to="/community"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
             >
-              <AiOutlineTeam className="w-4 h-4" />
+              <FaPaw className="w-5 h-5" />
               <span>Cộng Đồng</span>
             </Link>
             <Link
               to="/events"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
             >
-              <AiOutlineCalendar className="w-4 h-4" />
+              <AiOutlineCalendar className="w-5 h-5" />
               <span>Sự kiện</span>
             </Link>
             <Link
               to="/support"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowMobileMenu(false)}
             >
-              <AiOutlineQuestionCircle className="w-4 h-4" />
+              <AiOutlineSetting className="w-5 h-5" />
               <span>Hỗ Trợ</span>
             </Link>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   );
 };

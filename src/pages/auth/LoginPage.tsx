@@ -1,16 +1,16 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserContext, type User } from "../../contexts/UserContext";
 import loginImage from "../../assets/image/login.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
-import { useScrollToTop } from "../../hooks";
+import { useScrollToTop, useAuth } from "../../hooks";
+import { showError } from "../../utils/toastUtils";
 
 const LoginPage = () => {
   // Scroll to top when page loads
   useScrollToTop();
 
-  const { setUser } = useContext(UserContext);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -31,23 +31,30 @@ const LoginPage = () => {
       // Basic validation
       if (!formData.email || !formData.password) {
         setError("Vui lòng điền đầy đủ thông tin");
+        setIsLoading(false);
         return;
       }
 
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock successful login - replace with actual API response
-      const userData: User = {
-        id: "1",
+      // Call login with useAuth hook - this will handle API call and context update
+      const result = await login({
         email: formData.email,
-        name: "User Name",
-        role: "user",
-      };
+        password: formData.password,
+      });
 
-      handleSuccessfulLogin(userData);
+      if (result.success) {
+        // Navigate based on user role
+        if (result.user?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
+      } else {
+        setError(
+          "Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin."
+        );
+      }
     } catch (err) {
-      setError("Đăng nhập không thành công. Vui lòng thử lại.");
+      showError("Lỗi đăng nhập. Vui lòng thử lại.");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -60,11 +67,6 @@ const LoginPage = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
-
-  const handleSuccessfulLogin = (userData: User) => {
-    setUser(userData);
-    navigate("/");
   };
 
   return (
@@ -222,7 +224,7 @@ const LoginPage = () => {
                       </label>
                     </div>
                     <Link
-                      to="/forgot-password"
+                      to="/auth/forgot-password"
                       className="text-sm font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
                     >
                       Quên mật khẩu?
