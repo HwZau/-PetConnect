@@ -88,12 +88,14 @@ export const API_ENDPOINTS = {
 
   // Community
   COMMUNITY: {
-    POSTS: "/community/posts",
-    CREATE_POST: "/community/posts",
-    POST_DETAIL: (id: string) => `/community/posts/${id}`,
-    LIKE_POST: (id: string) => `/community/posts/${id}/like`,
-    COMMENT: (id: string) => `/community/posts/${id}/comments`,
-    TRENDING: "/community/trending",
+    POSTS: "/api/Post",
+    CREATE_POST: "/api/Post",
+    POST_DETAIL: (id: string) => `/api/Post/${id}`,
+    DELETE_POST: (id: string) => `/api/Post/${id}`,
+    UPDATE_POST: (id: string) => `/api/Post/${id}`,
+    LIKE_POST: (id: string) => `/api/community/posts/${id}/like`,
+    COMMENT: (id: string) => `/api/community/posts/${id}/comments`,
+    TRENDING: "/api/community/trending",
   },
 
   // Notifications
