@@ -1,10 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-// import { showSuccess } from "../../utils/toastUtils";
+import { showSuccess } from "../../utils/toastUtils";
+import useAuth from "../../hooks/useAuth";
 import { AiOutlineClose, AiOutlineHeart, AiOutlineUserAdd, AiOutlineTrophy, AiOutlineCheckCircle } from "react-icons/ai";
 
 const CommunityHeroSection: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const createPostRef = useRef<HTMLDivElement>(null);
 
@@ -13,6 +15,10 @@ const CommunityHeroSection: React.FC = () => {
   };
 
   const handleJoinCommunity = () => {
+    if (isAuthenticated) {
+      showSuccess("Bạn đã là thành viên của cộng đồng!");
+      return;
+    }
     setShowJoinModal(true);
   };
 
@@ -202,14 +208,21 @@ const CommunityHeroSection: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleJoinCommunity}
-                className="group bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-black px-5 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl"
+                disabled={isAuthenticated}
+                className={`group ${
+                  isAuthenticated 
+                    ? "bg-gray-400 cursor-not-allowed opacity-50" 
+                    : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+                } text-white font-black px-5 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl`}
               >
                 <span className="flex items-center gap-2 text-xs">
                   <AiOutlineUserAdd className="w-4 h-4" />
-                  Tham Gia Ngay
-                  <span className="group-hover:translate-x-1 transition-transform">
-                    →
-                  </span>
+                  {isAuthenticated ? "Đã Tham Gia" : "Tham Gia Ngay"}
+                  {!isAuthenticated && (
+                    <span className="group-hover:translate-x-1 transition-transform">
+                      →
+                    </span>
+                  )}
                 </span>
               </button>
               <button

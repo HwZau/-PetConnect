@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/common/Navbar";
+import { PostCategory } from "../../types/domains/PostCategory";
 import CommunityHeroSection from "../../components/community/CommunityHeroSection";
+import { FaPaw } from "react-icons/fa";
+import { FiPlay } from "react-icons/fi";
 import CommunityFeed from "../../components/community/CommunityFeed";
 import CommunitySidebar from "../../components/community/CommunitySidebar";
 import Footer from "../../components/common/Footer";
@@ -14,8 +17,11 @@ import { showSuccess, showError } from "../../utils/toastUtils";
  * kiểu mà CommunityFeed.tsx đang dùng.
  */
 import type { Post as FeedPost, Comment as FeedComment } from "../../components/community/CommunityFeed";
+import type { CreatePostApiPayload } from "../../services/postService";
+
 
 type Comment = FeedComment;
+// IMPORTANT: allow id to be string | number
 type Post = FeedPost;
 
 const CommunityPage: React.FC = () => {
@@ -25,31 +31,68 @@ const CommunityPage: React.FC = () => {
   // Fetch posts from backend (API_ENDPOINTS.COMMUNITY.POSTS)
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
     const load = async () => {
       try {
         const res = await postService.listPosts();
-        if (mounted && res.success && res.data) {
-          // Normalize id to number (frontend components expect numeric ids)
-          // res.data is typed by postService.Post
+
+        if (!mounted) return;
+
+        if (res.success && res.data) {
+          // Keep id as string (don't coerce GUID to Number)
           const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+          
+          // Helper function to create unique comment ID
+          // const createUniqueCommentId = (postId: string | number, commentId?: string | number) => {
+          //   return `${String(postId)}_${commentId || Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          // };
+
           const normalized = res.data.map((p) => ({
-            id: Number(p.id),
-            author: p.author
-              ? { name: p.author.name, avatar: p.author.avatar ?? defaultAvatar, isVerified: !!p.author.isVerified, title: p.author.title ?? '' }
-              : { name: 'Người dùng', avatar: defaultAvatar, isVerified: false, title: '' },
+            id: String(p.id),
+            author: p.author ?? {
+              name: 'Người dùng',
+              avatar: defaultAvatar,
+              isVerified: false,
+              title: 'Thành viên Pawnet'
+            },
             content: p.content,
-            images: p.images ?? [],
-            timestamp: p.timestamp ?? "",
+            images: p.imageUrl ? [p.imageUrl] : [],
+            timestamp: p.timestamp ?? new Date().toISOString(),
             likes: p.likes ?? 0,
-            comments: (p.comments ?? []) as Comment[],
+            comments: Array.isArray(p.comments) ? p.comments.map((c, index) => ({
+              id: c.id ? `comment-${String(p.id)}-${String(c.id)}` : `comment-${String(p.id)}-${index}`,
+              author: c.author || 'Người dùng',
+              content: c.content || '',
+              timestamp: c.timestamp || 'Vừa xong'
+            })) : [],
             shares: p.shares ?? 0,
             views: p.views ?? 0,
-            liked: !!p.liked,
+            liked: false,
+            postStatus: p.postStatus,
+            postCategory: p.postCategory,
+            staffId: p.staffId
           })) as Post[];
           setPosts(normalized);
+        } else {
+          console.error("Failed to fetch posts:", res.error || "Unknown error");
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(load, retryDelay);
+          } else {
+            showError("Không thể tải bài viết. Vui lòng thử lại sau.");
+          }
         }
       } catch (err) {
         console.error("Failed to fetch posts", err);
+        if (retryCount < maxRetries && mounted) {
+          retryCount++;
+          setTimeout(load, retryDelay);
+        } else if (mounted) {
+          showError("Không thể tải bài viết. Vui lòng thử lại sau.");
+        }
       }
     };
 
@@ -60,101 +103,19 @@ const CommunityPage: React.FC = () => {
     };
   }, []);
 
-  // ======= Handlers (kiểu tương thích với CommunityFeed props) =======
-  // ======= Handlers (kiểu tương thích với CommunityFeed props) =======
   const { isAuthenticated } = useAuth();
 
-  const handleLike = (id: number) => {
-    // Chức năng like tạm thời chỉ cập nhật UI, không gọi API
-    setPosts(posts.map((p) =>
-      p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p
-    ));
-    showError("Tính năng like đang được phát triển");
-  };
 
-  const handleAddComment = (id: number, text: string) => {
-    if (!text.trim()) return;
-    // Chức năng comment tạm thời chỉ cập nhật UI, không gọi API
-    const newComment = { id: Date.now(), author: "Bạn", content: text, timestamp: "Vừa xong" };
-    setPosts(prevPosts =>
-      prevPosts.map((p) => (p.id === id ? { ...p, comments: [...p.comments, newComment] } : p))
-    );
-    showError("Tính năng bình luận đang được phát triển");
-  };
 
-  const handleDeletePost = (id: number) => {
-    if (!isAuthenticated) {
-      showError("Vui lòng đăng nhập để xóa bài viết");
-      return;
-    }
-
-    if (!window.confirm || window.confirm("Bạn có chắc muốn xóa bài viết này không?")) {
-      const prev = posts;
-      // optimistic remove
-      setPosts((prevPosts) => prevPosts.filter((p) => p.id !== id));
-
-      postService
-        .deletePost(id)
-        .then((res) => {
-          if (!res.success) {
-            setPosts(prev);
-            showError(res.error || res.message || "Xóa bài viết thất bại");
-          } else {
-            showSuccess("Xóa bài viết thành công");
-          }
-        })
-        .catch(() => {
-          setPosts(prev);
-          showError("Xóa bài viết thất bại (network)");
-        });
-    }
-  };
-
-  const handleShare = (id: number) => {
-    const prev = posts;
-    const next = posts.map((p) => (p.id === id ? { ...p, shares: p.shares + 1 } : p));
-    setPosts(next);
-    postService
-      .updatePost(id, { shares: next.find((p) => p.id === id)?.shares })
-      .then((res) => {
-        if (!res.success) {
-          setPosts(prev);
-          showError(res.error || res.message || "Chia sẻ bài viết thất bại");
-        } else {
-          showSuccess("Đã chia sẻ bài viết!");
-        }
-      })
-      .catch(() => {
-        setPosts(prev);
-        showError("Chia sẻ bài viết thất bại (network)");
-      });
-  };
-
-  const handleViewPost = (id: number) => {
-    const prev = posts;
-    const next = posts.map((p) => (p.id === id ? { ...p, views: p.views + 1 } : p));
-    setPosts(next);
-    postService
-      .updatePost(id, { views: next.find((p) => p.id === id)?.views })
-      .then((res) => {
-        if (!res.success) {
-          setPosts(prev);
-          showError(res.error || res.message || "Cập nhật lượt xem thất bại");
-        }
-      })
-      .catch(() => {
-        setPosts(prev);
-        showError("Cập nhật lượt xem thất bại (network)");
-      });
-  };
-
-  const handleAddPost = async (newPost: { author: string; caption: string; image?: string }) => {
+  // newPost: author/caption/image from UI -> translate to API shape
+  const handleAddPost = async (newPost: { author: string; caption: string; image?: string; category: PostCategory }) => {
     if (!isAuthenticated) {
       showError("Vui lòng đăng nhập để đăng bài");
       return;
     }
 
-    const payload = {
+    // Local payload for UI
+    const payloadForUI = {
       author: { name: newPost.author, avatar: "https://cdn-icons-png.flaticon.com/512/847/847969.png", isVerified: false, title: "Thành viên Pawnet" },
       content: newPost.caption,
       images: newPost.image ? [newPost.image] : [],
@@ -166,46 +127,64 @@ const CommunityPage: React.FC = () => {
       liked: false,
     };
 
-    // optimistic add with temp id
-    const tempId = Date.now();
+    // optimistic add with string temp id
+    const tempId = `temp-${Date.now()}`;
     const tempPost: Post = {
       id: tempId,
-      author: payload.author,
-      content: payload.content,
-      images: payload.images,
-      timestamp: payload.timestamp,
-      likes: payload.likes,
-      comments: payload.comments,
-      shares: payload.shares,
-      views: payload.views,
-      liked: payload.liked,
+      author: payloadForUI.author,
+      content: payloadForUI.content,
+      images: payloadForUI.images,
+      timestamp: payloadForUI.timestamp,
+      likes: payloadForUI.likes,
+      comments: payloadForUI.comments,
+      shares: payloadForUI.shares,
+      views: payloadForUI.views,
+      liked: payloadForUI.liked,
     };
     setPosts((prev) => [tempPost, ...prev]);
 
     try {
-      const res = await postService.createPost(payload);
+      // Generate random UUID v4 for staffId
+      function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+
+      const apiPayload: CreatePostApiPayload = {
+        title: newPost.caption?.slice(0, 100) || "Untitled",
+        content: newPost.caption,
+        imageUrl: newPost.image ?? "",
+        postStatus: 0,
+        postCategory: newPost.category,
+        staffId: uuidv4()
+      };
+
+      const res = await postService.createPost(apiPayload);
       if (res.success && res.data) {
-        // replace temp with server post (map server shape to local Post)
         const sp = res.data;
         const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
         const serverPost: Post = {
-          id: Number(sp.id),
-          author: sp.author
-            ? { name: sp.author.name, avatar: sp.author.avatar ?? defaultAvatar, isVerified: !!sp.author.isVerified, title: sp.author.title ?? '' }
-            : { name: 'Người dùng', avatar: defaultAvatar, isVerified: false, title: '' },
+          id: String(sp.id),
+          author: { 
+            name: newPost.author,
+            avatar: sp.author?.avatar ?? defaultAvatar,
+            isVerified: sp.author?.isVerified ?? false,
+            title: sp.author?.title ?? "Thành viên Pawnet"
+          },
           content: sp.content,
-          images: sp.images ?? [],
-          timestamp: sp.timestamp ?? "",
+          images: sp.imageUrl ? [sp.imageUrl] : [],
+          timestamp: sp.timestamp ?? new Date().toISOString(),
           likes: sp.likes ?? 0,
-          comments: (sp.comments ?? []) as Comment[],
+          comments: [],
           shares: sp.shares ?? 0,
           views: sp.views ?? 0,
-          liked: !!sp.liked,
+          liked: false,
         };
         setPosts((prev) => prev.map((p) => (p.id === tempId ? serverPost : p)));
         showSuccess("Đã đăng bài");
       } else {
-        // keep temp and notify
         showError(res.error || res.message || "Tạo bài thất bại, giữ bản local");
       }
     } catch (err) {
@@ -214,31 +193,37 @@ const CommunityPage: React.FC = () => {
     }
   };
 
-  // ================= Render =================
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <CommunityHeroSection />
 
+      {/* Page-level hero/title inserted between CommunityHeroSection and feed */}
+      <div className="text-center mt-4">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Pet Freelancer Community</h1>
+        <p className="mt-2 text-sm md:text-base text-gray-500 max-w-2xl mx-auto">Kết nối với người trông thú cưng, người đặt thú cưng, người huấn luyện và những người nuôi thú cưng khác</p>
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <button className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
+            <FaPaw className="w-4 h-4" />
+            <span>Tìm dịch vụ</span>
+          </button>
+          <button className="inline-flex items-center gap-2 bg-violet-100 text-violet-700 px-4 py-2 rounded-full text-sm font-medium">
+            <FiPlay className="w-4 h-4" />
+            <span>Xem những câu chuyện thành công</span>
+          </button>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* FEED */}
           <div className="lg:col-span-3">
             <CommunityFeed
               posts={posts}
-              onLike={handleLike}
-              onComment={handleAddComment}
-              onDelete={handleDeletePost}
-            
-              onShare={handleShare}
-              onView={handleViewPost}
               onAddPost={handleAddPost}
             />
           </div>
-
-          {/* SIDEBAR */}
           <div className="lg:col-span-1">
-            <CommunitySidebar onAddPost={handleAddPost} />
+            <CommunitySidebar  />
           </div>
         </div>
       </div>
