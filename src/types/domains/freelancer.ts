@@ -66,4 +66,7 @@ export interface Freelancer {
   hourlyRate?: number;
   photos?: string[];
   category?: string; // Add for compatibility
+  services?: FreelancerService[]; // Array of services offered by freelancer
+  email?: string;
+  phone?: string;
 }

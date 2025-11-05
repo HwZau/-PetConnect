@@ -61,9 +61,15 @@ export const authService = {
     return response;
   },
 
-  // Get current user profile from /user/profile/me
+
   async getProfile(): Promise<ApiResponse<User>> {
-    return apiClient.get<User>("/user/profile/me");
+    // First, get basic profile to check role
+    const basicProfile = await apiClient.get<User>(API_ENDPOINTS.USERS.PROFILE);
+    // If user is freelancer, get freelancer-specific profile
+    if (!basicProfile.success) {
+      return apiClient.get<User>(API_ENDPOINTS.USERS.FREELANCER_PROFILE);
+    }
+    return basicProfile;
   },
 
   async forgotPassword(email: string): Promise<ApiResponse<void>> {

@@ -72,10 +72,10 @@ const RegisterPage = () => {
 
       if (result.success) {
         // Navigate to login page after successful registration
-       showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+        
         navigate("/login");
       } else {
-        setError("Đăng ký không thành công. Vui lòng thử lại.");
+        showError("Đăng ký không thành công. Vui lòng thử lại.");
       }
     } catch (err) {
       showError("Lỗi đăng ký. Vui lòng thử lại.");

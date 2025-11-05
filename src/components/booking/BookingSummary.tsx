@@ -1,7 +1,6 @@
 import React from "react";
-import { formatDate } from "../../utils";
+import { formatDate, getPickUpTimeLabel } from "../../utils";
 import type { BookingSummaryProps } from "../../types";
-import { ServiceManager } from "../../services/booking/serviceManager";
 
 const BookingSummary: React.FC<BookingSummaryProps> = ({
   selectedFreelancer,
@@ -9,25 +8,24 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
   petInfo,
   date,
   time,
-  recurringService,
-  frequency,
   onSubmit,
 }) => {
-  const currentService = selectedService
-    ? ServiceManager.getServiceById(selectedService)
-    : undefined;
+  // Find selected service from freelancer's services
+  const currentService = selectedFreelancer?.services?.find(
+    (service: any) => service.id === selectedService
+  );
 
-  // Calculate total price using ServiceManager
+  // Calculate total price based on selected service and number of pets
   const calculateTotalPrice = () => {
-    if (!selectedService || !petInfo || petInfo.length === 0) return 0;
+    if (!currentService || !petInfo || petInfo.length === 0) return 0;
 
-    const petSizes = petInfo.map((pet) => pet.petSize);
-    return ServiceManager.calculateTotalPrice(
-      selectedService,
-      petInfo.length,
-      petSizes,
-      recurringService
-    );
+    // Base price * number of pets
+    const basePrice =
+      typeof currentService.price === "number"
+        ? currentService.price
+        : parseFloat(currentService.price) || 0;
+
+    return basePrice * petInfo.length;
   };
 
   const totalPrice = calculateTotalPrice();
@@ -40,153 +38,142 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
 
       {/* Freelancer Info */}
       {selectedFreelancer && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center space-x-3 mb-3">
+        <div className="mb-6 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg border border-emerald-100">
+          <div className="flex items-center space-x-3 mb-2">
             <img
               src={selectedFreelancer.avatar}
               alt={selectedFreelancer.name}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
             />
             <div>
-              <h4 className="font-medium text-gray-800">
+              <h4 className="font-semibold text-gray-800">
                 {selectedFreelancer.name}
               </h4>
-              <p className="text-sm text-gray-600">
-                {selectedFreelancer.title}
-              </p>
+              {selectedFreelancer.email && (
+                <p className="text-xs text-gray-600">
+                  {selectedFreelancer.email}
+                </p>
+              )}
             </div>
           </div>
-          <div className="text-sm text-gray-600">
-            <p>📍 {selectedFreelancer.location}</p>
-            <p>💼 {selectedFreelancer.completedJobs} công việc hoàn thành</p>
-            <p>⏱️ Phản hồi: {selectedFreelancer.responseTime}</p>
-          </div>
+          {selectedFreelancer.phone && (
+            <div className="text-sm text-gray-700 mt-2">
+              📞 {selectedFreelancer.phone}
+            </div>
+          )}
         </div>
       )}
 
-      {currentService && (
-        <div className="space-y-3 mb-6">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Dịch vụ:</span>
-            <span className="font-medium">{currentService.name}</span>
+      <div className="space-y-4 mb-6">
+        {/* Service */}
+        {currentService && (
+          <div className="pb-3 border-b border-gray-200">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-sm text-gray-600">Dịch vụ:</span>
+              <span className="font-semibold text-gray-800 text-right">
+                {currentService.name}
+              </span>
+            </div>
+            {currentService.description && (
+              <p className="text-xs text-gray-500 mt-1">
+                {currentService.description}
+              </p>
+            )}
           </div>
+        )}
 
-          {/* Pet Information Section */}
-          {petInfo && petInfo.length > 0 && (
+        {/* Pet Information */}
+        {petInfo && petInfo.length > 0 && (
+          <div className="pb-3 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-600">Thú cưng:</span>
+              <span className="text-sm font-medium text-gray-800">
+                {petInfo.length} bé
+              </span>
+            </div>
+
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Thú cưng:</span>
-                <span className="text-sm text-gray-500">
-                  {petInfo.length}{" "}
-                  {petInfo.length === 1 ? "thú cưng" : "thú cưng"}
-                </span>
-              </div>
-
-              {petInfo.map((pet, index) => (
+              {petInfo.map((pet: any, index: number) => (
                 <div
-                  key={index}
-                  className="bg-gray-50 rounded-md p-3 space-y-1"
+                  key={pet.petId || index}
+                  className="bg-purple-50 rounded-lg p-2 flex items-center space-x-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm text-gray-800">
-                      {pet.petName || `Thú cưng ${index + 1}`}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {pet.petType === "dog"
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                    {pet.petName?.charAt(0) || "P"}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">
+                      {pet.petName}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {pet.species === "dog"
                         ? "Chó"
-                        : pet.petType === "cat"
+                        : pet.species === "cat"
                         ? "Mèo"
-                        : pet.petType === "bird"
-                        ? "Chim"
-                        : pet.petType === "fish"
-                        ? "Cá"
-                        : pet.petType === "rabbit"
-                        ? "Thỏ"
-                        : pet.petType === "hamster"
-                        ? "Chuột hamster"
-                        : pet.petType || "Chưa chọn"}
-                    </span>
+                        : pet.species}{" "}
+                      • {pet.breed}
+                    </p>
                   </div>
-
-                  <div className="flex justify-between text-xs text-gray-600">
-                    <span>
-                      Kích thước:{" "}
-                      {pet.petSize === "small"
-                        ? "Nhỏ"
-                        : pet.petSize === "medium"
-                        ? "Trung bình"
-                        : pet.petSize === "large"
-                        ? "Lớn"
-                        : pet.petSize || "Chưa chọn"}
-                    </span>
-                  </div>
-
-                  {pet.petAge && (
-                    <div className="text-xs text-gray-600">
-                      Tuổi: {pet.petAge}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {date && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Ngày:</span>
-              <span className="font-medium">
+        {/* Date & Time */}
+        {date && (
+          <div className="pb-3 border-b border-gray-200">
+            <div className="flex justify-between mb-1">
+              <span className="text-sm text-gray-600">Ngày:</span>
+              <span className="font-medium text-gray-800">
                 {formatDate(new Date(date), "dd/MM/yyyy")}
               </span>
             </div>
-          )}
+            {time && (
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Giờ:</span>
+                <span className="font-medium text-gray-800">
+                  {getPickUpTimeLabel(time)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
-          {time && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Giờ:</span>
-              <span className="font-medium">{time}</span>
-            </div>
-          )}
-
-          <hr className="my-4" />
-
+        {/* Price Breakdown */}
+        {currentService && petInfo && petInfo.length > 0 && (
           <div className="space-y-2">
-            {petInfo && petInfo.length > 1 && (
-              <div className="text-sm text-gray-600 space-y-1">
-                <div className="flex justify-between">
-                  <span>Dịch vụ cơ bản:</span>
-                  <span>
-                    {ServiceManager.formatPrice(currentService.basePrice)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Số thú cưng:</span>
-                  <span>x {petInfo.length}</span>
-                </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Giá dịch vụ:</span>
+              <span>
+                {(typeof currentService.price === "number"
+                  ? currentService.price
+                  : parseFloat(currentService.price) || 0
+                ).toLocaleString("vi-VN")}
+                đ
+              </span>
+            </div>
+
+            {petInfo.length > 1 && (
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Số lượng:</span>
+                <span>x {petInfo.length}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Tổng cộng:</span>
-              <span className="text-purple-600">
-                {ServiceManager.formatPrice(totalPrice)}
-              </span>
+            <div className="pt-3 border-t-2 border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="text-base font-semibold text-gray-800">
+                  Tổng cộng:
+                </span>
+                <span className="text-xl font-bold text-emerald-600">
+                  {totalPrice.toLocaleString("vi-VN")}đ
+                </span>
+              </div>
             </div>
           </div>
-
-          {recurringService && (
-            <p className="text-sm text-gray-600">
-              * Dịch vụ định kỳ{" "}
-              {frequency === "daily"
-                ? "hàng ngày"
-                : frequency === "weekly"
-                ? "hàng tuần"
-                : frequency === "monthly"
-                ? "hàng tháng"
-                : ""}
-            </p>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       <button
         onClick={(e) => {
@@ -195,15 +182,15 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
           onSubmit?.();
         }}
         type="button"
-        className="w-full py-3 px-4 rounded-lg transition-colors font-medium bg-purple-600 text-white hover:bg-purple-700"
+        className="w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 shadow-md hover:shadow-lg"
       >
-        Xác Nhận Đặt Dịch Vụ
+        Tiếp tục thanh toán
       </button>
 
-      <div className="mt-4 text-xs text-gray-500">
-        <p>• Chúng tôi sẽ liên hệ xác nhận trong 30 phút</p>
-        <p>• Có thể hủy miễn phí trước 2 giờ</p>
-        <p>• Thanh toán sau khi hoàn thành dịch vụ</p>
+      <div className="mt-4 text-xs text-gray-500 space-y-1">
+        <p>✓ Xác nhận trong 30 phút</p>
+        <p>✓ Hủy miễn phí trước 2 giờ</p>
+        <p>✓ Thanh toán sau khi hoàn thành</p>
       </div>
     </div>
   );

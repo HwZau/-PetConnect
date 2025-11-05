@@ -41,12 +41,26 @@ const PaymentPage = () => {
 
   const calculateTotal = () => {
     const petSizes = bookingData.petInfo.map((pet) => pet.petSize);
-    return ServiceManager.calculateTotalPrice(
-      bookingData.service,
-      bookingData.petInfo.length,
-      petSizes,
-      bookingData.dateTime.recurringService
-    );
+
+    // Handle both old (service) and new (serviceIds) format
+    if (bookingData.serviceIds && bookingData.serviceIds.length > 0) {
+      return ServiceManager.calculateMultiServiceTotalPrice(
+        bookingData.serviceIds,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
+    } else if (bookingData.service) {
+      // Backward compatibility
+      return ServiceManager.calculateTotalPrice(
+        bookingData.service,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
+    }
+
+    return 0;
   };
 
   const handlePayment = async () => {

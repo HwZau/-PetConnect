@@ -45,15 +45,43 @@ export interface User {
   email: string;
   name?: string;
   phoneNumber?: string;
+  address?: string;
+  avatarUrl?: string;
   avatar?: string;
   role: string;
   isActive?: boolean;
+  bookings?: Array<{
+    bookingId: string;
+    serviceType: string;
+    status: "Pending" | "Confirmed" | "Completed" | "Cancelled"; // BookingStatus enum values
+    scheduledDate: string;
+    totalPrice: number;
+    pickUpStatus?: "NotPickedUp" | "PickedUp" | "Delivered"; // PickUpStatus enum values
+    pickUpTime?: "Slot1" | "Slot2" | "Slot3" | "Slot4" | "Slot5"; // PickUpTime enum values
+  }>;
+  pets?: Array<{
+    petId: string;
+    petName: string;
+    species: string;
+    breed: string;
+  }>;
+  services?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    type: "Grooming" | "Training" | "Walking" | "Sitting"; // ServiceType enum string representation
+    price: number;
+    createdAt?: string;
+    updatedAt?: string;
+    freelancerId?: string;
+  }>;
 }
 
 // Legacy Context Types - update with new domain types when migrating
 export interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  refreshUser?: () => Promise<void>;
 }
 
 export interface AuthState {

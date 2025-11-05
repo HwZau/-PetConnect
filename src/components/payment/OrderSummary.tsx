@@ -28,11 +28,42 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       "pet-walking": { name: "Dắt thú cưng đi dạo", basePrice: 80000 },
       "vet-consultation": { name: "Tư vấn thú y", basePrice: 300000 },
     };
-    return (
-      services[bookingData.service as keyof typeof services] || {
-        name: "Dịch vụ chăm sóc thú cưng",
-        basePrice: 100000,
-      }
+
+    // Handle single service (backward compatibility)
+    if (bookingData.service) {
+      return (
+        services[bookingData.service as keyof typeof services] || {
+          name: "Dịch vụ chăm sóc thú cưng",
+          basePrice: 100000,
+        }
+      );
+    }
+
+    return {
+      name: "Dịch vụ chăm sóc thú cưng",
+      basePrice: 100000,
+    };
+  };
+
+  const getMultipleServiceDetails = () => {
+    const services = {
+      "pet-care": { name: "Chăm sóc thú cưng", basePrice: 200000 },
+      "pet-grooming": { name: "Spa & Grooming", basePrice: 150000 },
+      "pet-sitting": { name: "Trông giữ thú cưng", basePrice: 100000 },
+      "pet-walking": { name: "Dắt thú cưng đi dạo", basePrice: 80000 },
+      "vet-consultation": { name: "Tư vấn thú y", basePrice: 300000 },
+    };
+
+    if (!bookingData.serviceIds || bookingData.serviceIds.length === 0) {
+      return [];
+    }
+
+    return bookingData.serviceIds.map(
+      (serviceId) =>
+        services[serviceId as keyof typeof services] || {
+          name: "Dịch vụ chăm sóc thú cưng",
+          basePrice: 100000,
+        }
     );
   };
 
@@ -91,10 +122,27 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             <FiClock className="w-4 h-4 mr-2 text-gray-500" />
             <span>{bookingData.dateTime.time}</span>
           </div>
-          <div className="flex items-center text-sm">
-            <FiUser className="w-4 h-4 mr-2 text-gray-500" />
-            <span>{getServiceDetails().name}</span>
-          </div>
+
+          {/* Service(s) Display */}
+          {bookingData.serviceIds && bookingData.serviceIds.length > 0 ? (
+            <div className="text-sm">
+              <div className="flex items-start">
+                <FiUser className="w-4 h-4 mr-2 text-gray-500 mt-0.5" />
+                <div className="flex-1">
+                  {getMultipleServiceDetails().map((service, idx) => (
+                    <div key={idx} className="mb-1">
+                      {service.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center text-sm">
+              <FiUser className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{getServiceDetails().name}</span>
+            </div>
+          )}
         </div>
       </div>
 

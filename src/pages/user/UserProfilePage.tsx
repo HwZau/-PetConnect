@@ -1,9 +1,8 @@
 ﻿import { useState, useEffect } from "react";
 import { useScrollToTop, useAuth } from "../../hooks";
-import { petService } from "../../services";
 import { useNavigate } from "react-router-dom";
-import type { Pet } from "../../types/domains/booking";
-import { showSuccess } from "../../utils";
+import { showSuccess, showError } from "../../utils";
+import { petService } from "../../services";
 import {
   FaUser,
   FaPaw,
@@ -21,6 +20,7 @@ import {
   FaHeadset,
   FaBullseye,
   FaCalendarCheck,
+  FaEdit,
 } from "react-icons/fa";
 
 import Header from "../../components/profile/Header";
@@ -30,6 +30,10 @@ import FreelancerContactsCard from "../../components/profile/FreelancerContactsC
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import UpgradeModal from "../../components/profile/UpgradeModal";
 import ChatBox from "../../components/profile/ChatBox";
+import AddPetModal, {
+  type PetFormData,
+} from "../../components/profile/AddPetModal";
+import EditPetModal from "../../components/profile/EditPetModal";
 
 interface EditFormData {
   name: string;
@@ -46,13 +50,20 @@ interface Freelancer {
 }
 
 const UserProfilePage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [userPets, setUserPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [showAddPetModal, setShowAddPetModal] = useState<boolean>(false);
+  const [showEditPetModal, setShowEditPetModal] = useState<boolean>(false);
+  const [selectedPet, setSelectedPet] = useState<{
+    petId: string;
+    petName: string;
+    species: string;
+    breed: string;
+  } | null>(null);
   const [selectedFreelancer, setSelectedFreelancer] =
     useState<Freelancer | null>(null);
   const [editForm, setEditForm] = useState<EditFormData>({
@@ -63,6 +74,12 @@ const UserProfilePage = () => {
   });
 
   useScrollToTop();
+
+  // Calculate total spent from bookings
+  const totalSpent =
+    user?.bookings?.reduce((sum, booking) => sum + booking.totalPrice, 0) || 0;
+  const completedBookings =
+    user?.bookings?.filter((b) => b.status === "Completed").length || 0;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -77,14 +94,11 @@ const UserProfilePage = () => {
         return;
       }
       try {
-        const pets = await petService.getUserPets(user.id);
-        if (pets.success && pets.data) {
-          setUserPets(pets.data);
-        }
+        // Set edit form with user data
         setEditForm({
           name: user?.name || "",
           phone: user?.phoneNumber || "",
-          location: "Hà Nội",
+          location: user?.address || "",
           bio: "Yêu thích thú cưng!",
         });
       } catch (error) {
@@ -94,7 +108,7 @@ const UserProfilePage = () => {
       }
     };
     loadUserData();
-  }, [user?.id]);
+  }, [user?.id, user?.name, user?.phoneNumber, user?.address]);
 
   const handleFormChange = (field: string, value: string) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
@@ -112,6 +126,104 @@ const UserProfilePage = () => {
       `Đã nâng cấp gói ${plan === "monthly" ? "tháng" : "năm"} thành công!`
     );
     setShowUpgradeModal(false);
+  };
+
+  const handleAddPet = async (petData: PetFormData) => {
+    if (!user?.id) {
+      showError("Không tìm thấy thông tin người dùng");
+      return;
+    }
+
+    try {
+      // Map form data to API format - only 3 fields needed
+      const createPetData = {
+        petName: petData.petName,
+        species: petData.species,
+        breed: petData.breed,
+      };
+
+      // Use addPet endpoint: POST /api/v1/pet/add/{id}
+      const response = await petService.addPet(user.id, createPetData);
+
+      if (response.success) {
+        showSuccess("Thêm thú cưng thành công!");
+        setShowAddPetModal(false);
+        // Refresh user data to get updated pets list
+        await refreshUser();
+      } else {
+        showError(response.error || "Thêm thú cưng thất bại");
+      }
+    } catch (error) {
+      console.error("Error adding pet:", error);
+      showError("Đã xảy ra lỗi khi thêm thú cưng");
+    }
+  };
+
+  const handleEditPet = (pet: {
+    petId: string;
+    petName: string;
+    species: string;
+    breed: string;
+  }) => {
+    setSelectedPet(pet);
+    setShowEditPetModal(true);
+  };
+
+  const handleUpdatePet = async (petId: string, petData: PetFormData) => {
+    try {
+      console.log("🔵 Updating pet:", petId, petData);
+
+      // Use editPet endpoint: PUT /api/v1/pet/edit/{petId}
+      const editData = {
+        petName: petData.petName,
+        species: petData.species,
+        breed: petData.breed,
+      };
+
+      const response = await petService.editPet(petId, editData);
+
+      if (response.success) {
+        showSuccess("Cập nhật thú cưng thành công!");
+        setShowEditPetModal(false);
+        setSelectedPet(null);
+        // Refresh user data to get updated pets list
+        await refreshUser();
+      } else {
+        showError(response.error || "Cập nhật thú cưng thất bại");
+      }
+    } catch (error: any) {
+      console.error("Error updating pet:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Đã xảy ra lỗi khi cập nhật thú cưng";
+      showError(errorMessage);
+    }
+  };
+
+  const handleDeletePet = async (petId: string) => {
+    if (!user?.id) {
+      showError("Không tìm thấy thông tin user");
+      return;
+    }
+
+    try {
+      // Use deletePet endpoint: DELETE /api/v1/pet/delete/{userId}
+      const response = await petService.deletePet(user.id, petId);
+
+      if (response.success) {
+        showSuccess("Xóa thú cưng thành công!");
+        setShowEditPetModal(false);
+        setSelectedPet(null);
+        // Refresh user data to get updated pets list
+        await refreshUser();
+      } else {
+        showError(response.error || "Xóa thú cưng thất bại");
+      }
+    } catch (error) {
+      console.error("Error deleting pet:", error);
+      showError("Đã xảy ra lỗi khi xóa thú cưng");
+    }
   };
 
   const handleSelectFreelancer = (freelancerId: string) => {
@@ -195,11 +307,11 @@ const UserProfilePage = () => {
                     <div className="flex items-center gap-6 text-sm">
                       <div className="flex items-center gap-2">
                         <FaDog className="text-orange-300" />
-                        <span>3 thú cưng</span>
+                        <span>{user?.pets?.length || 0} thú cưng</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaCalendarCheck className="text-green-300" />
-                        <span>12 lượt đặt</span>
+                        <span>{user?.bookings?.length || 0} lượt đặt</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaStar className="text-yellow-300" />
@@ -213,7 +325,7 @@ const UserProfilePage = () => {
                     onClick={() => setShowEditModal(true)}
                     className="bg-white hover:bg-gray-50 text-teal-600 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg flex items-center gap-2"
                   >
-                    <FaPencilAlt /> EDIT PROFILE
+                    <FaPencilAlt /> CHỈNH SỬA
                   </button>
                 </div>
               </div>
@@ -298,27 +410,44 @@ const UserProfilePage = () => {
 
                 {activeTab === "pets" && (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <FaPaw className="mr-3 text-2xl text-teal-600" />
-                      Thú cưng của tôi
-                    </h3>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                        <FaPaw className="mr-3 text-2xl text-teal-600" />
+                        Thú cưng của tôi
+                      </h3>
+                      <button
+                        onClick={() => setShowAddPetModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg hover:from-orange-600 hover:to-pink-600 transition-all shadow-md flex items-center gap-2 font-medium"
+                      >
+                        <FaPaw /> Thêm thú cưng
+                      </button>
+                    </div>
                     <div className="grid md:grid-cols-2 gap-4">
-                      {userPets.length > 0 ? (
-                        userPets.map((pet) => (
+                      {user?.pets && user.pets.length > 0 ? (
+                        user.pets.map((pet) => (
                           <div
-                            key={pet.id}
-                            className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all hover:scale-105"
+                            key={pet.petId}
+                            className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all relative group"
                           >
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => handleEditPet(pet)}
+                              className="absolute top-3 right-3 w-8 h-8 bg-white hover:bg-teal-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
+                              title="Chỉnh sửa thú cưng"
+                            >
+                              <FaEdit className="text-sm" />
+                            </button>
+
                             <div className="flex items-center gap-3">
                               <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-3xl shadow-lg">
                                 <FaDog className="text-white" />
                               </div>
                               <div className="flex-1">
                                 <h4 className="font-bold text-gray-800 text-lg">
-                                  {pet.name}
+                                  {pet.petName}
                                 </h4>
                                 <p className="text-sm text-gray-600">
-                                  {pet.type}
+                                  {pet.species} - {pet.breed}
                                 </p>
                                 <span className="inline-flex items-center gap-1 mt-1 text-xs bg-green-500 text-white px-3 py-1 rounded-full font-medium">
                                   <FaCheckCircle /> Khỏe mạnh
@@ -333,7 +462,10 @@ const UserProfilePage = () => {
                           <p className="text-lg font-medium">
                             Chưa có thú cưng nào
                           </p>
-                          <button className="mt-4 px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-full hover:from-orange-600 hover:to-pink-600 transition-all shadow-md">
+                          <button
+                            onClick={() => setShowAddPetModal(true)}
+                            className="mt-4 px-6 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-full hover:from-orange-600 hover:to-pink-600 transition-all shadow-md"
+                          >
                             + Thêm thú cưng
                           </button>
                         </div>
@@ -349,24 +481,64 @@ const UserProfilePage = () => {
                       Hoạt động gần đây
                     </h3>
                     <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                            <FaCalendarAlt className="text-white text-xl" />
+                      {user?.bookings && user.bookings.length > 0 ? (
+                        user.bookings.map((booking) => (
+                          <div
+                            key={booking.bookingId}
+                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                              <FaCalendarAlt className="text-white text-xl" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800">
+                                {booking.serviceType}
+                              </p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <p className="text-sm text-gray-500">
+                                  {new Date(
+                                    booking.scheduledDate
+                                  ).toLocaleDateString("vi-VN")}
+                                </p>
+                                <span
+                                  className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    booking.status === "Completed"
+                                      ? "bg-green-100 text-green-700"
+                                      : booking.status === "Pending"
+                                      ? "bg-yellow-100 text-yellow-700"
+                                      : booking.status === "Confirmed"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-gray-100 text-gray-700"
+                                  }`}
+                                >
+                                  {booking.status === "Completed"
+                                    ? "Hoàn thành"
+                                    : booking.status === "Pending"
+                                    ? "Chờ xác nhận"
+                                    : booking.status === "Confirmed"
+                                    ? "Đã xác nhận"
+                                    : booking.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-teal-600">
+                                {booking.totalPrice.toLocaleString("vi-VN")} ₫
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800">
-                              Đặt dịch vụ chăm sóc thú cưng
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {i} ngày trước
-                            </p>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 text-gray-500">
+                          <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
+                          <p className="text-lg font-medium">
+                            Chưa có hoạt động nào
+                          </p>
+                          <p className="text-sm mt-2">
+                            Đặt dịch vụ đầu tiên của bạn ngay hôm nay!
+                          </p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
@@ -440,16 +612,26 @@ const UserProfilePage = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-teal-100">Tổng đặt lịch:</span>
-                        <span className="font-bold text-2xl">12</span>
+                        <span className="font-bold text-2xl">
+                          {user?.bookings?.length || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-teal-100">Hoàn thành:</span>
+                        <span className="font-bold text-2xl">
+                          {completedBookings}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-teal-100">Số thú cưng:</span>
-                        <span className="font-bold text-2xl">3</span>
+                        <span className="font-bold text-2xl">
+                          {user?.pets?.length || 0}
+                        </span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-teal-100">Đánh giá:</span>
-                        <span className="font-bold text-xl flex items-center gap-2">
-                          <FaStar /> 5.0
+                      <div className="flex justify-between items-center border-t border-teal-400 pt-3">
+                        <span className="text-teal-100">Tổng chi tiêu:</span>
+                        <span className="font-bold text-xl">
+                          {totalSpent.toLocaleString("vi-VN")} ₫
                         </span>
                       </div>
                     </div>
@@ -505,6 +687,25 @@ const UserProfilePage = () => {
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
           onConfirm={handleUpgrade}
+        />
+
+        {/* Add Pet Modal */}
+        <AddPetModal
+          isOpen={showAddPetModal}
+          onClose={() => setShowAddPetModal(false)}
+          onSave={handleAddPet}
+        />
+
+        {/* Edit Pet Modal */}
+        <EditPetModal
+          isOpen={showEditPetModal}
+          onClose={() => {
+            setShowEditPetModal(false);
+            setSelectedPet(null);
+          }}
+          onSave={handleUpdatePet}
+          onDelete={handleDeletePet}
+          petData={selectedPet}
         />
       </div>
     </div>

@@ -56,7 +56,8 @@ export interface PaymentBookingData {
     avatar: string;
     location: string;
   };
-  service: string;
+  service?: string; // Deprecated - for backward compatibility
+  serviceIds?: string[]; // New - support multiple services
   petInfo: Array<{
     petType: string;
     petName: string;
