@@ -32,18 +32,20 @@ export const API_ENDPOINTS = {
     CREATE: "/user/create",
     DELETE: "/user/:id",
     PROFILE: "/user/profile/me",
+    FREELANCER_PROFILE: "/user/profile/freelancer/me",
   },
 
   // Pets
   PETS: {
-    LIST: "/api/v1/pet/getall",
-    DETAIL: (id: string) => `/api/v1/pet/${id}`,
-    USER_PETS: (userId: string) => `/api/v1/pet/user/${userId}/pets`,
-    CREATE: "/api/v1/pet/create",
-    UPDATE: (id: string) => `/api/v1/pet/update/${id}`,
-    DELETE: (id: string) => `/api/v1/pet/delete/${id}`,
-    ADD_PET: (id: string) => `/api/v1/pet/add/${id}`,
-    CREATE_USER_PET: (userId: string) => `/api/v1/pet/${userId}`,
+    LIST: "/pet/getall",
+    DETAIL: (id: string) => `/pet/${id}`,
+    USER_PETS: (userId: string) => `/pet/user/${userId}/pets`,
+    CREATE: "/pet/create",
+    UPDATE: (id: string) => `/pet/update/${id}`,
+    EDIT: (id: string) => `/pet/edit/${id}`, // New: Edit pet endpoint
+    DELETE: (id: string) => `/pet/delete/${id}`,
+    ADD_PET: (id: string) => `/pet/add/${id}`,
+    CREATE_USER_PET: (userId: string) => `/pet/${userId}`,
   },
 
   // Services
@@ -53,22 +55,37 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/services/${id}`,
     SEARCH: "/services/search",
     NEARBY: "/services/nearby",
+    CREATE: "/service/create",
+    UPDATE: (id: string) => `/service/update/${id}`,
+    DELETE: (id: string) => `/service/delete/${id}`,
   },
 
   // Bookings
   BOOKINGS: {
-    LIST: "/bookings",
-    CREATE: "/bookings",
-    DETAIL: (id: string) => `/bookings/${id}`,
-    UPDATE: (id: string) => `/bookings/${id}`,
-    CANCEL: (id: string) => `/bookings/${id}/cancel`,
-    HISTORY: "/bookings/history",
+    LIST: "/booking/getall",
+    CREATE: "/booking/create",
+    DETAIL: (id: string) => `/booking/${id}`,
+    UPDATE: (id: string) => `/booking/${id}`,
+    CANCEL: (id: string) => `/booking/${id}/cancel`,
+    HISTORY: "/booking/history",
+    USER_BOOKINGS: "/booking/user/me",
+  },
+
+  // Payments
+  PAYMENT: {
+    CREATE: "/payment/create",
+    VNPAY_CALLBACK: "/payment/vnpay-callback",
+    MOMO_CALLBACK: "/payment/momo-callback",
+    MOMO_RETURN: "/payment/momo-return",
+    BY_BOOKING: (bookingId: string) => `/payment/booking/${bookingId}`,
+    DETAIL: (paymentId: string) => `/payment/${paymentId}`,
+    CANCEL: (paymentId: string) => `/payment/${paymentId}/cancel`,
   },
 
   // Freelancers
   FREELANCERS: {
-    LIST: "/freelancers",
-    DETAIL: (id: string) => `/freelancers/${id}`,
+    LIST: "/freelancer/getall",
+    DETAIL: (id: string) => `/freelancer/${id}`,
     SEARCH: "/freelancers/search",
     REVIEWS: (id: string) => `/freelancers/${id}/reviews`,
     PORTFOLIO: (id: string) => `/freelancers/${id}/portfolio`,

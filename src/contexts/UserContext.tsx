@@ -8,6 +8,7 @@ import { authService } from "../services/auth/authService";
 export const UserContext = createContext<UserContextType>({
   user: null,
   setUser: () => {},
+  refreshUser: async () => {},
 });
 
 // Provider component
@@ -65,9 +66,26 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
+  // Function to refresh user data from API
+  const refreshUser = async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const response = await authService.getProfile();
+        if (response.success && response.data) {
+          setUser(response.data);
+          localStorage.setItem("user", JSON.stringify(response.data));
+        }
+      } catch (error) {
+        console.error("Error refreshing user profile:", error);
+      }
+    }
+  };
+
   const contextValue: UserContextType = {
     user,
     setUser: setUserWithStorage,
+    refreshUser,
   };
 
   // Show loading state while checking authentication

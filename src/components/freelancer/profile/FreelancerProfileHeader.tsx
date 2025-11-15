@@ -54,6 +54,12 @@ const FreelancerProfileHeader: React.FC<FreelancerProfileHeaderProps> = ({
     return "User";
   };
 
+  const getCityFromAddress = (address: any): string | undefined => {
+    if (!address) return undefined;
+    if (typeof address === "string") return address;
+    return address?.city;
+  };
+
   return (
     <>
       {/* Navbar Similar to Other Pages */}
@@ -222,7 +228,7 @@ const FreelancerProfileHeader: React.FC<FreelancerProfileHeaderProps> = ({
                       <div className="flex items-center">
                         <AiOutlineEnvironment className="w-5 h-5 mr-1" />
                         <span>
-                          {freelancer.address?.city || "TP. Hồ Chí Minh"}
+                          {getCityFromAddress(freelancer.address) || "TP. Hồ Chí Minh"}
                         </span>
                       </div>
                       <div className="flex items-center">

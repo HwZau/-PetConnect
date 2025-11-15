@@ -26,3 +26,6 @@ export * from "./constants";
 
 // Toast utilities - For notifications
 export * from "./toastUtils";
+
+// Booking utilities - For booking status and time slots
+export * from "./bookingUtils";

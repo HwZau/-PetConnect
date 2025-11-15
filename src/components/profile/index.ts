@@ -7,3 +7,5 @@ export { default as FreelancerContactsCard } from "./FreelancerContactsCard";
 export { default as EditProfileModal } from "./EditProfileModal";
 export { default as UpgradeModal } from "./UpgradeModal";
 export { default as ChatBox } from "./ChatBox";
+export { default as AddPetModal } from "./AddPetModal";
+export { default as EditPetModal } from "./EditPetModal";

@@ -2,6 +2,28 @@
  * BOOKING DOMAIN INTERFACES
  * ================================= */
 
+// Enum types matching backend
+export enum PickUpTime {
+  Slot1 = "Slot1", // 8:00 AM - 10:00 AM
+  Slot2 = "Slot2", // 10:00 AM - 12:00 PM
+  Slot3 = "Slot3", // 12:00 PM - 2:00 PM
+  Slot4 = "Slot4", // 2:00 PM - 4:00 PM
+  Slot5 = "Slot5", // 4:00 PM - 6:00 PM
+}
+
+export enum BookingStatus {
+  Pending = "Pending",
+  Confirmed = "Confirmed",
+  Completed = "Completed",
+  Cancelled = "Cancelled",
+}
+
+export enum PickUpStatus {
+  NotPickedUp = "NotPickedUp",
+  PickedUp = "PickedUp",
+  Delivered = "Delivered",
+}
+
 export interface Pet {
   id: string;
   name: string;
@@ -63,10 +85,11 @@ export interface BookingRequest {
   serviceId: string;
   petIds: string[];
   scheduledDate: Date;
-  timeSlot: TimeSlot;
+  timeSlot: TimeSlot | PickUpTime; // Can use enum
   specialRequests?: string;
   totalAmount: number;
-  status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+  status: BookingStatus;
+  pickUpStatus?: PickUpStatus;
   paymentStatus: "pending" | "paid" | "refunded";
   customerInfo: CustomerInfo;
   addOns?: ServiceAddon[];
@@ -92,9 +115,10 @@ export interface CustomerInfo {
   };
 }
 
-export interface BookingStatus {
+// Interface for tracking booking status changes
+export interface BookingStatusHistory {
   id: string;
-  status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+  status: BookingStatus;
   updatedAt: Date;
   notes?: string;
   updatedBy: "customer" | "freelancer" | "system";
@@ -115,7 +139,7 @@ export interface PetInfoData {
 
 export interface DateTimeData {
   selectedDate: string;
-  selectedTime: string;
+  selectedTime: PickUpTime | string;
   recurringService: boolean;
   frequency?: string;
   // Add for backward compatibility
@@ -142,17 +166,4 @@ export interface CustomerInfoData {
         relationship: string;
       }
     | string; // Allow string for backward compatibility
-}
-
-export interface UserPet {
-  id: string;
-  name: string;
-  type: string;
-  avatar?: string;
-  status?: string;
-  color?: string;
-  // Add for backward compatibility
-  age?: string;
-  gender?: string;
-  breed?: string;
 }

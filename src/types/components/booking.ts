@@ -23,11 +23,13 @@ export interface BookingHeaderProps extends BaseComponentProps {
 export interface ServiceSelectionProps extends BaseComponentProps {
   services?: ServiceOption[];
   selectedServiceId?: string;
-  selectedService?: string; // Add for backward compatibility
+  selectedService?: string; // Deprecated - for backward compatibility
+  selectedServiceIds?: string[]; // New - support multiple selection
   onServiceSelect?: (serviceId: string) => void;
   onServiceChange?: (serviceId: string) => void; // Add for backward compatibility
   isLoading?: boolean;
   error?: string; // Add for backward compatibility
+  freelancer?: any; // Add freelancer to filter services
 }
 
 export interface PetInformationProps extends BaseComponentProps {

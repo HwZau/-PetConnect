@@ -18,9 +18,10 @@ import {
   FreelancerLoadingState,
   FreelancerNotFound,
 } from "../../components/freelancer/profile";
-import { fetchFreelancerProfile } from "../../services/Profile/Freelancer/mockFreelancerService";
+import { freelancerService, type FreelancerData } from "../../services";
 import type { FreelancerProfile as Freelancer } from "../../types/domains/profile";
 import Header from "../../components/profile/Header";
+import { showError } from "../../utils";
 
 const FreelancerProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,98 @@ const FreelancerProfilePage: React.FC = () => {
   >("overview");
   const [isFavorite, setIsFavorite] = useState(false);
 
+  // Convert FreelancerData from API to FreelancerProfile format
+  const convertToFreelancerProfile = (data: FreelancerData): Freelancer => {
+    const avgRating = freelancerService.calculateAverageRating(
+      data.reviewsReceived
+    );
+
+    // Parse address - assume format: "street, city" or just "city"
+    const addressParts = data.address.split(",").map((s) => s.trim());
+    const city = addressParts.length > 1 ? addressParts[1] : addressParts[0];
+
+    return {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      address: data.address,
+      avatarUrl: data.avatarUrl || undefined,
+      role: data.role as "Customer" | "Freelancer" | "Admin",
+
+      // Extended freelancer fields
+      description: data.services[0]?.description || "Chuyên nghiệp và tận tâm",
+      specializations: data.services.map((s) =>
+        freelancerService.formatServiceType(s.type)
+      ),
+      experience: Math.floor(data.services.length / 2) || 1,
+      rating: avgRating,
+      reviewsCount: data.reviewsReceived.length,
+      completedBookings: data.services.length * 10,
+      responseTime: 1, // 1 hour
+      isActive: true,
+
+      // Additional fields for display
+      avatar: data.avatarUrl || "https://via.placeholder.com/150",
+      phone: data.phoneNumber,
+      isVerified: true,
+      location: city,
+
+      certifications: [],
+      portfolio: [],
+      availability: {
+        schedule: {
+          monday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
+          },
+          tuesday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
+          },
+          wednesday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
+          },
+          thursday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
+          },
+          friday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
+          },
+          saturday: {
+            isAvailable: true,
+            timeSlots: [{ startTime: "08:00", endTime: "12:00" }],
+          },
+          sunday: { isAvailable: false, timeSlots: [] },
+        },
+        exceptions: [],
+        advanceBooking: 7,
+        timezone: "Asia/Ho_Chi_Minh",
+      },
+      pricing: data.services.map((service) => ({
+        serviceType: service.title,
+        basePrice: service.price,
+        currency: "VND",
+        unit: "session" as const,
+        description: service.description,
+      })),
+      serviceArea: {
+        type: "regions" as const,
+        regions: [city],
+      },
+      // Map services from API for booking page
+      services: data.services.map((service) => ({
+        id: service.id,
+        name: service.title,
+        description: service.description,
+        price: service.price,
+      })),
+    } as Freelancer;
+  };
+
   // Load freelancer profile data
   useEffect(() => {
     const loadFreelancerProfile = async () => {
@@ -41,10 +134,18 @@ const FreelancerProfilePage: React.FC = () => {
 
       try {
         setLoading(true);
-        const profileData = await fetchFreelancerProfile(id);
-        setFreelancer(profileData);
+        const response = await freelancerService.getFreelancerById(id);
+
+        if (response.success && response.data) {
+          const profileData = convertToFreelancerProfile(response.data);
+          setFreelancer(profileData);
+        } else {
+          showError(response.message || "Không thể tải thông tin freelancer");
+          setFreelancer(null);
+        }
       } catch (error) {
         console.error("Failed to load freelancer profile:", error);
+        showError("Đã xảy ra lỗi khi tải thông tin freelancer");
         setFreelancer(null);
       } finally {
         setLoading(false);
@@ -140,7 +241,7 @@ const FreelancerProfilePage: React.FC = () => {
                       </span>
                       <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm flex items-center gap-2">
                         <FaMapMarkerAlt />{" "}
-                        {freelancer.address?.city || "Hà Nội"}
+                        {freelancer.location || freelancer.address || "Hà Nội"}
                       </span>
                     </div>
                     <div className="flex items-center gap-6 text-sm">

@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
-import { showSuccess } from "../../utils";
+import {
+  showSuccess,
+  showError,
+  getBookingStatusLabel,
+  getBookingStatusColor,
+  getPickUpTimeLabel,
+} from "../../utils";
+import { serviceService } from "../../services";
 import {
   FaUser,
   FaBriefcase,
@@ -21,6 +28,9 @@ import ProfileMainContent from "../../components/profile/ProfileMainContent";
 import FreelancerServiceCard from "../../components/freelancer/profile/FreelancerServiceCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import ChatBox from "../../components/profile/ChatBox";
+import AddServiceModal from "../../components/freelancer/profile/AddServiceModal";
+import EditServiceModal from "../../components/freelancer/profile/EditServiceModal";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 interface EditFormData {
   name: string;
@@ -36,22 +46,21 @@ interface Customer {
   online?: boolean;
 }
 
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration: string;
-  category: string;
-}
-
 const FreelancerOwnProfilePage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAddingService, setIsAddingService] = useState<boolean>(false);
+  const [isUpdatingService, setIsUpdatingService] = useState<boolean>(false);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  const [showAddServiceModal, setShowAddServiceModal] =
+    useState<boolean>(false);
+  const [showEditServiceModal, setShowEditServiceModal] =
+    useState<boolean>(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -63,6 +72,17 @@ const FreelancerOwnProfilePage = () => {
   });
 
   useScrollToTop();
+
+  // Get services from user context (from API response)
+  const services = user?.services || [];
+
+  // Calculate stats from user bookings
+  const completedBookings =
+    user?.bookings?.filter((b) => b.status === "Completed").length || 0;
+  const totalEarnings =
+    user?.bookings
+      ?.filter((b) => b.status === "Completed")
+      .reduce((sum, booking) => sum + booking.totalPrice, 0) || 0;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -77,31 +97,11 @@ const FreelancerOwnProfilePage = () => {
         return;
       }
       try {
-        // TODO: Load freelancer services
-        const mockServices: Service[] = [
-          {
-            id: "1",
-            name: "Chăm sóc thú cưng tại nhà",
-            description: "Chăm sóc toàn diện cho thú cưng của bạn",
-            price: 200000,
-            duration: "Cả ngày",
-            category: "Chăm sóc",
-          },
-          {
-            id: "2",
-            name: "Tắm rửa & Grooming",
-            description: "Dịch vụ tắm rửa và làm đẹp chuyên nghiệp",
-            price: 300000,
-            duration: "1-2 giờ",
-            category: "Grooming",
-          },
-        ];
-        setServices(mockServices);
-
+        // Load edit form data from user
         setEditForm({
           name: user?.name || "",
           phone: user?.phoneNumber || "",
-          location: "Hồ Chí Minh",
+          location: user?.address || "Hồ Chí Minh",
           bio: "Chuyên gia chăm sóc thú cưng với nhiều năm kinh nghiệm.",
         });
       } catch (error) {
@@ -111,7 +111,7 @@ const FreelancerOwnProfilePage = () => {
       }
     };
     loadUserData();
-  }, [user?.id]);
+  }, [user?.id, user?.name, user?.phoneNumber, user?.address]);
 
   const handleFormChange = (field: string, value: string) => {
     setEditForm((prev) => ({
@@ -129,6 +129,117 @@ const FreelancerOwnProfilePage = () => {
       console.error("Failed to update profile:", error);
     }
   };
+
+  const handleAddService = async (data: {
+    name: string;
+    description: string;
+    price: string;
+    type: string;
+  }) => {
+    setIsAddingService(true);
+    try {
+      // Call API to create service
+      const response = await serviceService.createService({
+        title: data.name,
+        description: data.description,
+        type: Number(data.type),
+        price: Number(data.price),
+      });
+
+      if (response.success && response.data) {
+        showSuccess("Thêm dịch vụ thành công!");
+        setShowAddServiceModal(false);
+
+        // Refresh user profile to get updated services list
+        if (refreshUser) {
+          await refreshUser();
+        }
+      } else {
+        showError(response.message || "Không thể thêm dịch vụ");
+      }
+    } catch (error) {
+      console.error("Failed to create service:", error);
+      showError("Đã xảy ra lỗi khi thêm dịch vụ");
+    } finally {
+      setIsAddingService(false);
+    }
+  };
+
+  const handleEditService = (service: any) => {
+    setSelectedService(service);
+    setShowEditServiceModal(true);
+  };
+
+  const handleUpdateService = async (
+    serviceId: string,
+    data: {
+      title: string;
+      description: string;
+      type: string;
+      price: number;
+    }
+  ) => {
+    setIsUpdatingService(true);
+    try {
+      const response = await serviceService.updateService(serviceId, {
+        title: data.title,
+        description: data.description,
+        type: Number(data.type),
+        price: data.price,
+      });
+
+      if (response.success) {
+        showSuccess("Cập nhật dịch vụ thành công!");
+        setShowEditServiceModal(false);
+        setSelectedService(null);
+
+        // Refresh user profile to get updated services
+        if (refreshUser) {
+          await refreshUser();
+        }
+      } else {
+        showError(response.message || "Không thể cập nhật dịch vụ");
+      }
+    } catch (error) {
+      console.error("Failed to update service:", error);
+      showError("Đã xảy ra lỗi khi cập nhật dịch vụ");
+    } finally {
+      setIsUpdatingService(false);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    setServiceToDelete(serviceId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteService = async () => {
+    if (!serviceToDelete) return;
+
+    try {
+      const response = await serviceService.deleteService(serviceToDelete);
+
+      if (response.success) {
+        showSuccess("Xóa dịch vụ thành công!");
+
+        // Refresh user profile to get updated services
+        if (refreshUser) {
+          await refreshUser();
+        }
+      } else {
+        showError(response.message || "Không thể xóa dịch vụ");
+      }
+    } catch (error) {
+      console.error("Failed to delete service:", error);
+      showError("Đã xảy ra lỗi khi xóa dịch vụ");
+    } finally {
+      setShowDeleteConfirm(false);
+      setServiceToDelete(null);
+    }
+  };
+
+  // Helper function is no longer needed since we get services from API
+  // const getCategoryLabel = (type: number): string => { ... }
 
   const handleSelectCustomer = (customerId: string) => {
     const customer: Customer = {
@@ -216,7 +327,7 @@ const FreelancerOwnProfilePage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <FaCalendarCheck className="text-green-300" />
-                        <span>156 dự án hoàn thành</span>
+                        <span>{completedBookings} dự án hoàn thành</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaStar className="text-yellow-300" />
@@ -309,7 +420,10 @@ const FreelancerOwnProfilePage = () => {
                         <FaBriefcase className="mr-3 text-2xl text-teal-600" />
                         Dịch vụ của tôi
                       </h3>
-                      <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+                      <button
+                        onClick={() => setShowAddServiceModal(true)}
+                        className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
+                      >
                         <FaPlus /> Thêm dịch vụ
                       </button>
                     </div>
@@ -319,6 +433,8 @@ const FreelancerOwnProfilePage = () => {
                           <FreelancerServiceCard
                             key={service.id}
                             service={service}
+                            onEdit={handleEditService}
+                            onDelete={handleDeleteService}
                           />
                         ))
                       ) : (
@@ -327,7 +443,10 @@ const FreelancerOwnProfilePage = () => {
                           <p className="text-lg font-medium">
                             Chưa có dịch vụ nào
                           </p>
-                          <button className="mt-4 px-6 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md">
+                          <button
+                            onClick={() => setShowAddServiceModal(true)}
+                            className="mt-4 px-6 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md"
+                          >
                             + Thêm dịch vụ đầu tiên
                           </button>
                         </div>
@@ -340,27 +459,62 @@ const FreelancerOwnProfilePage = () => {
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
                       <FaChartLine className="mr-3 text-2xl text-teal-600" />
-                      Hoạt động gần đây
+                      Dịch vụ đã làm
                     </h3>
                     <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                            <FaCalendarAlt className="text-white text-xl" />
+                      {user?.bookings && user.bookings.length > 0 ? (
+                        user.bookings.map((booking) => (
+                          <div
+                            key={booking.bookingId}
+                            className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                          >
+                            <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center flex-shrink-0">
+                              <FaCalendarAlt className="text-white text-xl" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <h4 className="font-semibold text-gray-800">
+                                  {booking.serviceType}
+                                </h4>
+                                <span
+                                  className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${getBookingStatusColor(
+                                    booking.status
+                                  )}`}
+                                >
+                                  {getBookingStatusLabel(booking.status)}
+                                </span>
+                              </div>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <p>
+                                  📅{" "}
+                                  {new Date(
+                                    booking.scheduledDate
+                                  ).toLocaleDateString("vi-VN")}
+                                </p>
+                                {booking.pickUpTime && (
+                                  <p>
+                                    🕐 {getPickUpTimeLabel(booking.pickUpTime)}
+                                  </p>
+                                )}
+                                <p className="font-semibold text-teal-600">
+                                  💰{" "}
+                                  {booking.totalPrice.toLocaleString("vi-VN")} ₫
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800">
-                              Hoàn thành dịch vụ chăm sóc thú cưng
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {i} ngày trước
-                            </p>
-                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 text-gray-500">
+                          <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
+                          <p className="text-lg font-medium">
+                            Chưa có dịch vụ nào
+                          </p>
+                          <p className="text-sm mt-2">
+                            Các dịch vụ bạn đã làm sẽ hiển thị ở đây
+                          </p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
@@ -420,7 +574,15 @@ const FreelancerOwnProfilePage = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-teal-100">Dự án hoàn thành:</span>
-                        <span className="font-bold text-2xl">156</span>
+                        <span className="font-bold text-2xl">
+                          {completedBookings}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-teal-100">Tổng thu nhập:</span>
+                        <span className="font-bold text-lg">
+                          {totalEarnings.toLocaleString("vi-VN")}₫
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-teal-100">Số dịch vụ:</span>
@@ -444,7 +606,10 @@ const FreelancerOwnProfilePage = () => {
                       Thao tác nhanh
                     </h3>
                     <div className="space-y-2">
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200">
+                      <button
+                        onClick={() => setShowAddServiceModal(true)}
+                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200"
+                      >
                         <FaPlus className="text-xl text-blue-600" />
                         <span className="font-medium text-gray-700">
                           Thêm dịch vụ mới
@@ -481,6 +646,41 @@ const FreelancerOwnProfilePage = () => {
         onSave={handleSaveProfile}
         formData={editForm}
         onChange={handleFormChange}
+      />
+
+      {/* Add Service Modal */}
+      <AddServiceModal
+        isOpen={showAddServiceModal}
+        onClose={() => setShowAddServiceModal(false)}
+        onSubmit={handleAddService}
+        isLoading={isAddingService}
+      />
+
+      {/* Edit Service Modal */}
+      <EditServiceModal
+        isOpen={showEditServiceModal}
+        onClose={() => {
+          setShowEditServiceModal(false);
+          setSelectedService(null);
+        }}
+        onSubmit={handleUpdateService}
+        isLoading={isUpdatingService}
+        service={selectedService}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Xác nhận xóa dịch vụ"
+        message="Bạn có chắc chắn muốn xóa dịch vụ này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+        onConfirm={confirmDeleteService}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setServiceToDelete(null);
+        }}
       />
     </div>
   );

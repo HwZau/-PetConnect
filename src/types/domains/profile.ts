@@ -2,19 +2,42 @@
  * PROFILE DOMAIN INTERFACES
  * ================================= */
 
+// Pet interface for user profile (simpler version)
+export interface UserPet {
+  petId: string;
+  petName: string;
+  species: string;
+  breed: string;
+}
+
+// Booking interface for user profile
+export interface Booking {
+  bookingId: string;
+  serviceType: string;
+  status: "Pending" | "Confirmed" | "Completed" | "Cancelled";
+  scheduledDate: string;
+  totalPrice: number;
+  pickUpStatus?: "NotPickedUp" | "PickedUp" | "Delivered";
+  pickUpTime?: "Slot1" | "Slot2" | "Slot3" | "Slot4" | "Slot5";
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  phoneNumber?: string;
+  address?: string;
+  avatarUrl?: string;
+  role: "Customer" | "Freelancer" | "Admin";
+  bookings?: Booking[];
+  pets?: UserPet[];
+  // Additional fields for backward compatibility
   avatar?: string;
   phone?: string;
-  role: "customer" | "freelancer" | "admin";
-  isVerified: boolean;
-  createdAt: Date;
+  isVerified?: boolean;
+  createdAt?: Date;
   lastLoginAt?: Date;
   preferences?: UserPreferences;
-  address?: Address;
-  // Add for backward compatibility
   location?: string;
   memberSince?: string;
 }

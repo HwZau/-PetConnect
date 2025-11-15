@@ -1,5 +1,4 @@
 import { FaStar, FaRegStar, FaQuoteRight, FaDog, FaCat } from "react-icons/fa";
-import { GiRabbit } from "react-icons/gi";
 
 const TestimonialsSection = () => {
   const testimonials = [
@@ -28,7 +27,7 @@ const TestimonialsSection = () => {
       rating: 5,
       content:
         "Là người chăm sóc thú cưng, tôi thấy platform này rất dễ sử dụng. Hệ thống đặt lịch và thanh toán rất tiện lợi, khách hàng đều rất hài lòng.",
-      petIcon: <GiRabbit className="text-gray-700 text-2xl" />,
+      petIcon: <FaDog className="text-gray-700 text-2xl" />,
     },
   ];
 

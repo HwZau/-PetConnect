@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AiOutlineStar } from "react-icons/ai";
 import type { FreelancerProfile } from "../../../types/domains/profile";
 import type { Review } from "../../../types/domains/freelancer";
-import { fetchFreelancerReviews } from "../../../services/Profile/Freelancer/mockFreelancerService";
+import { freelancerService } from "../../../services";
 
 interface FreelancerReviewsTabProps {
   freelancer: FreelancerProfile;
@@ -17,8 +17,26 @@ const FreelancerReviewsTab: React.FC<FreelancerReviewsTabProps> = ({
   useEffect(() => {
     const loadReviews = async () => {
       try {
-        const reviewsData = await fetchFreelancerReviews(freelancer.id);
-        setReviews(reviewsData);
+        // Fetch fresh data from API to get latest reviews
+        const response = await freelancerService.getFreelancerById(
+          freelancer.id
+        );
+
+        if (response.success && response.data) {
+          // Convert API reviews to display format
+          const reviewsData: Review[] = response.data.reviewsReceived.map(
+            (review, index) => ({
+              id: parseInt(review.id) || index,
+              userName: "Khách hàng", // API doesn't provide customer name
+              userAvatar: "https://via.placeholder.com/50",
+              rating: review.rating,
+              comment: review.comment,
+              date: new Date(review.createdAt).toLocaleDateString("vi-VN"),
+              service: response.data!.services[0]?.title || "Dịch vụ",
+            })
+          );
+          setReviews(reviewsData);
+        }
       } catch (error) {
         console.error("Failed to load reviews:", error);
       } finally {

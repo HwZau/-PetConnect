@@ -63,7 +63,7 @@ export const CONSTANTS = {
 
   // Pet related constants
   PET: {
-    TYPES: ["dog", "cat", "bird", "fish", "rabbit", "hamster", "other"],
+    TYPES: ["dog", "cat"],
     SIZES: ["small", "medium", "large"],
     AGES: ["puppy", "young", "adult", "senior"],
     GENDERS: ["male", "female"],

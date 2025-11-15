@@ -13,10 +13,6 @@ const PetInformation: React.FC<PetInformationProps> = ({
     const labels: Record<string, string> = {
       dog: "Chó",
       cat: "Mèo",
-      bird: "Chim",
-      fish: "Cá",
-      rabbit: "Thỏ",
-      hamster: "Chuột hamster",
     };
     return labels[type] || "Khác";
   };

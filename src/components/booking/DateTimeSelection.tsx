@@ -1,23 +1,69 @@
-import React from "react";
+import React, { useMemo } from "react";
 import type { DateTimeSelectionProps } from "../../types";
+import { getAllTimeSlots } from "../../utils";
 
 const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
   dateTimeData,
   onDateTimeChange,
   errors,
 }) => {
-  const timeSlots = [
-    "07:00",
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-  ];
+  // Get time slots from utility function (uses PickUpTime enum)
+  const timeSlots = getAllTimeSlots();
+
+  // Get current date and time in Vietnam timezone (UTC+7)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const currentHour = now.getHours();
+
+  // Get min date for date picker (today) - format as YYYY-MM-DD in local timezone
+  const minDate = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  // Selected date
+  const selectedDate = dateTimeData?.date || dateTimeData?.selectedDate || "";
+
+  // Parse selected date correctly (avoid timezone issues)
+  const selectedDateObj = useMemo(() => {
+    if (!selectedDate) return null;
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    return new Date(year, month - 1, day); // month is 0-indexed
+  }, [selectedDate]);
+
+  // Check if selected date is today
+  const isToday = useMemo(() => {
+    if (!selectedDateObj) return false;
+    return (
+      selectedDateObj.getFullYear() === today.getFullYear() &&
+      selectedDateObj.getMonth() === today.getMonth() &&
+      selectedDateObj.getDate() === today.getDate()
+    );
+  }, [selectedDateObj, today]);
+
+  // Function to check if a time slot is disabled
+  const isTimeSlotDisabled = (slotValue: string): boolean => {
+    if (!isToday) return false;
+
+    // Map slot to start hour
+    const slotHours: Record<string, number> = {
+      Slot1: 8, // 8:00 AM
+      Slot2: 10, // 10:00 AM
+      Slot3: 12, // 12:00 PM
+      Slot4: 14, // 2:00 PM
+      Slot5: 16, // 4:00 PM
+    };
+
+    const slotStartHour = slotHours[slotValue];
+    return slotStartHour !== undefined && currentHour >= slotStartHour;
+  };
+
+  // Filter available time slots
+  const availableTimeSlots = useMemo(() => {
+    return timeSlots.map((slot) => ({
+      ...slot,
+      disabled: isTimeSlotDisabled(slot.value),
+    }));
+  }, [timeSlots, isToday, currentHour]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -31,71 +77,61 @@ const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
           </label>
           <input
             type="date"
-            value={dateTimeData?.date || dateTimeData?.selectedDate || ""}
+            value={selectedDate}
             onChange={(e) => onDateTimeChange?.("date", e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
+            min={minDate}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
           {errors?.date && (
             <p className="text-red-500 text-sm mt-1">{errors.date}</p>
           )}
+          {selectedDate && (
+            <p className="text-xs text-gray-500 mt-1">
+              📅{" "}
+              {new Date(selectedDate).toLocaleDateString("vi-VN", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          )}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Giờ
+            Khung giờ đón/trả
           </label>
           <select
             value={dateTimeData?.time || dateTimeData?.selectedTime || ""}
             onChange={(e) => onDateTimeChange?.("time", e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            disabled={!selectedDate}
           >
-            <option value="">Chọn giờ</option>
-            {timeSlots.map((time) => (
-              <option key={time} value={time}>
-                {time}
+            <option value="">
+              {!selectedDate ? "Vui lòng chọn ngày trước" : "Chọn khung giờ"}
+            </option>
+            {availableTimeSlots.map((slot) => (
+              <option
+                key={slot.value}
+                value={slot.value}
+                disabled={slot.disabled}
+              >
+                {slot.label}
+                {slot.disabled ? " (Đã qua)" : ""}
               </option>
             ))}
           </select>
           {errors?.time && (
             <p className="text-red-500 text-sm mt-1">{errors.time}</p>
           )}
+          {isToday && (
+            <p className="text-xs text-yellow-600 mt-1">
+              ⚠️ Một số khung giờ đã qua không thể chọn
+            </p>
+          )}
         </div>
       </div>
-
-      {/* Recurring Service */}
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          id="recurring"
-          checked={dateTimeData?.recurringService || false}
-          onChange={(e) =>
-            onDateTimeChange?.("recurringService", e.target.checked)
-          }
-          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-        />
-        <label htmlFor="recurring" className="text-sm text-gray-700">
-          Dịch vụ định kỳ
-        </label>
-      </div>
-
-      {dateTimeData?.recurringService && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tần suất
-          </label>
-          <select
-            value={dateTimeData.frequency || ""}
-            onChange={(e) => onDateTimeChange?.("frequency", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <option value="">Chọn tần suất</option>
-            <option value="daily">Hàng ngày</option>
-            <option value="weekly">Hàng tuần</option>
-            <option value="monthly">Hàng tháng</option>
-          </select>
-        </div>
-      )}
     </div>
   );
 };

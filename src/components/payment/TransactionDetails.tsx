@@ -6,6 +6,7 @@ interface TransactionDetailsProps {
   paymentMethod: string;
   totalAmount: number;
   status: "success" | "failed" | "pending";
+  timestamp?: string;
 }
 
 const TransactionDetails: React.FC<TransactionDetailsProps> = ({
@@ -13,6 +14,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
   paymentMethod,
   totalAmount,
   status,
+  timestamp,
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -22,12 +24,12 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
   };
 
   const getPaymentMethodName = (method: string) => {
-    const methods = {
-      vnpay: "VNPay",
-      bank: "Thẻ tín dụng/ghi nợ",
-      wallet: "Ví điện tử",
-    };
-    return methods[method as keyof typeof methods] || method;
+    const normalized = String(method).toLowerCase();
+    if (normalized === "0" || normalized === "vnpay") return "VNPay";
+    if (normalized === "1" || normalized === "momo") return "MoMo";
+    if (normalized === "bank") return "Thẻ tín dụng/ghi nợ";
+    if (normalized === "wallet") return "Ví điện tử";
+    return method;
   };
 
   return (
@@ -57,7 +59,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
         <div className="flex justify-between py-3 border-b border-gray-100">
           <span className="text-gray-600">Thời gian</span>
           <span className="font-semibold">
-            {new Date().toLocaleString("vi-VN")}
+            {new Date(timestamp || Date.now()).toLocaleString("vi-VN")}
           </span>
         </div>
 

@@ -8,17 +8,11 @@ export const mockUserProfile: UserProfile = {
   name: "Lý Hồng Thư",
   avatar: "/images/avatars/user-1.jpg",
   phone: "+84 901 234 567",
-  role: "customer",
+  role: "Customer",
   isVerified: true,
   createdAt: new Date("2023-01-15"),
   lastLoginAt: new Date("2024-10-23"),
-  address: {
-    street: "123 Nguyễn Huệ",
-    city: "Quận 1, TP.HCM",
-    zipCode: "700000",
-    country: "Vietnam",
-    isDefault: true,
-  },
+  address: "123 Nguyễn Huệ, Quận 1, TP.HCM, 700000, Vietnam",
   preferences: {
     notifications: {
       email: true,

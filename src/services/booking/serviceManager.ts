@@ -116,6 +116,35 @@ export class ServiceManager {
     return Math.round(total);
   }
 
+  // Calculate total for multiple services
+  static calculateMultiServiceTotalPrice(
+    serviceIds: string[],
+    petCount: number,
+    petSizes: string[] = [],
+    isRecurring: boolean = false
+  ): number {
+    let total = 0;
+
+    // Sum up all service prices
+    serviceIds.forEach((serviceId) => {
+      const basePrice = this.getServicePrice(serviceId);
+      total += basePrice * petCount;
+    });
+
+    // Add premium for larger pets (applied once for all services)
+    petSizes.forEach((size) => {
+      if (size === "large") total += 50000;
+      if (size === "medium") total += 30000;
+    });
+
+    // Recurring service discount
+    if (isRecurring) {
+      total *= 0.9; // 10% discount
+    }
+
+    return Math.round(total);
+  }
+
   static formatPrice(price: number): string {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",

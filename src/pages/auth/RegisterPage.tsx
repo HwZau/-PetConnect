@@ -4,7 +4,7 @@ import registerImage from "../../assets/image/register.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
 import { useScrollToTop, useAuth } from "../../hooks";
-import { showError, showSuccess } from "../../utils/toastUtils";
+import { showError } from "../../utils/toastUtils";
 
 const RegisterPage = () => {
   // Scroll to top when page loads
@@ -72,10 +72,10 @@ const RegisterPage = () => {
 
       if (result.success) {
         // Navigate to login page after successful registration
-       showSuccess("Đăng ký thành công! Vui lòng đăng nhập.");
+        
         navigate("/login");
       } else {
-        setError("Đăng ký không thành công. Vui lòng thử lại.");
+        showError("Đăng ký không thành công. Vui lòng thử lại.");
       }
     } catch (err) {
       showError("Lỗi đăng ký. Vui lòng thử lại.");

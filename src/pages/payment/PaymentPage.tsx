@@ -8,7 +8,13 @@ import {
   OrderSummary,
 } from "../../components/payment";
 import { ServiceManager } from "../../services/booking/serviceManager";
-import { showSuccess, showError, showPromise } from "../../utils";
+import {
+  paymentService,
+  PaymentMethodCode,
+} from "../../services/payment/paymentService";
+import { apiClient } from "../../services/apiClient";
+import { API_ENDPOINTS } from "../../config/api";
+import { showSuccess, showError } from "../../utils";
 import type { PaymentBookingData } from "../../types";
 
 const PaymentPage = () => {
@@ -41,72 +47,104 @@ const PaymentPage = () => {
 
   const calculateTotal = () => {
     const petSizes = bookingData.petInfo.map((pet) => pet.petSize);
-    return ServiceManager.calculateTotalPrice(
-      bookingData.service,
-      bookingData.petInfo.length,
-      petSizes,
-      bookingData.dateTime.recurringService
-    );
+
+    // Handle both old (service) and new (serviceIds) format
+    if (bookingData.serviceIds && bookingData.serviceIds.length > 0) {
+      return ServiceManager.calculateMultiServiceTotalPrice(
+        bookingData.serviceIds,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
+    } else if (bookingData.service) {
+      // Backward compatibility
+      return ServiceManager.calculateTotalPrice(
+        bookingData.service,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
+    }
+
+    return 0;
   };
 
   const handlePayment = async () => {
-    if (paymentMethod === "bank" && showCardForm) {
-      // Validate card data
-      if (
-        !cardData.cardNumber ||
-        !cardData.expiryDate ||
-        !cardData.cvv ||
-        !cardData.cardHolder
-      ) {
-        showError("Vui lòng điền đầy đủ thông tin thẻ");
-        return;
-      }
+    if (paymentMethod === "bank") {
+      showError("Phương thức thẻ ngân hàng chưa được hỗ trợ qua API");
+      return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Create payment promise for toast
-      const paymentPromise = new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const isSuccess = Math.random() > 0.2; // 80% success rate
-          if (isSuccess) {
-            resolve("success");
-          } else {
-            reject(new Error("Payment failed"));
-          }
-        }, 2000);
+      const methodCode =
+        paymentMethod === "vnpay"
+          ? PaymentMethodCode.VNPAY
+          : PaymentMethodCode.MOMO;
+      const returnUrl =
+        methodCode === PaymentMethodCode.VNPAY
+          ? `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`
+          : `${window.location.origin}/payment-status`;
+
+      const paymentRes = await paymentService.createPayment({
+        bookingId: location.state?.bookingId,
+        method: methodCode,
+        returnUrl,
+        description: `Thanh toán dịch vụ thú cưng - tổng ${calculateTotal().toLocaleString(
+          "vi-VN"
+        )}₫`,
       });
 
-      // Show promise toast
-      await showPromise(paymentPromise, {
-        pending: "Đang xử lý thanh toán...",
-        success: "Thanh toán thành công! 🎉",
-        error: "Thanh toán thất bại. Vui lòng thử lại.",
-      });
+      const redirectUrl = paymentService.extractRedirectUrl(paymentRes);
 
-      // Navigate to success page
+      if (paymentRes.paymentId) {
+        localStorage.setItem("last_payment_id", paymentRes.paymentId);
+      }
+      if (location.state?.bookingId) {
+        localStorage.setItem(
+          "last_payment_booking_id",
+          location.state.bookingId
+        );
+      }
+
+      if (redirectUrl) {
+        let invalid = false;
+        try {
+          const u = new URL(redirectUrl);
+          const tmn = u.searchParams.get("vnp_TmnCode");
+          const ret = u.searchParams.get("vnp_ReturnUrl");
+          if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
+          if (!ret || ret.toLowerCase() === "string") invalid = true;
+        } catch {
+          invalid = true;
+        }
+        if (invalid) {
+          showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
+          setIsProcessing(false);
+          return;
+        }
+        if (location.state?.bookingId) {
+          localStorage.setItem(`payment_url_${location.state.bookingId}`, redirectUrl);
+        }
+      }
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
       navigate("/payment-status", {
         state: {
-          status: "success",
+          status: "pending",
           bookingData,
           totalAmount: calculateTotal(),
           paymentMethod,
-          transactionId: `TXN${Date.now()}`,
+          transactionId: paymentRes.paymentId || `TXN${Date.now()}`,
         },
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      // Navigate to failed page
-      navigate("/payment-status", {
-        state: {
-          status: "failed",
-          bookingData,
-          totalAmount: calculateTotal(),
-          paymentMethod,
-          transactionId: `TXN${Date.now()}`,
-        },
-      });
+    } catch (error: any) {
+      showError(error.message || "Tạo thanh toán thất bại");
     } finally {
       setIsProcessing(false);
     }
