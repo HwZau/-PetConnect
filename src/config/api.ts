@@ -71,6 +71,17 @@ export const API_ENDPOINTS = {
     USER_BOOKINGS: "/booking/user/me",
   },
 
+  // Payments
+  PAYMENT: {
+    CREATE: "/payment/create",
+    VNPAY_CALLBACK: "/payment/vnpay-callback",
+    MOMO_CALLBACK: "/payment/momo-callback",
+    MOMO_RETURN: "/payment/momo-return",
+    BY_BOOKING: (bookingId: string) => `/payment/booking/${bookingId}`,
+    DETAIL: (paymentId: string) => `/payment/${paymentId}`,
+    CANCEL: (paymentId: string) => `/payment/${paymentId}/cancel`,
+  },
+
   // Freelancers
   FREELANCERS: {
     LIST: "/freelancer/getall",

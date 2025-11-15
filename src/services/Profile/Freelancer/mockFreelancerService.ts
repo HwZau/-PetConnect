@@ -16,7 +16,7 @@ export const mockFreelancerProfile: FreelancerProfile = {
   avatar:
     "https://images.unsplash.com/photo-1494790108755-2616b60b2bb4?w=300&h=300&fit=crop&crop=face",
   phone: "+84 987 654 321",
-  role: "freelancer",
+  role: "Freelancer",
   isVerified: true,
   createdAt: new Date("2023-01-15"),
   lastLoginAt: new Date(),
@@ -35,14 +35,7 @@ export const mockFreelancerProfile: FreelancerProfile = {
     currency: "VND",
     theme: "light",
   },
-  address: {
-    street: "123 Nguyễn Văn Cừ",
-    city: "Hồ Chí Minh",
-    state: "Hồ Chí Minh",
-    zipCode: "700000",
-    country: "Vietnam",
-    isDefault: true,
-  },
+  address: "123 Nguyễn Văn Cừ, Hồ Chí Minh, 700000, Vietnam",
 
   // FreelancerProfile specific fields
   businessName: "Mai's Pet Care Service",

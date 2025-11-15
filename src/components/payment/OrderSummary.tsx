@@ -8,6 +8,7 @@ import {
   FiShield,
 } from "react-icons/fi";
 import type { PaymentBookingData } from "../../types";
+import { ServiceManager } from "../../services/booking/serviceManager";
 
 interface OrderSummaryProps {
   bookingData: PaymentBookingData;
@@ -20,69 +21,44 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   onPayment,
   isProcessing,
 }) => {
-  const getServiceDetails = () => {
-    const services = {
-      "pet-care": { name: "Chăm sóc thú cưng", basePrice: 200000 },
-      "pet-grooming": { name: "Spa & Grooming", basePrice: 150000 },
-      "pet-sitting": { name: "Trông giữ thú cưng", basePrice: 100000 },
-      "pet-walking": { name: "Dắt thú cưng đi dạo", basePrice: 80000 },
-      "vet-consultation": { name: "Tư vấn thú y", basePrice: 300000 },
-    };
-
-    // Handle single service (backward compatibility)
+  const getSingleServiceInfo = () => {
     if (bookingData.service) {
-      return (
-        services[bookingData.service as keyof typeof services] || {
-          name: "Dịch vụ chăm sóc thú cưng",
-          basePrice: 100000,
-        }
-      );
+      const name = ServiceManager.getServiceName(bookingData.service);
+      const basePrice = ServiceManager.getServicePrice(bookingData.service);
+      return { name, basePrice };
     }
-
-    return {
-      name: "Dịch vụ chăm sóc thú cưng",
-      basePrice: 100000,
-    };
+    return { name: "Dịch vụ chăm sóc thú cưng", basePrice: 100000 };
   };
 
   const getMultipleServiceDetails = () => {
-    const services = {
-      "pet-care": { name: "Chăm sóc thú cưng", basePrice: 200000 },
-      "pet-grooming": { name: "Spa & Grooming", basePrice: 150000 },
-      "pet-sitting": { name: "Trông giữ thú cưng", basePrice: 100000 },
-      "pet-walking": { name: "Dắt thú cưng đi dạo", basePrice: 80000 },
-      "vet-consultation": { name: "Tư vấn thú y", basePrice: 300000 },
-    };
-
     if (!bookingData.serviceIds || bookingData.serviceIds.length === 0) {
       return [];
     }
-
-    return bookingData.serviceIds.map(
-      (serviceId) =>
-        services[serviceId as keyof typeof services] || {
-          name: "Dịch vụ chăm sóc thú cưng",
-          basePrice: 100000,
-        }
-    );
+    return bookingData.serviceIds.map((serviceId) => ({
+      name: ServiceManager.getServiceName(serviceId),
+      basePrice: ServiceManager.getServicePrice(serviceId),
+    }));
   };
 
   const calculateTotal = () => {
-    const serviceDetails = getServiceDetails();
-    let total = serviceDetails.basePrice * bookingData.petInfo.length;
-
-    // Add premium for different pet sizes
-    bookingData.petInfo.forEach((pet) => {
-      if (pet.petSize === "large") total += 50000;
-      if (pet.petSize === "medium") total += 30000;
-    });
-
-    // Recurring service discount
-    if (bookingData.dateTime.recurringService) {
-      total *= 0.9; // 10% discount
+    const petSizes = bookingData.petInfo.map((p) => p.petSize);
+    if (bookingData.serviceIds && bookingData.serviceIds.length > 0) {
+      return ServiceManager.calculateMultiServiceTotalPrice(
+        bookingData.serviceIds,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
     }
-
-    return Math.round(total);
+    if (bookingData.service) {
+      return ServiceManager.calculateTotalPrice(
+        bookingData.service,
+        bookingData.petInfo.length,
+        petSizes,
+        bookingData.dateTime.recurringService
+      );
+    }
+    return 0;
   };
 
   const formatPrice = (price: number) => {
@@ -140,7 +116,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           ) : (
             <div className="flex items-center text-sm">
               <FiUser className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{getServiceDetails().name}</span>
+              <span>{getSingleServiceInfo().name}</span>
             </div>
           )}
         </div>
@@ -156,7 +132,16 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             <span>
               {pet.petName} ({pet.petType})
             </span>
-            <span>{formatPrice(getServiceDetails().basePrice)}</span>
+            <span>
+              {bookingData.serviceIds && bookingData.serviceIds.length > 0
+                ? formatPrice(
+                    getMultipleServiceDetails().reduce(
+                      (sum, s) => sum + s.basePrice,
+                      0
+                    )
+                  )
+                : formatPrice(getSingleServiceInfo().basePrice)}
+            </span>
           </div>
         ))}
       </div>

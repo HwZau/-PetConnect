@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "../../utils";
@@ -34,6 +34,13 @@ import AddPetModal, {
   type PetFormData,
 } from "../../components/profile/AddPetModal";
 import EditPetModal from "../../components/profile/EditPetModal";
+import { getBookingStatusLabel, getBookingStatusColor, getPickUpTimeLabel } from "../../utils/bookingUtils";
+import { paymentService, PaymentMethodCode } from "../../services/payment/paymentService";
+import { apiClient } from "../../services/apiClient";
+import { API_ENDPOINTS } from "../../config/api";
+import { freelancerService } from "../../services/freelancer/freelancerService";
+import type { FreelancerData } from "../../services/freelancer/freelancerService";
+
 
 interface EditFormData {
   name: string;
@@ -53,6 +60,7 @@ const UserProfilePage = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
+  const [activityFilter, setActivityFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
@@ -66,6 +74,7 @@ const UserProfilePage = () => {
   } | null>(null);
   const [selectedFreelancer, setSelectedFreelancer] =
     useState<Freelancer | null>(null);
+  const [latestFreelancer, setLatestFreelancer] = useState<Freelancer | null>(null);
   const [editForm, setEditForm] = useState<EditFormData>({
     name: "",
     phone: "",
@@ -76,10 +85,22 @@ const UserProfilePage = () => {
   useScrollToTop();
 
   // Calculate total spent from bookings
+  const statusToString = (s: number | string): string => {
+    if (typeof s === "string") return s;
+    const map: Record<number, string> = {
+      0: "Pending",
+      1: "Confirmed",
+      2: "Completed",
+      3: "Cancelled",
+    };
+    return map[s] ?? String(s);
+  };
+
   const totalSpent =
-    user?.bookings?.reduce((sum, booking) => sum + booking.totalPrice, 0) || 0;
+    user?.bookings?.reduce((sum, b) => sum + (b.totalPrice || 0), 0) || 0;
   const completedBookings =
-    user?.bookings?.filter((b) => b.status === "Completed").length || 0;
+    user?.bookings?.filter((b) => statusToString(b.status) === "Completed")
+      .length || 0;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -101,6 +122,26 @@ const UserProfilePage = () => {
           location: user?.address || "",
           bio: "Yêu thích thú cưng!",
         });
+        const bookings = user?.bookings || [];
+        if (bookings.length > 0) {
+          const latest = [...bookings].sort(
+            (a: any, b: any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
+          )[0];
+          const freelancerId = (latest as any)?.freelancerId;
+          if (freelancerId) {
+            const res = await freelancerService.getFreelancerById(freelancerId);
+            if (res.success && res.data) {
+              const f = res.data as FreelancerData;
+              setLatestFreelancer({
+                id: f.id,
+                name: f.name,
+                avatar: f.avatarUrl || "",
+                online: true,
+              });
+            }
+          }
+        }
+        
       } catch (error) {
         console.error("Failed to load user data:", error);
       } finally {
@@ -476,67 +517,153 @@ const UserProfilePage = () => {
 
                 {activeTab === "activity" && (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                       <FaChartLine className="mr-3 text-2xl text-teal-600" />
                       Hoạt động gần đây
                     </h3>
+                    <div className="flex gap-2 mb-4">
+                      {[
+                        { id: "all", label: "Tất cả" },
+                        { id: "upcoming", label: "Sắp tới" },
+                        { id: "completed", label: "Hoàn thành" },
+                        { id: "cancelled", label: "Đã hủy" },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setActivityFilter(t.id as any)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium border ${
+                            activityFilter === t.id
+                              ? "bg-teal-600 text-white border-teal-600"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="space-y-4">
                       {user?.bookings && user.bookings.length > 0 ? (
-                        user.bookings.map((booking) => (
-                          <div
-                            key={booking.bookingId}
-                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                              <FaCalendarAlt className="text-white text-xl" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-800">
-                                {booking.serviceType}
-                              </p>
-                              <div className="flex items-center gap-3 mt-1">
-                                <p className="text-sm text-gray-500">
-                                  {new Date(
-                                    booking.scheduledDate
-                                  ).toLocaleDateString("vi-VN")}
+                        [...(user.bookings || [])]
+                          .sort((a: any, b: any) => {
+                            const da = new Date(a.bookingDate).getTime();
+                            const db = new Date(b.bookingDate).getTime();
+                            return db - da;
+                          })
+                          .filter((b) => {
+                            if (activityFilter === "all") return true;
+                            const status = statusToString(b.status);
+                            if (activityFilter === "completed")
+                              return status === "Completed";
+                            if (activityFilter === "cancelled")
+                              return status === "Cancelled";
+                            if (activityFilter === "upcoming")
+                              return status === "Confirmed" || status === "Pending";
+                            return true;
+                          })
+                          .map((booking: any) => (
+                            <div
+                              key={booking.bookingId}
+                              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                                <FaCalendarAlt className="text-white text-xl" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-800">
+                                  {Array.isArray(booking.services) && booking.services.length > 0
+                                    ? `Dịch vụ (${booking.services.length})`
+                                    : "Đặt dịch vụ"}
                                 </p>
-                                <span
-                                  className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    booking.status === "Completed"
-                                      ? "bg-green-100 text-green-700"
-                                      : booking.status === "Pending"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : booking.status === "Confirmed"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-gray-100 text-gray-700"
-                                  }`}
-                                >
-                                  {booking.status === "Completed"
-                                    ? "Hoàn thành"
-                                    : booking.status === "Pending"
-                                    ? "Chờ xác nhận"
-                                    : booking.status === "Confirmed"
-                                    ? "Đã xác nhận"
-                                    : booking.status}
-                                </span>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <p className="text-sm text-gray-500">
+                                    {new Date(booking.bookingDate).toLocaleDateString("vi-VN")} • {getPickUpTimeLabel(`Slot${(booking.pickUpTime ?? 0) + 1}`)}
+                                  </p>
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(statusToString(booking.status))}`}
+                                  >
+                                    {getBookingStatusLabel(statusToString(booking.status))}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-teal-600">
+                                  {Number(booking.totalPrice || 0).toLocaleString("vi-VN")} ₫
+                                </p>
+                                {String(booking.isPaid) === "false" && statusToString(booking.status) !== "Cancelled" && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const savedUrlKey = `payment_url_${booking.bookingId}`;
+                                        const savedUrl = localStorage.getItem(savedUrlKey);
+                                        if (savedUrl) {
+                                          let invalid = false;
+                                          try {
+                                            const u = new URL(savedUrl);
+                                            const tmn = u.searchParams.get("vnp_TmnCode");
+                                            const ret = u.searchParams.get("vnp_ReturnUrl");
+                                            if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
+                                            if (!ret || ret.toLowerCase() === "string") invalid = true;
+                                          } catch {
+                                            invalid = true;
+                                          }
+                                          if (invalid) {
+                                            showError("Liên kết VNPAY cũ không hợp lệ. Đang tạo liên kết mới...");
+                                          } else {
+                                            window.location.href = savedUrl;
+                                            return;
+                                          }
+                                        }
+
+                                        const returnUrl = `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`;
+                                        const res = await paymentService.createPayment({
+                                          bookingId: booking.bookingId,
+                                          method: PaymentMethodCode.VNPAY,
+                                          returnUrl,
+                                          description: `Thanh toán đặt lịch ${new Date(booking.bookingDate).toLocaleDateString("vi-VN")}`,
+                                        });
+                                        const redirectUrl = paymentService.extractRedirectUrl(res);
+                                        if (!redirectUrl) {
+                                          showError("Không nhận được liên kết thanh toán");
+                                          return;
+                                        }
+                                        let invalid = false;
+                                        try {
+                                          const u = new URL(redirectUrl);
+                                          const tmn = u.searchParams.get("vnp_TmnCode");
+                                          const ret = u.searchParams.get("vnp_ReturnUrl");
+                                          if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
+                                          if (!ret || ret.toLowerCase() === "string") invalid = true;
+                                        } catch {
+                                          invalid = true;
+                                        }
+                                        if (invalid) {
+                                          showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
+                                          return;
+                                        }
+                                        localStorage.setItem("last_payment_booking_id", booking.bookingId);
+                                        if (res.paymentId) {
+                                          localStorage.setItem("last_payment_id", res.paymentId);
+                                        }
+                                        localStorage.setItem(savedUrlKey, redirectUrl);
+                                        window.location.href = redirectUrl;
+                                      } catch (e: any) {
+                                        showError(e?.message || "Tạo thanh toán thất bại");
+                                      }
+                                    }}
+                                    className="mt-2 inline-flex items-center px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white hover:bg-teal-700"
+                                  >
+                                    Thanh toán VNPAY
+                                  </button>
+                                )}
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-teal-600">
-                                {booking.totalPrice.toLocaleString("vi-VN")} ₫
-                              </p>
-                            </div>
-                          </div>
-                        ))
+                          ))
                       ) : (
                         <div className="text-center py-12 text-gray-500">
                           <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
-                          <p className="text-lg font-medium">
-                            Chưa có hoạt động nào
-                          </p>
-                          <p className="text-sm mt-2">
-                            Đặt dịch vụ đầu tiên của bạn ngay hôm nay!
-                          </p>
+                          <p className="text-lg font-medium">Chưa có hoạt động nào</p>
+                          <p className="text-sm mt-2">Đặt dịch vụ đầu tiên của bạn ngay hôm nay!</p>
                         </div>
                       )}
                     </div>
@@ -549,6 +676,30 @@ const UserProfilePage = () => {
                       <FaBriefcase className="mr-3 text-2xl text-teal-600" />
                       Freelancer đã liên hệ
                     </h3>
+                    {latestFreelancer && (
+                      <div
+                        className="flex items-center gap-4 p-4 mb-4 bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => setSelectedFreelancer(latestFreelancer)}
+                      >
+                        <img
+                          src={
+                            latestFreelancer.avatar ||
+                            "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100"
+                          }
+                          alt={latestFreelancer.name}
+                          className="w-12 h-12 rounded-full object-cover"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/freelancers/${latestFreelancer.id}`);
+                          }}
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800">{latestFreelancer.name}</p>
+                          <p className="text-sm text-gray-600">Freelancer từ booking gần nhất</p>
+                        </div>
+                        <button className="px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white">Chat</button>
+                      </div>
+                    )}
                     <FreelancerContactsCard
                       onSelectFreelancer={handleSelectFreelancer}
                     />

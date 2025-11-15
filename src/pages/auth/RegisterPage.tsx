@@ -4,7 +4,7 @@ import registerImage from "../../assets/image/register.png";
 import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
 import { useScrollToTop, useAuth } from "../../hooks";
-import { showError, showSuccess } from "../../utils/toastUtils";
+import { showError } from "../../utils/toastUtils";
 
 const RegisterPage = () => {
   // Scroll to top when page loads
