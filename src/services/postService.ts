@@ -2,7 +2,6 @@ import { apiClient } from "./apiClient";
 import { API_ENDPOINTS } from "../config/api";
 import type { ApiResponse } from "../types";
 
-// Minimal Post types for the service. Components can keep their own richer types.
 export interface PostAuthor {
   name: string;
   avatar?: string;
@@ -11,59 +10,90 @@ export interface PostAuthor {
 }
 
 export interface ServiceComment {
-  id: number | string;
+  id: string;
   author: string;
   content: string;
-  timestamp?: string;
+  timestamp: string;
+  postId?: string; // Reference to parent post
 }
 
 export interface Post {
-  id: number | string;
+  id: string; // Using only string for consistency
   author: PostAuthor | null;
   content: string;
+  imageUrl?: string;
   images?: string[];
-  timestamp?: string;
+  timestamp: string;
   likes: number;
-  comments?: ServiceComment[];
+  comments: ServiceComment[]; // Making it required with empty array as default
   shares: number;
   views: number;
   liked?: boolean;
+  postStatus?: number;
+  postCategory?: number;
+  staffId?: string;
 }
 
+// New API create payload shape
+export interface CreatePostApiPayload {
+  title: string;
+  content: string;
+  imageUrl?: string;
+  postStatus: number;
+  postCategory: number;
+  staffId: string;
+}
+
+// API response shape
+export interface PostApiResponse {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  postStatus: number;
+  postCategory: number;
+  staffId: string;
+  author?: PostAuthor;
+  timestamp?: string;
+  likes?: number;
+  comments?: ServiceComment[];
+  shares?: number;
+  views?: number;
+}
+
+const BASE_URL = "https://localhost:7020";
 const ENDPOINT = API_ENDPOINTS.COMMUNITY.POSTS;
 
 export const postService = {
   async listPosts(): Promise<ApiResponse<Post[]>> {
-    return apiClient.get<Post[]>(ENDPOINT);
+    return apiClient.get<Post[]>(ENDPOINT, undefined, {
+      baseURL: BASE_URL
+    });
   },
 
-  async createPost(data: Partial<Post>): Promise<ApiResponse<Post>> {
-    // CREATE_POST currently maps to same path as POSTS but use explicit key for clarity
-    return apiClient.post<Post>(API_ENDPOINTS.COMMUNITY.CREATE_POST, data);
+  // Accept API-shaped payload
+  async createPost(data: CreatePostApiPayload): Promise<ApiResponse<PostApiResponse>> {
+    return apiClient.post<PostApiResponse>(API_ENDPOINTS.COMMUNITY.CREATE_POST, data, {
+      baseURL: BASE_URL
+    });
   },
 
   async getPost(id: string | number): Promise<ApiResponse<Post>> {
-    return apiClient.get<Post>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)));
+    return apiClient.get<Post>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)), undefined, {
+      baseURL: BASE_URL
+    });
   },
 
-  async updatePost(id: string | number, data: Partial<Post>): Promise<ApiResponse<Post>> {
-    return apiClient.put<Post>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)), data);
+  async updatePost(id: string | number, data: Partial<CreatePostApiPayload>): Promise<ApiResponse<Post>> {
+    return apiClient.put<Post>(API_ENDPOINTS.COMMUNITY.UPDATE_POST(String(id)), data, {
+      baseURL: BASE_URL
+    });
   },
 
   async deletePost(id: string | number): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(API_ENDPOINTS.COMMUNITY.POST_DETAIL(String(id)));
-  },
-
-  async likePost(id: string | number): Promise<ApiResponse<void>> {
-    return apiClient.post<void>(API_ENDPOINTS.COMMUNITY.LIKE_POST(String(id)));
-  },
-
-  async commentPost(id: string | number, comment: { content: string }): Promise<ApiResponse<ServiceComment>> {
-    return apiClient.post<ServiceComment>(API_ENDPOINTS.COMMUNITY.COMMENT(String(id)), comment);
-  },
-
-  async trending(): Promise<ApiResponse<Post[]>> {
-    return apiClient.get<Post[]>(API_ENDPOINTS.COMMUNITY.TRENDING);
+    return apiClient.delete<void>(API_ENDPOINTS.COMMUNITY.DELETE_POST(String(id)), {
+      baseURL: BASE_URL
+    });
   },
 };
 
