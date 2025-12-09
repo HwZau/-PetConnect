@@ -1,5 +1,9 @@
 import { useState } from "react";
-import type { FilterState, EventFiltersProps } from "../../types";
+import type { FilterState } from "../../types";
+
+interface EventFiltersProps {
+  onFilterChange?: (filters: FilterState) => void;
+}
 
 const EventFilters = ({ onFilterChange }: EventFiltersProps) => {
   const [filters, setFilters] = useState<FilterState>({

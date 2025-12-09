@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "../../utils";
-import { petService } from "../../services";
+import { petService, profileService, bookingService } from "../../services";
 import {
   FaUser,
   FaPaw,
@@ -11,10 +11,10 @@ import {
   FaStar,
   FaCalendarAlt,
   FaGift,
-  FaPencilAlt,
   FaDog,
+  FaCat,
+  FaTrash,
   FaBolt,
-  FaCog,
   FaAward,
   FaCheckCircle,
   FaHeadset,
@@ -24,7 +24,6 @@ import {
 } from "react-icons/fa";
 
 import Header from "../../components/profile/Header";
-import ProfileMainContent from "../../components/profile/ProfileMainContent";
 import UpgradePlanCard from "../../components/profile/UpgradePlanCard";
 import FreelancerContactsCard from "../../components/profile/FreelancerContactsCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
@@ -34,19 +33,27 @@ import AddPetModal, {
   type PetFormData,
 } from "../../components/profile/AddPetModal";
 import EditPetModal from "../../components/profile/EditPetModal";
-import { getBookingStatusLabel, getBookingStatusColor, getPickUpTimeLabel } from "../../utils/bookingUtils";
-import { paymentService, PaymentMethodCode } from "../../services/payment/paymentService";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import { BookingDetailModal } from "../../components/booking";
+import {
+  getBookingStatusLabel,
+  getBookingStatusColor,
+  getPickUpTimeLabel,
+} from "../../utils/bookingUtils";
+import {
+  paymentService,
+  PaymentMethodCode,
+} from "../../services/payment/paymentService";
 import { apiClient } from "../../services/apiClient";
 import { API_ENDPOINTS } from "../../config/api";
 import { freelancerService } from "../../services/freelancer/freelancerService";
 import type { FreelancerData } from "../../services/freelancer/freelancerService";
 
-
 interface EditFormData {
   name: string;
-  phone: string;
-  location: string;
-  bio: string;
+  phoneNumber: string;
+  address: string;
+  avatarUrl: string;
 }
 
 interface Freelancer {
@@ -60,12 +67,20 @@ const UserProfilePage = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [activityFilter, setActivityFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
+  const [activityFilter, setActivityFilter] = useState<
+    "all" | "upcoming" | "completed" | "cancelled"
+  >("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [showAddPetModal, setShowAddPetModal] = useState<boolean>(false);
   const [showEditPetModal, setShowEditPetModal] = useState<boolean>(false);
+  const [showDeletePetConfirm, setShowDeletePetConfirm] =
+    useState<boolean>(false);
+  const [petToDelete, setPetToDelete] = useState<{
+    petId: string;
+    petName: string;
+  } | null>(null);
   const [selectedPet, setSelectedPet] = useState<{
     petId: string;
     petName: string;
@@ -74,12 +89,21 @@ const UserProfilePage = () => {
   } | null>(null);
   const [selectedFreelancer, setSelectedFreelancer] =
     useState<Freelancer | null>(null);
-  const [latestFreelancer, setLatestFreelancer] = useState<Freelancer | null>(null);
+  const [bookingsPage, setBookingsPage] = useState<number>(1);
+  const [bookingsPerPage] = useState<number>(5);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [showBookingDetail, setShowBookingDetail] = useState<boolean>(false);
+  const [latestFreelancer, setLatestFreelancer] = useState<Freelancer | null>(
+    null
+  );
+  const [freelancersList, setFreelancersList] = useState<Freelancer[]>([]);
+  const [bookingsHistory, setBookingsHistory] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormData>({
     name: "",
-    phone: "",
-    location: "Hà Nội",
-    bio: "Yêu thích thú cưng!",
+    phoneNumber: "",
+    address: "",
+    avatarUrl: "",
   });
 
   useScrollToTop();
@@ -118,30 +142,58 @@ const UserProfilePage = () => {
         // Set edit form with user data
         setEditForm({
           name: user?.name || "",
-          phone: user?.phoneNumber || "",
-          location: user?.address || "",
-          bio: "Yêu thích thú cưng!",
+          phoneNumber: user?.phoneNumber || "",
+          address: user?.address || "",
+          avatarUrl: user?.avatar || "",
         });
         const bookings = user?.bookings || [];
         if (bookings.length > 0) {
-          const latest = [...bookings].sort(
-            (a: any, b: any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
-          )[0];
-          const freelancerId = (latest as any)?.freelancerId;
-          if (freelancerId) {
-            const res = await freelancerService.getFreelancerById(freelancerId);
-            if (res.success && res.data) {
-              const f = res.data as FreelancerData;
-              setLatestFreelancer({
-                id: f.id,
-                name: f.name,
-                avatar: f.avatarUrl || "",
-                online: true,
-              });
+          // Get unique freelancer IDs from bookings
+          const freelancerIds = [
+            ...new Set(
+              bookings.map((b: any) => b.freelancerId).filter((id: any) => id)
+            ),
+          ];
+
+          // Fetch all freelancers
+          const freelancersData: Freelancer[] = [];
+          for (const freelancerId of freelancerIds) {
+            try {
+              const res = await freelancerService.getFreelancerById(
+                freelancerId
+              );
+              if (res.success && res.data) {
+                const f = res.data as FreelancerData;
+                freelancersData.push({
+                  id: f.id,
+                  name: f.name,
+                  avatar: f.avatarUrl || "",
+                  online: true,
+                });
+              }
+            } catch (err) {
+              console.error(`Failed to fetch freelancer ${freelancerId}:`, err);
+            }
+          }
+
+          setFreelancersList(freelancersData);
+
+          // Set latest freelancer
+          if (freelancersData.length > 0) {
+            const latest = [...bookings].sort(
+              (a: any, b: any) =>
+                new Date(b.bookingDate).getTime() -
+                new Date(a.bookingDate).getTime()
+            )[0];
+            const latestFreelancerId = (latest as any)?.freelancerId;
+            const latestFreelancerData = freelancersData.find(
+              (f) => f.id === latestFreelancerId
+            );
+            if (latestFreelancerData) {
+              setLatestFreelancer(latestFreelancerData);
             }
           }
         }
-        
       } catch (error) {
         console.error("Failed to load user data:", error);
       } finally {
@@ -151,14 +203,57 @@ const UserProfilePage = () => {
     loadUserData();
   }, [user?.id, user?.name, user?.phoneNumber, user?.address]);
 
+  // Fetch bookings history when Activity tab is active
+  useEffect(() => {
+    const loadBookingsHistory = async () => {
+      if (activeTab !== "activity") return;
+
+      setLoadingBookings(true);
+      try {
+        const data = await bookingService.getMyBookingHistory();
+        setBookingsHistory(data || []);
+      } catch (error) {
+        console.error("Error loading bookings history:", error);
+        setBookingsHistory([]);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    loadBookingsHistory();
+  }, [activeTab]);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setBookingsPage(1);
+  }, [activityFilter]);
+
   const handleFormChange = (field: string, value: string) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveProfile = () => {
-    console.log("Saving:", editForm);
-    showSuccess("Cập nhật hồ sơ thành công!");
-    setShowEditModal(false);
+  const handleSaveProfile = async () => {
+    try {
+      // Call API to update customer profile
+      const response = await profileService.updateCustomerProfile({
+        name: editForm.name,
+        phoneNumber: editForm.phoneNumber,
+        address: editForm.address,
+        avatarUrl: editForm.avatarUrl,
+      });
+
+      if (response.success) {
+        showSuccess("Đã cập nhật hồ sơ thành công!");
+        setShowEditModal(false);
+        // Refresh user data
+        await refreshUser();
+      } else {
+        showError(response.message || "Cập nhật hồ sơ thất bại");
+      }
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
+      showError(error.message || "Đã xảy ra lỗi khi cập nhật hồ sơ");
+    }
   };
 
   const handleUpgrade = (plan: "monthly" | "yearly") => {
@@ -242,18 +337,28 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleDeletePet = async (petId: string) => {
-    if (!user?.id) {
+  const handleDeletePet = (petId: string) => {
+    const pet = user?.pets?.find((p) => p.petId === petId);
+    if (pet) {
+      setPetToDelete({ petId: pet.petId, petName: pet.petName });
+      setShowDeletePetConfirm(true);
+    }
+  };
+
+  const confirmDeletePet = async () => {
+    if (!user?.id || !petToDelete) {
       showError("Không tìm thấy thông tin user");
       return;
     }
 
     try {
       // Use deletePet endpoint: DELETE /api/v1/pet/delete/{userId}
-      const response = await petService.deletePet(user.id, petId);
+      const response = await petService.deletePet(user.id, petToDelete.petId);
 
       if (response.success) {
         showSuccess("Xóa thú cưng thành công!");
+        setShowDeletePetConfirm(false);
+        setPetToDelete(null);
         setShowEditPetModal(false);
         setSelectedPet(null);
         // Refresh user data to get updated pets list
@@ -267,16 +372,33 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleSelectFreelancer = (freelancerId: string) => {
-    // Mock data - in real app, fetch from API
-    const freelancer: Freelancer = {
-      id: freelancerId,
-      name: "Nguyễn Văn A",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100",
-      online: true,
-    };
-    setSelectedFreelancer(freelancer);
+  const handleSelectFreelancer = async (freelancerId: string) => {
+    // Find in existing list first
+    const existingFreelancer = freelancersList.find(
+      (f) => f.id === freelancerId
+    );
+    if (existingFreelancer) {
+      setSelectedFreelancer(existingFreelancer);
+      return;
+    }
+
+    // Fetch from API if not in list
+    try {
+      const res = await freelancerService.getFreelancerById(freelancerId);
+      if (res.success && res.data) {
+        const f = res.data as FreelancerData;
+        const freelancer: Freelancer = {
+          id: f.id,
+          name: f.name,
+          avatar: f.avatarUrl || "",
+          online: true,
+        };
+        setSelectedFreelancer(freelancer);
+      }
+    } catch (error) {
+      console.error("Failed to fetch freelancer:", error);
+      showError("Đã xảy ra lỗi khi tải thông tin freelancer");
+    }
   };
 
   if (loading || !user) {
@@ -335,17 +457,10 @@ const UserProfilePage = () => {
                     <h1 className="text-3xl font-bold mb-2">
                       {user?.name || "Người dùng"}
                     </h1>
-                    <p className="text-teal-100 text-sm mb-3">Since 2024</p>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
-                        <FaStar className="text-yellow-300" /> Khách hàng thân
-                        thiết
-                      </span>
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
-                        {user?.email || "user@example.com"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-6 text-sm">
+                    <p className="text-teal-100 text-sm mb-3">
+                      {user?.email || "user@example.com"}
+                    </p>
+                    <div className="flex items-center gap-6 text-sm mt-3">
                       <div className="flex items-center gap-2">
                         <FaDog className="text-orange-300" />
                         <span>{user?.pets?.length || 0} thú cưng</span>
@@ -354,20 +469,8 @@ const UserProfilePage = () => {
                         <FaCalendarCheck className="text-green-300" />
                         <span>{user?.bookings?.length || 0} lượt đặt</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <FaStar className="text-yellow-300" />
-                        <span>5.0 đánh giá</span>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Edit Profile Button */}
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="bg-white hover:bg-gray-50 text-teal-600 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg flex items-center gap-2"
-                  >
-                    <FaPencilAlt /> CHỈNH SỬA
-                  </button>
                 </div>
               </div>
             </div>
@@ -443,10 +546,79 @@ const UserProfilePage = () => {
 
                 {/* Tab Content */}
                 {activeTab === "profile" && (
-                  <ProfileMainContent
-                    bio={editForm.bio}
-                    onEdit={() => setShowEditModal(true)}
-                  />
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                        <FaUser className="mr-3 text-2xl text-teal-600" />
+                        Thông tin cá nhân
+                      </h3>
+                      <button
+                        onClick={() => setShowEditModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md flex items-center gap-2 font-medium"
+                      >
+                        <FaEdit /> Chỉnh sửa
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Name */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaUser className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Họ và tên
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.name || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-orange-50 to-pink-50 border border-orange-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaCalendarAlt className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Số điện thoại
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.phoneNumber || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaBriefcase className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Địa chỉ
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.address || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {activeTab === "pets" && (
@@ -470,18 +642,37 @@ const UserProfilePage = () => {
                             key={pet.petId}
                             className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all relative group"
                           >
-                            {/* Edit Button */}
-                            <button
-                              onClick={() => handleEditPet(pet)}
-                              className="absolute top-3 right-3 w-8 h-8 bg-white hover:bg-teal-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
-                              title="Chỉnh sửa thú cưng"
-                            >
-                              <FaEdit className="text-sm" />
-                            </button>
+                            {/* Action Buttons */}
+                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handleEditPet(pet)}
+                                className="w-8 h-8 bg-white hover:bg-teal-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all"
+                                title="Chỉnh sửa thú cưng"
+                              >
+                                <FaEdit className="text-sm" />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePet(pet.petId)}
+                                className="w-8 h-8 bg-white hover:bg-red-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all"
+                                title="Xóa thú cưng"
+                              >
+                                <FaTrash className="text-sm" />
+                              </button>
+                            </div>
 
                             <div className="flex items-center gap-3">
-                              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-3xl shadow-lg">
-                                <FaDog className="text-white" />
+                              <div
+                                className={`w-16 h-16 bg-gradient-to-br ${
+                                  pet.species.toLowerCase() === "cat"
+                                    ? "from-purple-400 to-pink-400"
+                                    : "from-orange-400 to-amber-400"
+                                } rounded-full flex items-center justify-center text-3xl shadow-lg`}
+                              >
+                                {pet.species.toLowerCase() === "cat" ? (
+                                  <FaCat className="text-white" />
+                                ) : (
+                                  <FaDog className="text-white" />
+                                )}
                               </div>
                               <div className="flex-1">
                                 <h4 className="font-bold text-gray-800 text-lg">
@@ -542,131 +733,310 @@ const UserProfilePage = () => {
                       ))}
                     </div>
 
-                    <div className="space-y-4">
-                      {user?.bookings && user.bookings.length > 0 ? (
-                        [...(user.bookings || [])]
-                          .sort((a: any, b: any) => {
-                            const da = new Date(a.bookingDate).getTime();
-                            const db = new Date(b.bookingDate).getTime();
-                            return db - da;
-                          })
-                          .filter((b) => {
-                            if (activityFilter === "all") return true;
-                            const status = statusToString(b.status);
-                            if (activityFilter === "completed")
-                              return status === "Completed";
-                            if (activityFilter === "cancelled")
-                              return status === "Cancelled";
-                            if (activityFilter === "upcoming")
-                              return status === "Confirmed" || status === "Pending";
-                            return true;
-                          })
-                          .map((booking: any) => (
-                            <div
-                              key={booking.bookingId}
-                              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                                <FaCalendarAlt className="text-white text-xl" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-800">
-                                  {Array.isArray(booking.services) && booking.services.length > 0
-                                    ? `Dịch vụ (${booking.services.length})`
-                                    : "Đặt dịch vụ"}
-                                </p>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <p className="text-sm text-gray-500">
-                                    {new Date(booking.bookingDate).toLocaleDateString("vi-VN")} • {getPickUpTimeLabel(`Slot${(booking.pickUpTime ?? 0) + 1}`)}
-                                  </p>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(statusToString(booking.status))}`}
-                                  >
-                                    {getBookingStatusLabel(statusToString(booking.status))}
-                                  </span>
+                    {loadingBookings ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent"></div>
+                        <p className="mt-4 text-gray-600">
+                          Đang tải dữ liệu...
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {bookingsHistory && bookingsHistory.length > 0 ? (
+                          (() => {
+                            const filteredBookings = [...bookingsHistory]
+                              .sort((a: any, b: any) => {
+                                const da = new Date(a.bookingDate).getTime();
+                                const db = new Date(b.bookingDate).getTime();
+                                return db - da;
+                              })
+                              .filter((b) => {
+                                if (activityFilter === "all") return true;
+                                const status = statusToString(b.status);
+                                if (activityFilter === "completed")
+                                  return status === "Completed";
+                                if (activityFilter === "cancelled")
+                                  return status === "Cancelled";
+                                if (activityFilter === "upcoming")
+                                  return (
+                                    status === "Confirmed" ||
+                                    status === "Pending"
+                                  );
+                                return true;
+                              });
+                            const paginatedBookings = filteredBookings.slice(
+                              (bookingsPage - 1) * bookingsPerPage,
+                              bookingsPage * bookingsPerPage
+                            );
+                            return paginatedBookings.map((booking: any) => (
+                              <div
+                                key={booking.bookingId}
+                                className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                              >
+                                <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
+                                  <FaCalendarAlt className="text-white text-xl" />
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-teal-600">
-                                  {Number(booking.totalPrice || 0).toLocaleString("vi-VN")} ₫
-                                </p>
-                                {String(booking.isPaid) === "false" && statusToString(booking.status) !== "Cancelled" && (
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        const savedUrlKey = `payment_url_${booking.bookingId}`;
-                                        const savedUrl = localStorage.getItem(savedUrlKey);
-                                        if (savedUrl) {
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-800">
+                                    {Array.isArray(booking.services) &&
+                                    booking.services.length > 0
+                                      ? `Dịch vụ (${booking.services.length})`
+                                      : "Đặt dịch vụ"}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-sm text-gray-500">
+                                      {new Date(
+                                        booking.bookingDate
+                                      ).toLocaleDateString("vi-VN")}{" "}
+                                      •{" "}
+                                      {getPickUpTimeLabel(
+                                        `Slot${(booking.pickUpTime ?? 0) + 1}`
+                                      )}
+                                    </p>
+                                    <span
+                                      className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(
+                                        statusToString(booking.status)
+                                      )}`}
+                                    >
+                                      {getBookingStatusLabel(
+                                        statusToString(booking.status)
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end gap-2">
+                                  {String(booking.isPaid) === "false" &&
+                                  statusToString(booking.status) !==
+                                    "Cancelled" ? (
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          const savedUrlKey = `payment_url_${booking.bookingId}`;
+                                          const savedUrl =
+                                            localStorage.getItem(savedUrlKey);
+                                          if (savedUrl) {
+                                            let invalid = false;
+                                            try {
+                                              const u = new URL(savedUrl);
+                                              const tmn =
+                                                u.searchParams.get(
+                                                  "vnp_TmnCode"
+                                                );
+                                              const ret =
+                                                u.searchParams.get(
+                                                  "vnp_ReturnUrl"
+                                                );
+                                              if (
+                                                !tmn ||
+                                                tmn.toUpperCase() ===
+                                                  "YOUR_TMN_CODE"
+                                              )
+                                                invalid = true;
+                                              if (
+                                                !ret ||
+                                                ret.toLowerCase() === "string"
+                                              )
+                                                invalid = true;
+                                            } catch {
+                                              invalid = true;
+                                            }
+                                            if (invalid) {
+                                              showError(
+                                                "Liên kết VNPAY cũ không hợp lệ. Đang tạo liên kết mới..."
+                                              );
+                                            } else {
+                                              window.location.href = savedUrl;
+                                              return;
+                                            }
+                                          }
+
+                                          const returnUrl = `${apiClient.getBaseURL()}${
+                                            API_ENDPOINTS.PAYMENT.PAYOS_CALLBACK
+                                          }`;
+                                          const res =
+                                            await paymentService.createPayment({
+                                              bookingId: booking.bookingId,
+                                              method: PaymentMethodCode.PAYOS,
+                                              returnUrl,
+                                              description: `Thanh toán đặt lịch ${new Date(
+                                                booking.bookingDate
+                                              ).toLocaleDateString("vi-VN")}`,
+                                            });
+                                          const redirectUrl =
+                                            paymentService.extractRedirectUrl(
+                                              res
+                                            );
+                                          if (!redirectUrl) {
+                                            showError(
+                                              "Không nhận được liên kết thanh toán"
+                                            );
+                                            return;
+                                          }
                                           let invalid = false;
                                           try {
-                                            const u = new URL(savedUrl);
-                                            const tmn = u.searchParams.get("vnp_TmnCode");
-                                            const ret = u.searchParams.get("vnp_ReturnUrl");
-                                            if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
-                                            if (!ret || ret.toLowerCase() === "string") invalid = true;
+                                            const u = new URL(redirectUrl);
+                                            const tmn =
+                                              u.searchParams.get("vnp_TmnCode");
+                                            const ret =
+                                              u.searchParams.get(
+                                                "vnp_ReturnUrl"
+                                              );
+                                            if (
+                                              !tmn ||
+                                              tmn.toUpperCase() ===
+                                                "YOUR_TMN_CODE"
+                                            )
+                                              invalid = true;
+                                            if (
+                                              !ret ||
+                                              ret.toLowerCase() === "string"
+                                            )
+                                              invalid = true;
                                           } catch {
                                             invalid = true;
                                           }
                                           if (invalid) {
-                                            showError("Liên kết VNPAY cũ không hợp lệ. Đang tạo liên kết mới...");
-                                          } else {
-                                            window.location.href = savedUrl;
+                                            showError(
+                                              "Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend."
+                                            );
                                             return;
                                           }
+                                          localStorage.setItem(
+                                            "last_payment_booking_id",
+                                            booking.bookingId
+                                          );
+                                          if (res.paymentId) {
+                                            localStorage.setItem(
+                                              "last_payment_id",
+                                              res.paymentId
+                                            );
+                                          }
+                                          localStorage.setItem(
+                                            savedUrlKey,
+                                            redirectUrl
+                                          );
+                                          window.location.href = redirectUrl;
+                                        } catch (e: any) {
+                                          showError(
+                                            e?.message ||
+                                              "Tạo thanh toán thất bại"
+                                          );
                                         }
-
-                                        const returnUrl = `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`;
-                                        const res = await paymentService.createPayment({
-                                          bookingId: booking.bookingId,
-                                          method: PaymentMethodCode.VNPAY,
-                                          returnUrl,
-                                          description: `Thanh toán đặt lịch ${new Date(booking.bookingDate).toLocaleDateString("vi-VN")}`,
-                                        });
-                                        const redirectUrl = paymentService.extractRedirectUrl(res);
-                                        if (!redirectUrl) {
-                                          showError("Không nhận được liên kết thanh toán");
-                                          return;
-                                        }
-                                        let invalid = false;
-                                        try {
-                                          const u = new URL(redirectUrl);
-                                          const tmn = u.searchParams.get("vnp_TmnCode");
-                                          const ret = u.searchParams.get("vnp_ReturnUrl");
-                                          if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
-                                          if (!ret || ret.toLowerCase() === "string") invalid = true;
-                                        } catch {
-                                          invalid = true;
-                                        }
-                                        if (invalid) {
-                                          showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
-                                          return;
-                                        }
-                                        localStorage.setItem("last_payment_booking_id", booking.bookingId);
-                                        if (res.paymentId) {
-                                          localStorage.setItem("last_payment_id", res.paymentId);
-                                        }
-                                        localStorage.setItem(savedUrlKey, redirectUrl);
-                                        window.location.href = redirectUrl;
-                                      } catch (e: any) {
-                                        showError(e?.message || "Tạo thanh toán thất bại");
-                                      }
-                                    }}
-                                    className="mt-2 inline-flex items-center px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white hover:bg-teal-700"
-                                  >
-                                    Thanh toán VNPAY
-                                  </button>
-                                )}
+                                      }}
+                                      className="inline-flex flex-col items-center px-2 py-2 text-sm rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-all"
+                                    >
+                                      <span className="text-xs font-small">
+                                        {Number(
+                                          booking.totalPrice || 0
+                                        ).toLocaleString("vi-VN")}{" "}
+                                        ₫
+                                      </span>
+                                      <span className="font-semibold">
+                                        Thanh toán
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    <p className="font-bold text-teal-600">
+                                      {Number(
+                                        booking.totalPrice || 0
+                                      ).toLocaleString("vi-VN")}{" "}
+                                      ₫
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      // Fetch full booking details with payment, services, and pets info
+                                      const detailsData =
+                                        await bookingService.getBookingDetails(
+                                          booking.bookingId
+                                        );
+                                      setSelectedBooking(
+                                        detailsData || booking
+                                      );
+                                      setShowBookingDetail(true);
+                                    } catch (error) {
+                                      console.error(
+                                        "Error loading booking details:",
+                                        error
+                                      );
+                                      // Fallback to basic booking data
+                                      setSelectedBooking(booking);
+                                      setShowBookingDetail(true);
+                                    }
+                                  }}
+                                  className="ml-auto px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                                >
+                                  Xem chi tiết
+                                </button>
                               </div>
-                            </div>
-                          ))
-                      ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
-                          <p className="text-lg font-medium">Chưa có hoạt động nào</p>
-                          <p className="text-sm mt-2">Đặt dịch vụ đầu tiên của bạn ngay hôm nay!</p>
-                        </div>
-                      )}
-                    </div>
+                            ));
+                          })()
+                        ) : (
+                          <div className="text-center py-12 text-gray-500">
+                            <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
+                            <p className="text-lg font-medium">
+                              Chưa có hoạt động nào
+                            </p>
+                            <p className="text-sm mt-2">
+                              Đặt dịch vụ đầu tiên của bạn ngay hôm nay!
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Pagination */}
+                        {(() => {
+                          const filteredCount = [...bookingsHistory].filter(
+                            (b) => {
+                              if (activityFilter === "all") return true;
+                              const status = statusToString(b.status);
+                              if (activityFilter === "completed")
+                                return status === "Completed";
+                              if (activityFilter === "cancelled")
+                                return status === "Cancelled";
+                              if (activityFilter === "upcoming")
+                                return (
+                                  status === "Confirmed" || status === "Pending"
+                                );
+                              return true;
+                            }
+                          ).length;
+                          const totalPages = Math.ceil(
+                            filteredCount / bookingsPerPage
+                          );
+                          return (
+                            filteredCount > bookingsPerPage && (
+                              <div className="flex items-center justify-center gap-2 mt-6 pb-4">
+                                <button
+                                  onClick={() =>
+                                    setBookingsPage((p) => Math.max(1, p - 1))
+                                  }
+                                  disabled={bookingsPage === 1}
+                                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Trước
+                                </button>
+                                <span className="px-4 py-2 text-sm text-gray-600">
+                                  Trang {bookingsPage} / {totalPages}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    setBookingsPage((p) =>
+                                      Math.min(totalPages, p + 1)
+                                    )
+                                  }
+                                  disabled={bookingsPage >= totalPages}
+                                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Sau
+                                </button>
+                              </div>
+                            )
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -694,13 +1064,26 @@ const UserProfilePage = () => {
                           }}
                         />
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{latestFreelancer.name}</p>
-                          <p className="text-sm text-gray-600">Freelancer từ booking gần nhất</p>
+                          <p className="font-semibold text-gray-800">
+                            {latestFreelancer.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Freelancer từ booking gần nhất
+                          </p>
                         </div>
-                        <button className="px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white">Chat</button>
+                        <button className="px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white">
+                          Chat
+                        </button>
                       </div>
                     )}
                     <FreelancerContactsCard
+                      freelancers={freelancersList.map((f) => ({
+                        id: f.id,
+                        name: f.name,
+                        title: "Chuyên gia chăm sóc thú cưng",
+                        avatar: f.avatar,
+                        online: f.online,
+                      }))}
                       onSelectFreelancer={handleSelectFreelancer}
                     />
                   </div>
@@ -787,37 +1170,6 @@ const UserProfilePage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Quick Actions */}
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <FaCog className="mr-2" />
-                      Thao tác nhanh
-                    </h3>
-                    <div className="space-y-2">
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200">
-                        <FaCalendarAlt className="text-xl text-blue-600" />
-                        <span className="font-medium text-gray-700">
-                          Đặt lịch mới
-                        </span>
-                      </button>
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 rounded-lg transition-all flex items-center gap-3 border border-teal-200">
-                        <FaPaw className="text-xl text-teal-600" />
-                        <span className="font-medium text-gray-700">
-                          Quản lý thú cưng
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setShowEditModal(true)}
-                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 hover:from-orange-100 hover:to-pink-100 rounded-lg transition-all flex items-center gap-3 border border-orange-200"
-                      >
-                        <FaPencilAlt className="text-xl text-orange-600" />
-                        <span className="font-medium text-gray-700">
-                          Chỉnh sửa hồ sơ
-                        </span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -855,8 +1207,38 @@ const UserProfilePage = () => {
             setSelectedPet(null);
           }}
           onSave={handleUpdatePet}
-          onDelete={handleDeletePet}
           petData={selectedPet}
+        />
+
+        {/* Booking Detail Modal */}
+        {selectedBooking && (
+          <BookingDetailModal
+            isOpen={showBookingDetail}
+            onClose={() => {
+              setShowBookingDetail(false);
+              setSelectedBooking(null);
+            }}
+            booking={selectedBooking}
+            userRole="customer"
+            onStatusUpdate={async () => {
+              await refreshUser();
+            }}
+          />
+        )}
+
+        {/* Delete Pet Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showDeletePetConfirm}
+          title="Xác nhận xóa thú cưng"
+          message={`Bạn có chắc chắn muốn xóa "${petToDelete?.petName}"? Hành động này không thể hoàn tác.`}
+          confirmText="Xóa"
+          cancelText="Hủy"
+          type="danger"
+          onConfirm={confirmDeletePet}
+          onCancel={() => {
+            setShowDeletePetConfirm(false);
+            setPetToDelete(null);
+          }}
         />
       </div>
     </div>

@@ -8,9 +8,9 @@ interface EditProfileModalProps {
   onSave: () => void;
   formData: {
     name: string;
-    phone: string;
-    location: string;
-    bio: string;
+    phoneNumber: string;
+    address: string;
+    avatarUrl: string;
   };
   onChange: (field: string, value: string) => void;
 }
@@ -60,8 +60,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
             <input
               type="tel"
-              value={formData.phone}
-              onChange={(e) => onChange("phone", e.target.value)}
+              value={formData.phoneNumber}
+              onChange={(e) => onChange("phoneNumber", e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="Nhập số điện thoại"
             />
@@ -69,27 +69,27 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Vị trí
+              Địa chỉ
             </label>
             <input
               type="text"
-              value={formData.location}
-              onChange={(e) => onChange("location", e.target.value)}
+              value={formData.address}
+              onChange={(e) => onChange("address", e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              placeholder="Thành phố của bạn"
+              placeholder="Nhập địa chỉ của bạn"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giới thiệu
+              Avatar URL
             </label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => onChange("bio", e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-              placeholder="Giới thiệu về bạn và những boss đáng yêu"
+            <input
+              type="url"
+              value={formData.avatarUrl}
+              onChange={(e) => onChange("avatarUrl", e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              placeholder="URL ảnh đại diện"
             />
           </div>
         </div>

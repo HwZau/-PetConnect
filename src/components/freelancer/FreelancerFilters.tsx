@@ -1,6 +1,10 @@
 import React from "react";
 import { AiOutlineFilter, AiOutlineStar } from "react-icons/ai";
-import type { FreelancerFiltersProps } from "../../types";
+
+interface FreelancerFiltersProps {
+  filters?: any;
+  onFilterChange?: (filters: any) => void;
+}
 
 const FreelancerFilters: React.FC<FreelancerFiltersProps> = ({
   filters,

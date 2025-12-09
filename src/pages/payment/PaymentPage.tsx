@@ -12,8 +12,8 @@ import {
   paymentService,
   PaymentMethodCode,
 } from "../../services/payment/paymentService";
-import { apiClient } from "../../services/apiClient";
-import { API_ENDPOINTS } from "../../config/api";
+// import { apiClient } from "../../services/apiClient"; // Commented - not needed for PayOS
+// import { API_ENDPOINTS } from "../../config/api"; // Commented - not needed for PayOS
 import { showSuccess, showError } from "../../utils";
 import type { PaymentBookingData } from "../../types";
 
@@ -23,8 +23,8 @@ const PaymentPage = () => {
   const bookingData = location.state?.bookingData as PaymentBookingData;
 
   const [paymentMethod, setPaymentMethod] = useState<
-    "vnpay" | "bank" | "wallet"
-  >("vnpay");
+    "payos" | "bank" | "wallet"
+  >("payos");
   const [cardData, setCardData] = useState({
     cardNumber: "",
     expiryDate: "",
@@ -46,9 +46,19 @@ const PaymentPage = () => {
   }
 
   const calculateTotal = () => {
+    // Priority 1: Use totalPrice from location.state (from booking API)
+    if (location.state?.totalPrice) {
+      return Number(location.state.totalPrice);
+    }
+
+    // Priority 2: Use totalPrice from bookingData
+    if (bookingData.totalPrice) {
+      return Number(bookingData.totalPrice);
+    }
+
+    // Priority 3: Fallback to ServiceManager calculation (for old bookings)
     const petSizes = bookingData.petInfo.map((pet) => pet.petSize);
 
-    // Handle both old (service) and new (serviceIds) format
     if (bookingData.serviceIds && bookingData.serviceIds.length > 0) {
       return ServiceManager.calculateMultiServiceTotalPrice(
         bookingData.serviceIds,
@@ -57,7 +67,6 @@ const PaymentPage = () => {
         bookingData.dateTime.recurringService
       );
     } else if (bookingData.service) {
-      // Backward compatibility
       return ServiceManager.calculateTotalPrice(
         bookingData.service,
         bookingData.petInfo.length,
@@ -78,22 +87,19 @@ const PaymentPage = () => {
     setIsProcessing(true);
 
     try {
-      const methodCode =
-        paymentMethod === "vnpay"
-          ? PaymentMethodCode.VNPAY
-          : PaymentMethodCode.MOMO;
-      const returnUrl =
-        methodCode === PaymentMethodCode.VNPAY
-          ? `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`
-          : `${window.location.origin}/payment-status`;
+      const methodCode = PaymentMethodCode.PAYOS;
+      const returnUrl = `${window.location.origin}/payment-status`;
+      // Old VNPay code:
+      // const methodCode = paymentMethod === "vnpay" ? PaymentMethodCode.VNPAY : PaymentMethodCode.MOMO;
+      // const returnUrl = methodCode === PaymentMethodCode.VNPAY
+      //   ? `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`
+      //   : `${window.location.origin}/payment-status`;
 
       const paymentRes = await paymentService.createPayment({
         bookingId: location.state?.bookingId,
         method: methodCode,
         returnUrl,
-        description: `Thanh toán dịch vụ thú cưng - tổng ${calculateTotal().toLocaleString(
-          "vi-VN"
-        )}₫`,
+        description: `DV thu cung`, // Tối đa 25 ký tự theo yêu cầu PayOS
       });
 
       const redirectUrl = paymentService.extractRedirectUrl(paymentRes);
@@ -108,26 +114,32 @@ const PaymentPage = () => {
         );
       }
 
-      if (redirectUrl) {
-        let invalid = false;
-        try {
-          const u = new URL(redirectUrl);
-          const tmn = u.searchParams.get("vnp_TmnCode");
-          const ret = u.searchParams.get("vnp_ReturnUrl");
-          if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
-          if (!ret || ret.toLowerCase() === "string") invalid = true;
-        } catch {
-          invalid = true;
-        }
-        if (invalid) {
-          showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
-          setIsProcessing(false);
-          return;
-        }
-        if (location.state?.bookingId) {
-          localStorage.setItem(`payment_url_${location.state.bookingId}`, redirectUrl);
-        }
+      // PayOS redirect - no validation needed
+      if (redirectUrl && location.state?.bookingId) {
+        localStorage.setItem(
+          `payment_url_${location.state.bookingId}`,
+          redirectUrl
+        );
       }
+
+      // Old VNPay validation code (commented):
+      // if (redirectUrl) {
+      //   let invalid = false;
+      //   try {
+      //     const u = new URL(redirectUrl);
+      //     const tmn = u.searchParams.get("vnp_TmnCode");
+      //     const ret = u.searchParams.get("vnp_ReturnUrl");
+      //     if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
+      //     if (!ret || ret.toLowerCase() === "string") invalid = true;
+      //   } catch {
+      //     invalid = true;
+      //   }
+      //   if (invalid) {
+      //     showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
+      //     setIsProcessing(false);
+      //     return;
+      //   }
+      // }
 
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -220,6 +232,7 @@ const PaymentPage = () => {
               bookingData={bookingData}
               onPayment={handlePayment}
               isProcessing={isProcessing}
+              totalPrice={calculateTotal()}
             />
           </div>
         </div>

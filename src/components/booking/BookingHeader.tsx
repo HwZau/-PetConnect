@@ -1,5 +1,8 @@
 import React from "react";
-import type { BookingHeaderProps } from "../../types";
+
+interface BookingHeaderProps {
+  selectedFreelancer?: any;
+}
 
 const BookingHeader: React.FC<BookingHeaderProps> = ({
   selectedFreelancer,

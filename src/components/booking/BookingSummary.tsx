@@ -1,6 +1,14 @@
 import React from "react";
 import { formatDate, getPickUpTimeLabel } from "../../utils";
-import type { BookingSummaryProps } from "../../types";
+
+interface BookingSummaryProps {
+  selectedFreelancer?: any;
+  selectedService?: string;
+  petInfo?: any[];
+  date?: any;
+  time?: any;
+  onSubmit?: () => void;
+}
 
 const BookingSummary: React.FC<BookingSummaryProps> = ({
   selectedFreelancer,

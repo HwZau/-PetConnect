@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/common/Navbar";
 import { PostCategory } from "../../types/domains/PostCategory";
 import CommunityHeroSection from "../../components/community/CommunityHeroSection";
@@ -7,6 +8,7 @@ import { FiPlay } from "react-icons/fi";
 import CommunityFeed from "../../components/community/CommunityFeed";
 import CommunitySidebar from "../../components/community/CommunitySidebar";
 import Footer from "../../components/common/Footer";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
 import { useScrollToTop } from "../../hooks";
 import postService from "../../services/postService";
 import useAuth from "../../hooks/useAuth";
@@ -16,17 +18,30 @@ import { showSuccess, showError } from "../../utils/toastUtils";
  * Lưu ý: định nghĩa kiểu Post và Comment ở đây phải trùng với
  * kiểu mà CommunityFeed.tsx đang dùng.
  */
-import type { Post as FeedPost, Comment as FeedComment } from "../../components/community/CommunityFeed";
+import type {
+  Post as FeedPost,
+  Comment as FeedComment,
+} from "../../components/community/CommunityFeed";
 import type { CreatePostApiPayload } from "../../services/postService";
-
 
 type Comment = FeedComment;
 // IMPORTANT: allow id to be string | number
 type Post = FeedPost;
 
 const CommunityPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   useScrollToTop();
   const [posts, setPosts] = useState<Post[]>([]);
+
+  // Check authentication
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isAuthenticated]);
 
   // Fetch posts from backend (API_ENDPOINTS.COMMUNITY.POSTS)
   useEffect(() => {
@@ -43,8 +58,9 @@ const CommunityPage: React.FC = () => {
 
         if (res.success && res.data) {
           // Keep id as string (don't coerce GUID to Number)
-          const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
-          
+          const defaultAvatar =
+            "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+
           // Helper function to create unique comment ID
           // const createUniqueCommentId = (postId: string | number, commentId?: string | number) => {
           //   return `${String(postId)}_${commentId || Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -53,27 +69,31 @@ const CommunityPage: React.FC = () => {
           const normalized = res.data.map((p) => ({
             id: String(p.id),
             author: p.author ?? {
-              name: 'Người dùng',
+              name: "Người dùng",
               avatar: defaultAvatar,
               isVerified: false,
-              title: 'Thành viên Pawnet'
+              title: "Thành viên Pawnet",
             },
             content: p.content,
             images: p.imageUrl ? [p.imageUrl] : [],
             timestamp: p.timestamp ?? new Date().toISOString(),
             likes: p.likes ?? 0,
-            comments: Array.isArray(p.comments) ? p.comments.map((c, index) => ({
-              id: c.id ? `comment-${String(p.id)}-${String(c.id)}` : `comment-${String(p.id)}-${index}`,
-              author: c.author || 'Người dùng',
-              content: c.content || '',
-              timestamp: c.timestamp || 'Vừa xong'
-            })) : [],
+            comments: Array.isArray(p.comments)
+              ? p.comments.map((c, index) => ({
+                  id: c.id
+                    ? `comment-${String(p.id)}-${String(c.id)}`
+                    : `comment-${String(p.id)}-${index}`,
+                  author: c.author || "Người dùng",
+                  content: c.content || "",
+                  timestamp: c.timestamp || "Vừa xong",
+                }))
+              : [],
             shares: p.shares ?? 0,
             views: p.views ?? 0,
             liked: false,
             postStatus: p.postStatus,
             postCategory: p.postCategory,
-            staffId: p.staffId
+            staffId: p.staffId,
           })) as Post[];
           setPosts(normalized);
         } else {
@@ -103,12 +123,13 @@ const CommunityPage: React.FC = () => {
     };
   }, []);
 
-  const { isAuthenticated } = useAuth();
-
-
-
   // newPost: author/caption/image from UI -> translate to API shape
-  const handleAddPost = async (newPost: { author: string; caption: string; image?: string; category: PostCategory }) => {
+  const handleAddPost = async (newPost: {
+    author: string;
+    caption: string;
+    image?: string;
+    category: PostCategory;
+  }) => {
     if (!isAuthenticated) {
       showError("Vui lòng đăng nhập để đăng bài");
       return;
@@ -116,7 +137,12 @@ const CommunityPage: React.FC = () => {
 
     // Local payload for UI
     const payloadForUI = {
-      author: { name: newPost.author, avatar: "https://cdn-icons-png.flaticon.com/512/847/847969.png", isVerified: false, title: "Thành viên Pawnet" },
+      author: {
+        name: newPost.author,
+        avatar: "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+        isVerified: false,
+        title: "Thành viên Pawnet",
+      },
       content: newPost.caption,
       images: newPost.image ? [newPost.image] : [],
       timestamp: new Date().toISOString(),
@@ -146,10 +172,14 @@ const CommunityPage: React.FC = () => {
     try {
       // Generate random UUID v4 for staffId
       function uuidv4() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+          /[xy]/g,
+          function (c) {
+            const r = (Math.random() * 16) | 0,
+              v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          }
+        );
       }
 
       const apiPayload: CreatePostApiPayload = {
@@ -158,20 +188,21 @@ const CommunityPage: React.FC = () => {
         imageUrl: newPost.image ?? "",
         postStatus: 0,
         postCategory: newPost.category,
-        staffId: uuidv4()
+        staffId: uuidv4(),
       };
 
       const res = await postService.createPost(apiPayload);
       if (res.success && res.data) {
         const sp = res.data;
-        const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+        const defaultAvatar =
+          "https://cdn-icons-png.flaticon.com/512/847/847969.png";
         const serverPost: Post = {
           id: String(sp.id),
-          author: { 
+          author: {
             name: newPost.author,
             avatar: sp.author?.avatar ?? defaultAvatar,
             isVerified: sp.author?.isVerified ?? false,
-            title: sp.author?.title ?? "Thành viên Pawnet"
+            title: sp.author?.title ?? "Thành viên Pawnet",
           },
           content: sp.content,
           images: sp.imageUrl ? [sp.imageUrl] : [],
@@ -185,7 +216,9 @@ const CommunityPage: React.FC = () => {
         setPosts((prev) => prev.map((p) => (p.id === tempId ? serverPost : p)));
         showSuccess("Đã đăng bài");
       } else {
-        showError(res.error || res.message || "Tạo bài thất bại, giữ bản local");
+        showError(
+          res.error || res.message || "Tạo bài thất bại, giữ bản local"
+        );
       }
     } catch (err) {
       console.error("create post failed", err);
@@ -200,8 +233,13 @@ const CommunityPage: React.FC = () => {
 
       {/* Page-level hero/title inserted between CommunityHeroSection and feed */}
       <div className="text-center mt-4">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Pet Freelancer Community</h1>
-        <p className="mt-2 text-sm md:text-base text-gray-500 max-w-2xl mx-auto">Kết nối với người trông thú cưng, người đặt thú cưng, người huấn luyện và những người nuôi thú cưng khác</p>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
+          Pet Freelancer Community
+        </h1>
+        <p className="mt-2 text-sm md:text-base text-gray-500 max-w-2xl mx-auto">
+          Kết nối với người trông thú cưng, người đặt thú cưng, người huấn luyện
+          và những người nuôi thú cưng khác
+        </p>
         <div className="mt-4 flex items-center justify-center gap-3">
           <button className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
             <FaPaw className="w-4 h-4" />
@@ -217,18 +255,26 @@ const CommunityPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
-            <CommunityFeed
-              posts={posts}
-              onAddPost={handleAddPost}
-            />
+            <CommunityFeed posts={posts} onAddPost={handleAddPost} />
           </div>
           <div className="lg:col-span-1">
-            <CommunitySidebar  />
+            <CommunitySidebar />
           </div>
         </div>
       </div>
 
       <Footer />
+
+      <ConfirmDialog
+        isOpen={showLoginModal}
+        title="Yêu cầu đăng nhập"
+        message="Bạn cần đăng nhập để truy cập cộng đồng và tương tác với các thành viên khác."
+        confirmText="Đăng nhập"
+        cancelText="Về trang chủ"
+        onConfirm={() => navigate("/login")}
+        onCancel={() => navigate("/")}
+        type="info"
+      />
     </div>
   );
 };

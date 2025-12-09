@@ -1,6 +1,11 @@
 import React, { useMemo } from "react";
-import type { DateTimeSelectionProps } from "../../types";
 import { getAllTimeSlots } from "../../utils";
+
+interface DateTimeSelectionProps {
+  dateTimeData?: any;
+  onDateTimeChange?: (field: string, value: string | boolean) => void;
+  errors?: Record<string, string>;
+}
 
 const DateTimeSelection: React.FC<DateTimeSelectionProps> = ({
   dateTimeData,

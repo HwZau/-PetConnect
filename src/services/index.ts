@@ -11,3 +11,7 @@ export { bookingService } from "./booking/bookingService";
 // Re-export mock profile services
 export * from "./Profile/User/mockUserService";
 export * from "./Profile/Freelancer/mockFreelancerService";
+
+// Profile service for API updates
+export { default as profileService } from "./Profile/profileService";
+export * from "./Profile/profileService";

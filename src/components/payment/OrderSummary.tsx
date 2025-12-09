@@ -14,12 +14,14 @@ interface OrderSummaryProps {
   bookingData: PaymentBookingData;
   onPayment: () => void;
   isProcessing: boolean;
+  totalPrice: number; // Total price from booking API
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
   bookingData,
   onPayment,
   isProcessing,
+  totalPrice,
 }) => {
   const getSingleServiceInfo = () => {
     if (bookingData.service) {
@@ -40,26 +42,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     }));
   };
 
-  const calculateTotal = () => {
-    const petSizes = bookingData.petInfo.map((p) => p.petSize);
-    if (bookingData.serviceIds && bookingData.serviceIds.length > 0) {
-      return ServiceManager.calculateMultiServiceTotalPrice(
-        bookingData.serviceIds,
-        bookingData.petInfo.length,
-        petSizes,
-        bookingData.dateTime.recurringService
-      );
-    }
-    if (bookingData.service) {
-      return ServiceManager.calculateTotalPrice(
-        bookingData.service,
-        bookingData.petInfo.length,
-        petSizes,
-        bookingData.dateTime.recurringService
-      );
-    }
-    return 0;
-  };
+  // Removed calculateTotal - using totalPrice from API instead
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -146,21 +129,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         ))}
       </div>
 
-      {/* Price Breakdown */}
-      <div className="border-t pt-4 space-y-3">
-        <div className="flex justify-between">
-          <span>Tạm tính</span>
-          <span>{formatPrice(calculateTotal())}</span>
-        </div>
-        {bookingData.dateTime.recurringService && (
-          <div className="flex justify-between text-green-600">
-            <span>Giảm giá dịch vụ định kỳ</span>
-            <span>-10%</span>
-          </div>
-        )}
-        <div className="flex justify-between font-semibold text-lg border-t pt-3">
+      {/* Price Total */}
+      <div className="border-t pt-4">
+        <div className="flex justify-between font-semibold text-xl">
           <span>Tổng cộng</span>
-          <span className="text-blue-600">{formatPrice(calculateTotal())}</span>
+          <span className="text-blue-600">{formatPrice(totalPrice)}</span>
         </div>
       </div>
 

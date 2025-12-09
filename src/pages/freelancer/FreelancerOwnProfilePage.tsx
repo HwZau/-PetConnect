@@ -34,9 +34,9 @@ import ConfirmDialog from "../../components/common/ConfirmDialog";
 
 interface EditFormData {
   name: string;
-  phone: string;
-  location: string;
-  bio: string;
+  phoneNumber: string;
+  address: string;
+  avatarUrl: string;
 }
 
 interface Customer {
@@ -66,9 +66,9 @@ const FreelancerOwnProfilePage = () => {
   );
   const [editForm, setEditForm] = useState<EditFormData>({
     name: "",
-    phone: "",
-    location: "Hồ Chí Minh",
-    bio: "Chuyên gia chăm sóc thú cưng với nhiều năm kinh nghiệm.",
+    phoneNumber: "",
+    address: "Hồ Chí Minh",
+    avatarUrl: "",
   });
 
   useScrollToTop();
@@ -100,9 +100,9 @@ const FreelancerOwnProfilePage = () => {
         // Load edit form data from user
         setEditForm({
           name: user?.name || "",
-          phone: user?.phoneNumber || "",
-          location: user?.address || "Hồ Chí Minh",
-          bio: "Chuyên gia chăm sóc thú cưng với nhiều năm kinh nghiệm.",
+          phoneNumber: user?.phoneNumber || "",
+          address: user?.address || "Hồ Chí Minh",
+          avatarUrl: user?.avatarUrl || "",
         });
       } catch (error) {
         console.error("Failed to load user data:", error);
@@ -408,7 +408,7 @@ const FreelancerOwnProfilePage = () => {
                 {/* Tab Content */}
                 {activeTab === "profile" && (
                   <ProfileMainContent
-                    bio={editForm.bio}
+                    bio="Chuyên gia chăm sóc thú cưng với nhiều năm kinh nghiệm."
                     onEdit={() => setShowEditModal(true)}
                   />
                 )}

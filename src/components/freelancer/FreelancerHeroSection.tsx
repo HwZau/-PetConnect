@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import type { FreelancerHeroSectionProps } from "../../types";
+
+interface FreelancerHeroSectionProps {
+  onSearch?: (filters: { searchTerm?: string }) => void;
+}
 
 const FreelancerHeroSection: React.FC<FreelancerHeroSectionProps> = ({
   onSearch,
