@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { isAdminRole } from "../../utils/authUtils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks";
 import {
@@ -26,7 +27,7 @@ import { showError } from "../../utils";
 const FreelancerProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [freelancer, setFreelancer] = useState<Freelancer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,6 +130,10 @@ const FreelancerProfilePage: React.FC = () => {
 
   // Load freelancer profile data
   useEffect(() => {
+    if (user && isAdminRole(user.role)) {
+      window.location.replace("/admin/dashboard");
+      return;
+    }
     const loadFreelancerProfile = async () => {
       if (!id) return;
 
@@ -151,9 +156,8 @@ const FreelancerProfilePage: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadFreelancerProfile();
-  }, [id]);
+  }, [id, user]);
 
   const handleBookService = () => {
     // Require login to book service

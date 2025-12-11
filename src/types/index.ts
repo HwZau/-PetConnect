@@ -82,6 +82,7 @@ export interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   refreshUser?: () => Promise<void>;
+  isLoading?: boolean;
 }
 
 export interface AuthState {

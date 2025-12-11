@@ -60,99 +60,113 @@ const CommunitySidebar: React.FC = () => {
     <>
       <div className="space-y-6">
         {/* Trending Topics */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <AiOutlineFire className="w-5 h-5 text-orange-500" />
-            <h3 className="text-lg font-semibold text-gray-900">Chủ đề hot</h3>
-          </div>
-          {trendingTopics.map((t) => (
-            <div
-              key={t.id}
-              onClick={() => showSuccess(`📢 Mở chủ đề: ${t.title}`)}
-              className="flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg px-2 cursor-pointer"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-800">{t.title}</p>
-                <p className="text-xs text-gray-500">{t.posts} bài viết</p>
-              </div>
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-2 mb-5">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <AiOutlineFire className="w-5 h-5 text-orange-600" />
             </div>
-          ))}
+            <h3 className="text-lg font-bold text-gray-900">Chủ đề Hot</h3>
+          </div>
+          <div className="space-y-2">
+            {trendingTopics.map((t, idx) => (
+              <div
+                key={t.id}
+                onClick={() => showSuccess(`📢 Mở chủ đề: ${t.title}`)}
+                className="group relative flex items-center justify-between py-3 px-3 hover:bg-orange-50 rounded-xl cursor-pointer transition-all"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-orange-500">#{idx + 1}</span>
+                    <p className="text-sm font-semibold text-gray-800 group-hover:text-orange-600">{t.title}</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{t.posts} bài viết</p>
+                </div>
+                <div className="text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">→</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Active Members */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Thành viên hoạt động
-          </h3>
-          {activeMembers.map((m) => (
-            <div
-              key={m.id}
-              onClick={() => showSuccess(`👤 Xem hồ sơ: ${m.name}`)}
-              className="flex items-center space-x-3 py-2 hover:bg-gray-50 rounded-lg px-2 cursor-pointer"
-            >
-              <div className="relative">
-                <img
-                  src={m.avatar}
-                  alt={m.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                {m.isOnline && (
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
-                )}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+          <h3 className="text-lg font-bold text-gray-900 mb-5">👥 Thành viên hoạt động</h3>
+          <div className="space-y-3">
+            {activeMembers.map((m) => (
+              <div
+                key={m.id}
+                onClick={() => showSuccess(`👤 Xem hồ sơ: ${m.name}`)}
+                className="group flex items-center space-x-3 p-3 hover:bg-blue-50 rounded-xl cursor-pointer transition-all"
+              >
+                <div className="relative">
+                  <img
+                    src={m.avatar}
+                    alt={m.name}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-gray-200 group-hover:border-blue-400"
+                  />
+                  {m.isOnline && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-3 border-white shadow-sm"></div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">{m.name}</p>
+                  <p className="text-xs text-blue-600 font-medium">{m.specialty}</p>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${m.isOnline ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {m.isOnline ? 'Hoạt động' : 'Ngoại tuyến'}
+                </span>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800">{m.name}</p>
-                <p className="text-xs text-orange-600">{m.specialty}</p>
-              </div>
-            </div>
-          ))}
-          <button className="w-full mt-4 text-sm text-orange-600 hover:text-orange-700 font-medium">
-            Xem tất cả thành viên
+            ))}
+          </div>
+          <button className="w-full mt-4 text-sm text-orange-600 hover:text-orange-700 font-bold transition-colors py-2 hover:bg-orange-50 rounded-lg">
+            Xem tất cả thành viên →
           </button>
         </div>
 
         {/* Upcoming Events */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <AiOutlineCalendar className="w-5 h-5 text-orange-500" />
-            <h3 className="text-lg font-semibold text-gray-900">
-              Sự kiện sắp tới
-            </h3>
-          </div>
-          {upcomingEvents.map((e) => (
-            <div
-              key={e.id}
-              onClick={() => showSuccess(`📅 Chi tiết sự kiện: ${e.title}`)}
-              className="border border-gray-200 rounded-lg p-4 hover:border-orange-300 cursor-pointer mb-3"
-            >
-              <h4 className="text-sm font-semibold text-gray-800 mb-1">
-                {e.title}
-              </h4>
-              <p className="text-xs text-gray-500">
-                {e.date} • {e.time} ({e.participants} người tham gia)
-              </p>
+        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-2 mb-5">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <AiOutlineCalendar className="w-5 h-5 text-purple-600" />
             </div>
-          ))}
+            <h3 className="text-lg font-bold text-gray-900">Sự kiện sắp tới</h3>
+          </div>
+          <div className="space-y-3">
+            {upcomingEvents.map((e) => (
+              <div
+                key={e.id}
+                onClick={() => showSuccess(`📅 Chi tiết sự kiện: ${e.title}`)}
+                className="border-2 border-purple-200 rounded-xl p-4 hover:border-purple-400 hover:bg-purple-50 cursor-pointer transition-all group"
+              >
+                <h4 className="text-sm font-bold text-gray-800 mb-2 group-hover:text-purple-700">{e.title}</h4>
+                <div className="flex items-center gap-4 text-xs text-gray-600">
+                  <span>📅 {e.date}</span>
+                  <span>🕒 {e.time}</span>
+                  <span className="ml-auto font-semibold text-purple-600">{e.participants} 👥</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Stats */}
-        <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl p-6 text-white">
-          <div className="flex items-center space-x-2 mb-3">
-            <AiOutlineStar className="w-5 h-5" />
-            <h3 className="text-lg font-semibold">Thống kê cộng đồng</h3>
+        <div className="bg-gradient-to-br from-orange-500 via-orange-400 to-amber-500 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+          <div className="flex items-center space-x-2 mb-4">
+            <AiOutlineStar className="w-6 h-6" />
+            <h3 className="text-lg font-bold">Thống kê cộng đồng</h3>
           </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Tổng thành viên</span>
-              <span className="font-bold">2,547</span>
+          <div className="space-y-3 text-orange-500 text-sm">
+            <div className="flex justify-between items-center bg-white bg-opacity-20 p-3 rounded-lg backdrop-blur">
+              <span className="font-medium">Tổng thành viên</span>
+              <span className="font-bold text-lg">2,547</span>
             </div>
-            <div className="flex justify-between">
-              <span>Bài viết hôm nay</span>
-              <span className="font-bold">42</span>
+            <div className="flex justify-between items-center bg-white bg-opacity-20 p-3 rounded-lg backdrop-blur">
+              <span className="font-medium">Bài viết hôm nay</span>
+              <span className="font-medium">Bài viết hôm nay</span>
+              <span className="font-bold text-lg">42</span>
             </div>
-            <div className="flex justify-between">
-              <span>Freelancer online</span>
-              <span className="font-bold">156</span>
+            <div className="flex justify-between items-center bg-white bg-opacity-20 p-3 rounded-lg backdrop-blur">
+              <span className="font-medium">Thảo luận hoạt động</span>
+              <span className="font-bold text-lg">156</span>
             </div>
           </div>
         </div>

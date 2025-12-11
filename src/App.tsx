@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy, useContext } from "react";
 import { UserProvider, UserContext } from "./contexts/UserContext";
 import PageLoader from "./components/common/PageLoader";
+import { isAdminRole } from "./utils/authUtils";
 import DashboardPage from "./pages/admin/DashboardPage";
 import FreelancersPage from "./pages/admin/FreelancersPage";
 import CustomersPage from "./pages/admin/CustomersPage";
@@ -35,7 +36,13 @@ const FreelancerProfilePage = lazy(
 
 // Routes component that uses UserContext
 const AppRoutes = () => {
-  const { user } = useContext(UserContext);
+  const context = useContext(UserContext);
+  const { user, isLoading } = context || {};
+
+  // While loading initial user state, show loading screen
+  if (isLoading) {
+    return <PageLoader text="Đang tải trang..." />;
+  }
 
   return (
     <Suspense fallback={<PageLoader text="Đang tải trang..." />}>
@@ -64,29 +71,20 @@ const AppRoutes = () => {
           element={user ? <BookingPage /> : <Navigate to="/login" />}
         />
 
-          {/* 🛠️ Admin routes */}
-          <Route path="/admin/*" element={<AdminLayout />}>
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="freelancers" element={<FreelancersPage />} />
-            <Route path="customers" element={<CustomersPage />} />
-            <Route path="jobs" element={<JobsPage />} />
-            <Route path="payments" element={<PaymentsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-
-        {/* 🛠️ Admin routes neu co usecontext */}
-        {/* <Route
-  path="/admin/*"
-  element={
-    user?.role === "admin" ? <AdminLayout /> : <Navigate to="/" />
-  }
->
-  <Route index element={<DashboardPage />} />
-  <Route path="freelancers" element={<FreelancersPage />} />
-  <Route path="customers" element={<CustomersPage />} />
-  <Route path="jobs" element={<JobsPage />} />
-  <Route path="payments" element={<PaymentsPage />} />
-</Route> */}
+        {/* 🛡️ Admin routes - only allow admin role */}
+        <Route
+          path="/admin/*"
+          element={
+            isAdminRole(user?.role) ? <AdminLayout /> : <Navigate to="/" />
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="freelancers" element={<FreelancersPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="jobs" element={<JobsPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
 
         {/* 404 - Not Found */}
         <Route
@@ -106,11 +104,11 @@ function App() {
   return (
     <UserProvider>
       <SettingsProvider >
-         <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
       </SettingsProvider>
-     
+
     </UserProvider>
   );
 }

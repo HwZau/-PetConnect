@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isAdminRole } from "../../utils/authUtils";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "../../utils";
@@ -105,8 +106,13 @@ const UserProfilePage = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
+      return;
     }
-  }, [isAuthenticated, navigate]);
+    if (user && isAdminRole(user.role)) {
+      window.location.replace("/admin/dashboard");
+      return;
+    }
+  }, [isAuthenticated, navigate, user]);
 
   useEffect(() => {
     const loadUserData = async () => {
