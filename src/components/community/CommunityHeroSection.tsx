@@ -34,7 +34,7 @@ const CommunityHeroSection: React.FC = () => {
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="absolute text-2xl opacity-20 animate-float"
+            className="absolute text-3xl opacity-20 animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -47,55 +47,53 @@ const CommunityHeroSection: React.FC = () => {
         ))}
       </div>
 
-      <div className="container mx-auto px-6 lg:px-16 py-2 relative z-10">
-        <div className="flex flex-col lg:flex-row-reverse items-center justify-between gap-4">
+      <div className="container mx-auto px-6 lg:px-16 py-12 relative z-10">
+        <div className="flex flex-col lg:flex-row-reverse items-center justify-between gap-8">
           {/* Right Content - Social Feed Preview */}
           <div className="flex-1 w-full max-w-[450px]">
-            <div className="bg-white rounded-3xl shadow-2xl p-3 space-y-2 border-4 border-teal-100">
+            <div className="bg-white rounded-3xl shadow-2xl p-4 space-y-3 border-4 border-teal-100 hover:shadow-3xl transition-shadow">
               {/* Header */}
-              <div className="flex items-center justify-between pb-2 border-b-2 border-gray-100">
-                <h3 className="text-lg font-black text-gray-800">
-                  Bảng Tin Cộng Đồng
+              <div className="flex items-center justify-between pb-3 border-b-2 border-gray-100">
+                <h3 className="text-xl font-black text-gray-800">
+                  📱 Bảng Tin Cộng Đồng
                 </h3>
-                <div className="flex gap-1.5">
-                  <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                <div className="flex gap-2">
+                  <div className="w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse"></div>
                   <div
-                    className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"
+                    className="w-2.5 h-2.5 bg-yellow-400 rounded-full animate-pulse"
                     style={{ animationDelay: "0.2s" }}
                   ></div>
                   <div
-                    className="w-2 h-2 bg-green-400 rounded-full animate-pulse"
+                    className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"
                     style={{ animationDelay: "0.4s" }}
                   ></div>
                 </div>
               </div>
 
               {/* Mock Posts */}
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
+              <div className="space-y-3 max-h-[320px] overflow-y-auto scrollbar-hide">
                 {/* Post 1 */}
-                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-2 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center gap-2 mb-1.5">
+                <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl p-3 hover:shadow-lg transition-all border-l-4 border-teal-400">
+                  <div className="flex items-center gap-2 mb-2">
                     <img
                       src="https://images.unsplash.com/photo-1544568100-847a948585b9?w=100&h=100&fit=crop"
                       alt="Người dùng"
-                      className="w-9 h-9 rounded-full object-cover border-2 border-teal-300"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-teal-300"
                     />
                     <div>
-                      <div className="font-bold text-gray-800 text-xs">
-                        Yêu Boss 🐕
-                      </div>
+                      <div className="font-bold text-gray-800 text-sm">Yêu Boss 🐕</div>
                       <div className="text-xs text-gray-500">2 giờ trước</div>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-700 mb-1.5">
+                  <p className="text-sm text-gray-700 mb-2 font-medium">
                     Vừa nhận nuôi em này! Quyết định tốt nhất đời! 💕
                   </p>
                   <img
                     src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop"
                     alt="Bài đăng"
-                    className="w-full h-24 object-cover rounded-xl"
+                    className="w-full h-28 object-cover rounded-xl shadow-md"
                   />
-                  <div className="flex gap-2.5 mt-1.5 text-xs text-gray-600">
+                  <div className="flex gap-3 mt-2 text-xs text-gray-600 font-semibold">
                     <span>❤️ 234</span>
                     <span>💬 45</span>
                     <span>🔄 12</span>
@@ -103,29 +101,27 @@ const CommunityHeroSection: React.FC = () => {
                 </div>
 
                 {/* Post 2 */}
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-2.5 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center gap-2 mb-1.5">
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-3 hover:shadow-lg transition-all border-l-4 border-emerald-400">
+                  <div className="flex items-center gap-2 mb-2">
                     <img
                       src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=100&h=100&fit=crop"
                       alt="Người dùng"
-                      className="w-9 h-9 rounded-full object-cover border-2 border-emerald-300"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-emerald-300"
                     />
                     <div>
-                      <div className="font-bold text-gray-800 text-xs">
-                        Sen Mèo 😺
-                      </div>
+                      <div className="font-bold text-gray-800 text-sm">Sen Mèo 😺</div>
                       <div className="text-xs text-gray-500">5 giờ trước</div>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-700 mb-1.5">
+                  <p className="text-sm text-gray-700 mb-2 font-medium">
                     Ôm ấp buổi sáng là tuyệt nhất! Ai đồng ý không? 🥰
                   </p>
                   <img
                     src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=300&fit=crop"
                     alt="Bài đăng"
-                    className="w-full h-24 object-cover rounded-xl"
+                    className="w-full h-28 object-cover rounded-xl shadow-md"
                   />
-                  <div className="flex gap-2.5 mt-1.5 text-xs text-gray-600">
+                  <div className="flex gap-3 mt-2 text-xs text-gray-600 font-semibold">
                     <span>❤️ 189</span>
                     <span>💬 32</span>
                     <span>🔄 8</span>
@@ -136,100 +132,94 @@ const CommunityHeroSection: React.FC = () => {
           </div>
 
           {/* Left Content */}
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-6">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-100 to-cyan-100 px-3 py-1 rounded-full border-2 border-teal-200">
-              <span className="text-lg animate-bounce">💚</span>
-              <span className="text-teal-800 font-bold text-xs">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-100 to-cyan-100 px-4 py-2 rounded-full border-2 border-teal-300 shadow-sm">
+              <span className="text-xl animate-bounce">💚</span>
+              <span className="text-teal-800 font-bold text-sm">
                 Tham Gia 10K+ Thành Viên
               </span>
             </div>
 
             {/* Main Heading */}
-            <div className="space-y-1">
-              <h1 className="text-5xl lg:text-5xl xl:text-6xl font-black leading-tight">
-                <span className="text-gray-900">Chia Sẻ </span>
-
-                <span className="text-gray-900">Kết Nối.</span>
+            <div className="space-y-4">
+              <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black leading-tight">
+                <span className="text-gray-900">Chia Sẻ. </span>
                 <br />
-                <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                  Gắn Kết.
+                <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                  Kết Nối. Gắn Kết.
                 </span>
               </h1>
-              <p className="text-base lg:text-lg text-gray-700 leading-relaxed max-w-xl font-medium">
-                Tham gia cộng đồng yêu thú cưng hỗ trợ nhất, nơi mọi câu chuyện
-                đều quan trọng và mọi dấu chân đều được trân trọng.
+              <p className="text-lg text-gray-700 leading-relaxed max-w-xl font-medium">
+                Tham gia cộng đồng yêu thú cưng hỗ trợ nhất, nơi mọi câu chuyện đều quan trọng và mọi dấu chân đều được trân trọng. 🐾
               </p>
             </div>
 
             {/* Community Stats */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <div className="text-2xl font-black text-teal-600">10K+</div>
-                <div className="text-xs text-gray-600 font-semibold">
-                  Thành Viên
-                </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-teal-100 hover:shadow-lg transition-all text-center">
+                <div className="text-3xl font-black text-teal-600">10K+</div>
+                <div className="text-sm text-gray-600 font-bold mt-1">Thành Viên</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-emerald-600">50K+</div>
-                <div className="text-xs text-gray-600 font-semibold">
-                  Bài Viết
-                </div>
+              <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-emerald-100 hover:shadow-lg transition-all text-center">
+                <div className="text-3xl font-black text-emerald-600">50K+</div>
+                <div className="text-sm text-gray-600 font-bold mt-1">Bài Viết</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-black text-cyan-600">24/7</div>
-                <div className="text-xs text-gray-600 font-semibold">
-                  Hoạt Động
-                </div>
+              <div className="bg-white rounded-2xl p-4 shadow-md border-2 border-cyan-100 hover:shadow-lg transition-all text-center">
+                <div className="text-3xl font-black text-cyan-600">24/7</div>
+                <div className="text-sm text-gray-600 font-bold mt-1">Hoạt Động</div>
               </div>
             </div>
 
             {/* Feature List */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-700">
-                <span className="text-lg">📸</span>
-                <span className="font-semibold text-xs">
-                  Chia sẻ khoảnh khắc boss
-                </span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-gray-700 bg-white p-3 rounded-xl border-2 border-teal-100 hover:border-teal-300 transition-all">
+                <span className="text-2xl">📸</span>
+                <span className="font-bold text-sm">Chia sẻ khoảnh khắc boss</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <span className="text-lg">💡</span>
-                <span className="font-semibold text-xs">
-                  Nhận lời khuyên từ chuyên gia
-                </span>
+              <div className="flex items-center gap-3 text-gray-700 bg-white p-3 rounded-xl border-2 border-emerald-100 hover:border-emerald-300 transition-all">
+                <span className="text-2xl">💡</span>
+                <span className="font-bold text-sm">Nhận lời khuyên từ chuyên gia</span>
               </div>
-              <div className="flex items-center gap-2 text-gray-700">
-                <span className="text-lg">🤝</span>
-                <span className="font-semibold text-xs">Kết bạn suốt đời</span>
+              <div className="flex items-center gap-3 text-gray-700 bg-white p-3 rounded-xl border-2 border-cyan-100 hover:border-cyan-300 transition-all">
+                <span className="text-2xl">🤝</span>
+                <span className="font-bold text-sm">Kết bạn suốt đời</span>
               </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-4 pt-2">
               <button
                 onClick={handleJoinCommunity}
                 disabled={isAuthenticated}
                 className={`group ${
                   isAuthenticated 
-                    ? "bg-gray-400 cursor-not-allowed opacity-50" 
-                    : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
-                } text-white font-black px-5 py-2 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl`}
+                    ? "bg-gradient-to-r from-green-400 to-emerald-500 cursor-default" 
+                    : "bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 hover:shadow-lg"
+                } text-white font-black px-6 py-3 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg`}
               >
-                <span className="flex items-center gap-2 text-xs">
-                  <AiOutlineUserAdd className="w-4 h-4" />
-                  {isAuthenticated ? "Đã Tham Gia" : "Tham Gia Ngay"}
-                  {!isAuthenticated && (
-                    <span className="group-hover:translate-x-1 transition-transform">
-                      →
-                    </span>
+                <span className="flex items-center gap-2 text-sm">
+                  {isAuthenticated ? (
+                    <>
+                     
+                      <span>Đã Tham Gia Cộng Đồng</span>
+                    </>
+                  ) : (
+                    <>
+                      <AiOutlineUserAdd className="w-5 h-5" />
+                      <span>Tham Gia Ngay</span>
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </>
                   )}
                 </span>
               </button>
               <button
                 onClick={handleShareNow}
-                className="bg-white hover:bg-gray-50 text-gray-900 font-bold px-5 py-2 rounded-2xl transition-all duration-300 shadow-lg border-2 border-gray-200 text-xs"
+                className="group bg-white hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 text-gray-900 font-bold px-6 py-3 rounded-2xl transition-all duration-300 shadow-lg border-2 border-gray-200 hover:border-orange-300 text-sm flex items-center gap-2"
               >
-                Khám Phá
+                
+                Đi tới bảng tin
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
               </button>
             </div>
           </div>

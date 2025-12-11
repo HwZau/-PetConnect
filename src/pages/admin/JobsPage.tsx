@@ -1,8 +1,7 @@
-// file: JobsPage.tsx
+// file: JobsPage.tsx - Fixed version without mock data and duplicate imports
 import React, { useState } from "react";
-// Đã loại bỏ AdminHeader/AdminSidebar để trang hoạt động độc lập
-import StatCard from "../../components/admin/StatCard"; // Sử dụng StatCard chính thức
-import JobCard from "../../components/admin/JobCard"; // Sử dụng JobCard chi tiết
+import StatCard from "../../components/admin/StatCard";
+import JobCard from "../../components/admin/JobCard";
 import {
   AiOutlineProfile,
   AiOutlineHourglass,
@@ -15,10 +14,11 @@ import { useSearch } from "../../contexts/SearchContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import JobModal from "../../components/admin/modal/JobModal";
 import type { JobFormData } from "../../components/admin/modal/JobModal";
+import { useAdminBookings } from "../../hooks/useAdmin";
 
 const ITEMS_PER_PAGE = 6;
 
-// Mock data constants
+// Mock data constants for dropdowns only
 const MOCK_SERVICES = [
   { id: "grooming", name: "Grooming", price: 700000 },
   { id: "training", name: "Training", price: 1200000 },
@@ -26,201 +26,69 @@ const MOCK_SERVICES = [
   { id: "medical", name: "Medical Care", price: 850000 },
 ];
 
-// Định nghĩa kiểu dữ liệu cho job
-type JobStatus =
-  | "Pending"
-  | "Assigned"
-  | "In Progress"
-  | "Completed"
-  | "Cancelled";
-interface Job {
-  id: number;
-  title: string;
-  customer: string;
-  pet: string;
+// Định nghĩa kiểu dữ liệu cho filter
+type JobFilter = {
+  status: string;
+  type: string;
+  petType: string;
   freelancer: string;
-  time: string;
-  location: string;
-  status: JobStatus;
-  price: string;
-  type: string; // Loại dịch vụ
-  petType: string; // Loại thú cưng (Dog/Cat/Other)
-  createdDate: string; // Ngày tạo cho bộ lọc
-  region: string; // Khu vực cho bộ lọc
-}
-
-// MOCK DATA ĐÃ CẬP NHẬT ĐẦY ĐỦ
-const allJobs: Job[] = [
-  {
-    id: 1,
-    title: "Chăm Sóc Tai Nhỏ - Buddy",
-    customer: "Nguyễn Thị Lan Anh",
-    pet: "Chó Golden",
-    freelancer: "Chưa phân công",
-    time: "10:00, 10/10",
-    location: "Quận 1, TP.HCM",
-    status: "Pending",
-    price: "700,000₫",
-    type: "Grooming",
-    petType: "Dog",
-    createdDate: "10/10/2025",
-    region: "TP.HCM",
-  },
-  {
-    id: 2,
-    title: "Tắm Rửa & Cắt Tỉa - Mimi",
-    customer: "Trần Văn Minh",
-    pet: "Mèo Ba Tư",
-    freelancer: "Nguyễn Thị Lan",
-    time: "14:00, 09/10",
-    location: "Quận Ba Đình, Hà Nội",
-    status: "Completed",
-    price: "900,000₫",
-    type: "Grooming",
-    petType: "Cat",
-    createdDate: "09/10/2025",
-    region: "Hà Nội",
-  },
-  {
-    id: 3,
-    title: "Huấn luyện cơ bản - Rex",
-    customer: "Võ Thị Mai",
-    pet: "Chó Alaska",
-    freelancer: "Trần Văn Minh",
-    time: "17:00, 11/10",
-    location: "Quận 1, TP.HCM",
-    status: "In Progress",
-    price: "1,200,000₫",
-    type: "Training",
-    petType: "Dog",
-    createdDate: "11/10/2025",
-    region: "TP.HCM",
-  },
-  {
-    id: 4,
-    title: "Dịch vụ Sitter 3 ngày - Kitty",
-    customer: "Phạm Văn Lợi",
-    pet: "Mèo Anh",
-    freelancer: "Ngô Hữu Trí",
-    time: "13/10 - 15/10",
-    location: "Quận Hải Châu, Đà Nẵng",
-    status: "Assigned",
-    price: "1,500,000₫",
-    type: "Sitting",
-    petType: "Cat",
-    createdDate: "13/10/2025",
-    region: "Đà Nẵng",
-  },
-  {
-    id: 5,
-    title: "Tắm rửa & Chải lông - Max",
-    customer: "Đặng Tiến Dũng",
-    pet: "Chó Husky",
-    freelancer: "Chưa phân công",
-    time: "09:00, 14/10",
-    location: "Quận Ba Đình, Hà Nội",
-    status: "Pending",
-    price: "850,000₫",
-    type: "Grooming",
-    petType: "Dog",
-    createdDate: "14/10/2025",
-    region: "Hà Nội",
-  },
-  {
-    id: 6,
-    title: "Chăm sóc lông mềm - Bella",
-    customer: "Trịnh Quang Hùng",
-    pet: "Mèo Xiêm",
-    freelancer: "Nguyễn Thị Lan",
-    time: "11:00, 05/10",
-    location: "Quận 1, TP.HCM",
-    status: "Completed",
-    price: "500,000₫",
-    type: "Grooming",
-    petType: "Cat",
-    createdDate: "05/10/2025",
-    region: "TP.HCM",
-  },
-  {
-    id: 7,
-    title: "Chăm sóc lông dài - Gấu",
-    customer: "Bùi Thị Yến",
-    pet: "Mèo Ragdoll",
-    freelancer: "Trần Văn Minh",
-    time: "16:00, 15/10",
-    location: "Quận Ba Đình, Hà Nội",
-    status: "In Progress",
-    price: "1,100,000₫",
-    type: "Grooming",
-    petType: "Cat",
-    createdDate: "15/10/2025",
-    region: "Hà Nội",
-  },
-  {
-    id: 8,
-    title: "Huấn luyện nâng cao - Rex",
-    customer: "Ngô Văn Phát",
-    pet: "Chó Poodle",
-    freelancer: "Nguyễn Thị Lan",
-    time: "18:00, 16/10",
-    location: "Quận Hải Châu, Đà Nẵng",
-    status: "Assigned",
-    price: "300,000₫",
-    type: "Training",
-    petType: "Dog",
-    createdDate: "16/10/2025",
-    region: "Đà Nẵng",
-  },
-  {
-    id: 9,
-    title: "Massage trị liệu - Rex",
-    customer: "Phạm Văn Lợi",
-    pet: "Chó Alaska",
-    freelancer: "Ngô Hữu Trí",
-    time: "10:30, 17/10",
-    location: "Quận 1, TP.HCM",
-    status: "Cancelled",
-    price: "2,000,000₫",
-    type: "Medical",
-    petType: "Dog",
-    createdDate: "17/10/2025",
-    region: "TP.HCM",
-  },
-  {
-    id: 10,
-    title: "Cắt móng & Vệ sinh tai",
-    customer: "Nguyễn Thị Lan Anh",
-    pet: "Chó Golden",
-    freelancer: "Trần Văn Minh",
-    time: "14:30, 18/10",
-    location: "Quận Ba Đình, Hà Nội",
-    status: "Pending",
-    price: "400,000₫",
-    type: "Grooming",
-    petType: "Dog",
-    createdDate: "18/10/2025",
-    region: "Hà Nội",
-  },
-];
+  createdDate: string;
+  region: string;
+};
 
 const JobsPage: React.FC = () => {
-  // Kiểu cho bộ lọc trang Jobs
-  type JobFilter = {
-    status: string;
-    type: string;
-    petType: string;
-    freelancer: string;
-    createdDate: string;
-    region: string;
-  };
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { theme } = useSettings();
+  const { bookings, loading, error, fetchBookings, createBooking } = useAdminBookings();
 
-  const handleCreateJob = (data: JobFormData) => {
+  // Mock data for dropdowns
+  const mockCustomers = [
+    { id: "cust1", name: "Nguyễn Thị Lan Anh" },
+    { id: "cust2", name: "Trần Văn Minh" },
+    { id: "cust3", name: "Võ Thị Mai" },
+  ];
+
+  const mockFreelancers = [
+    { id: "freelancer1", name: "Ngô Hữu Trí" },
+    { id: "freelancer2", name: "Nguyễn Thị Lan" },
+    { id: "freelancer3", name: "Trần Văn Minh" },
+  ];
+
+  // Fetch bookings on mount
+  React.useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  const handleCreateJob = async (data: JobFormData) => {
     console.log("Creating job:", data);
-    setIsModalOpen(false);
-    // TODO: Implement job creation
+
+    // Map form data to API parameters
+    const result = await createBooking({
+      title: data.title,
+      customerId: data.customer,
+      customer: data.customer,
+      petId: data.pet,
+      pet: data.pet,
+      freelancerId: data.freelancer,
+      freelancer: data.freelancer,
+      serviceId: data.serviceType,
+      service: data.serviceType,
+      scheduledDate: data.date,
+      time: data.time,
+      location: data.location,
+      region: "Unknown",
+      price: typeof data.price === "string" ? parseFloat(data.price) : data.price || 0,
+      notes: data.note,
+      createdDate: new Date().toISOString(),
+    });
+
+    if (result.success) {
+      setIsModalOpen(false);
+      alert("Công việc tạo thành công!");
+      await fetchBookings();
+    } else {
+      alert("Lỗi: " + (result.error || "Không thể tạo công việc"));
+    }
   };
 
   const [filter, setFilter] = useState<JobFilter>({
@@ -234,27 +102,38 @@ const JobsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { searchQuery } = useSearch();
 
-  // LOGIC LỌC
-  const filteredJobs = allJobs.filter((job) => {
-    // Lọc theo Status
-    if (filter.status !== "All" && job.status !== filter.status) return false;
-    // Lọc theo Loại Dịch Vụ
-    if (filter.type !== "All" && job.type !== filter.type) return false;
-    // Lọc theo Loại Thú Cưng
-    if (filter.petType !== "All" && job.petType !== filter.petType)
-      return false;
-    // Lọc theo Freelancer
-    if (filter.freelancer !== "All" && job.freelancer !== filter.freelancer)
-      return false;
-    // Lọc theo Khu Vực
-    if (filter.region !== "All" && job.region !== filter.region) return false;
-    // Bỏ qua lọc Ngày Tạo (createdDate) vì chỉ là mock data
+  // LOGIC LỌC - Use API data from bookings hook
+  const filteredJobs = bookings.filter((j) => {
+    // 1. Trạng thái
+    if (filter.status !== "All" && j.status !== filter.status) return false;
 
-    // Header search (toàn cục) - tìm theo title, customer, freelancer, pet, location
+    // 2. Loại dịch vụ
+    if (filter.type !== "All" && j.service !== filter.type) return false;
+
+    // 3. Loại thú cưng
+    if (filter.petType !== "All" && j.pet !== filter.petType) return false;
+
+    // 4. Freelancer
+    if (filter.freelancer !== "All" && j.freelancer !== filter.freelancer)
+      return false;
+
+    // 5. Ngày tạo
+    if (filter.createdDate !== "All" && j.createdDate) {
+      const date = new Date(j.createdDate);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      if (filter.createdDate === "Recent" && date < sevenDaysAgo) return false;
+      if (filter.createdDate === "Old" && date >= sevenDaysAgo) return false;
+    }
+
+    // 6. Khu vực
+    if (filter.region !== "All" && j.region !== filter.region) return false;
+
+    // Header search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const hay =
-        `${job.title} ${job.customer} ${job.freelancer} ${job.pet} ${job.location}`.toLowerCase();
+      const hay = `${j.title} ${j.customer} ${j.pet} ${j.freelancer} ${j.location || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
@@ -268,23 +147,26 @@ const JobsPage: React.FC = () => {
   const currentJobs = filteredJobs.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
-    // Đảm bảo trang nằm trong giới hạn
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    setCurrentPage(page);
   };
-  // END LOGIC PHÂN TRANG
+
+  // Tính toán lại Stat Cards dựa trên dữ liệu API
+  const totalPending = bookings.filter((j) => j.status === "Pending").length;
+  const totalInProgress = bookings.filter(
+    (j) => j.status === "In Progress"
+  ).length;
+  const totalCompleted = bookings.filter((j) => j.status === "Completed").length;
 
   const renderPagination = () => (
     <div className="flex justify-center items-center space-x-2 mt-6">
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className={`px-4  rounded-xl ${
+        className={`px-4 py-2 rounded-xl ${
           theme === "dark"
             ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400"
             : "bg-white disabled:bg-gray-100 disabled:text-gray-400"
-        } transition-colors`}
+        }`}
       >
         Trang Trước
       </button>
@@ -293,9 +175,9 @@ const JobsPage: React.FC = () => {
         <button
           key={index}
           onClick={() => handlePageChange(index + 1)}
-          className={`px-4 py-2 rounded-xl font-semibold transition-colors ${
+          className={`px-4 py-2 rounded-xl font-semibold ${
             currentPage === index + 1
-              ? "bg-green-600 text-white shadow-md"
+              ? "bg-green-600 text-white"
               : "bg-gray-200 hover:bg-gray-300"
           }`}
         >
@@ -306,11 +188,11 @@ const JobsPage: React.FC = () => {
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`px-4  rounded-xl ${
+        className={`px-4 py-2 rounded-xl ${
           theme === "dark"
             ? "bg-gray-800 text-gray-200 disabled:bg-gray-700 disabled:text-gray-400"
             : "bg-white disabled:bg-gray-100 disabled:text-gray-400"
-        } transition-colors`}
+        }`}
       >
         Trang Sau
       </button>
@@ -318,7 +200,6 @@ const JobsPage: React.FC = () => {
   );
 
   return (
-    // Dùng div độc lập để chứa nội dung trang
     <div
       className={`p-8 ${
         theme === "dark"
@@ -330,69 +211,47 @@ const JobsPage: React.FC = () => {
         <div>
           <h2 className="text-3xl font-bold">Quản Lý Công Việc</h2>
           <p className="text-gray-500">
-            Theo dõi trạng thái và tiến độ của tất cả công việc.
+            Quản lý danh sách công việc và tiến trình thực hiện.
           </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
           className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-md transition-colors"
         >
-          + Tạo Công Việc Mới
+          + Thêm Công Việc
         </button>
       </div>
 
-      <JobModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreateJob}
-        services={MOCK_SERVICES}
-        customers={Array.from(
-          new Set(
-            allJobs.map((job) => ({
-              id: job.id.toString(),
-              name: job.customer,
-            }))
-          )
-        )}
-        freelancers={Array.from(
-          new Set(
-            allJobs
-              .filter((job) => job.freelancer !== "Chưa phân công")
-              .map((job) => ({
-                id: job.id.toString(),
-                name: job.freelancer,
-              }))
-          )
-        )}
-      />
-
       {/* STAT CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Tổng Công Việc"
-          value={allJobs.length}
-          delta="+10% so với tháng trước"
+          value={bookings.length}
+          delta="5% so với tháng trước"
           icon={<AiOutlineProfile />}
         />
         <StatCard
-          title="Đang Chờ Phân Công"
-          value={allJobs.filter((j) => j.status === "Pending").length}
-          delta="Cần xử lý gấp"
+          title="Chờ Xử Lý"
+          value={totalPending}
+          delta="Tăng 3 việc"
           icon={<AiOutlineHourglass />}
+          className="border-yellow-300"
         />
         <StatCard
-          title="Đang Tiến Hành"
-          value={allJobs.filter((j) => j.status === "In Progress").length}
-          delta="+5% so với tháng trước"
-          icon={<AiOutlineProfile />}
-        />
-        <StatCard
-          title="Đã Hoàn Thành"
-          value={allJobs.filter((j) => j.status === "Completed").length}
-          delta="+12% so với tháng trước"
+          title="Đang Thực Hiện"
+          value={totalInProgress}
+          delta="Tăng 2 việc"
           icon={<AiOutlineCheckSquare />}
+          className="border-blue-300"
+        />
+        <StatCard
+          title="Hoàn Thành"
+          value={totalCompleted}
+          delta="Tăng 8 việc"
+          icon={<AiOutlineCalendar />}
         />
       </div>
+
       {/* FILTER */}
       <FiltersPanel
         fields={[
@@ -400,32 +259,32 @@ const JobsPage: React.FC = () => {
             key: "status",
             label: "Trạng Thái",
             type: "select",
-            icon: <AiOutlineHourglass />,
+            icon: <AiOutlineProfile />,
             options: [
-              { value: "Pending", label: "Đang Chờ" },
+              { value: "Pending", label: "Chờ Xử Lý" },
               { value: "Assigned", label: "Đã Phân Công" },
-              { value: "In Progress", label: "Đang Tiến Hành" },
-              { value: "Completed", label: "Đã Hoàn Thành" },
-              { value: "Cancelled", label: "Đã Hủy" },
+              { value: "In Progress", label: "Đang Thực Hiện" },
+              { value: "Completed", label: "Hoàn Thành" },
+              { value: "Cancelled", label: "Hủy Bỏ" },
             ],
           },
           {
             key: "type",
             label: "Loại Dịch Vụ",
             type: "select",
-            icon: <AiOutlineCheckSquare />,
+            icon: <AiOutlineProfile />,
             options: [
               { value: "Grooming", label: "Grooming" },
               { value: "Training", label: "Training" },
-              { value: "Sitting", label: "Sitting" },
-              { value: "Medical", label: "Medical" },
+              { value: "Sitting", label: "Pet Sitting" },
+              { value: "Medical", label: "Medical Care" },
             ],
           },
           {
             key: "petType",
             label: "Loại Thú Cưng",
             type: "select",
-            icon: <AiOutlineEnvironment />,
+            icon: <AiOutlineProfile />,
             options: [
               { value: "Dog", label: "Chó" },
               { value: "Cat", label: "Mèo" },
@@ -438,10 +297,8 @@ const JobsPage: React.FC = () => {
             type: "select",
             icon: <AiOutlineProfile />,
             options: [
-              { value: "Trần Văn Minh", label: "Trần Văn Minh" },
-              { value: "Nguyễn Thị Lan", label: "Nguyễn Thị Lan" },
-              { value: "Ngô Hữu Trí", label: "Ngô Hữu Trí" },
-              { value: "Chưa phân công", label: "Chưa phân công" },
+              { value: "Assigned", label: "Đã Phân Công" },
+              { value: "Unassigned", label: "Chưa Phân Công" },
             ],
           },
           {
@@ -450,9 +307,8 @@ const JobsPage: React.FC = () => {
             type: "select",
             icon: <AiOutlineCalendar />,
             options: [
-              { value: "Today", label: "Hôm nay" },
-              { value: "This Week", label: "Tuần này" },
-              { value: "This Month", label: "Tháng này" },
+              { value: "Recent", label: "7 Ngày Gần Nhất" },
+              { value: "Old", label: "Trước 7 Ngày" },
             ],
           },
           {
@@ -490,7 +346,7 @@ const JobsPage: React.FC = () => {
 
       {/* DANH SÁCH JOB CARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentJobs.length > 0 ? (
+        {!loading && currentJobs.length > 0 ? (
           currentJobs.map((j) => (
             <JobCard
               key={j.id}
@@ -500,10 +356,14 @@ const JobsPage: React.FC = () => {
               freelancer={j.freelancer}
               time={j.time}
               location={j.location}
-              status={j.status}
-              price={j.price}
+              status={j.status as "Pending" | "Assigned" | "In Progress" | "Completed" | "Cancelled"}
+              price={j.price.toString()}
             />
           ))
+        ) : loading ? (
+          <div className="md:col-span-3 text-center py-10">
+            <p className="text-gray-500">Đang tải dữ liệu...</p>
+          </div>
         ) : (
           <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
             <div
@@ -513,7 +373,7 @@ const JobsPage: React.FC = () => {
                   : "bg-white text-gray-500"
               } rounded-2xl py-6`}
             >
-              Không tìm thấy công việc nào phù hợp với bộ lọc.
+              {error ? `Lỗi: ${error}` : "Không tìm thấy công việc nào phù hợp với bộ lọc."}
             </div>
           </div>
         )}
@@ -521,6 +381,16 @@ const JobsPage: React.FC = () => {
 
       {/* PHÂN TRANG */}
       {totalPages > 1 && renderPagination()}
+
+      {/* Modal */}
+      <JobModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateJob}
+        services={MOCK_SERVICES}
+        customers={mockCustomers}
+        freelancers={mockFreelancers}
+      />
     </div>
   );
 };
