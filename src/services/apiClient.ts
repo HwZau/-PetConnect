@@ -43,6 +43,9 @@ export class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           // Unauthorized - clear token and redirect to login
+          // Unauthorized - clear token. Do NOT auto-redirect here because
+          // background API calls (e.g. fetching public feeds) should not
+          // force a navigation. Let callers decide how to handle auth errors.
           this.clearToken();
           window.location.href = "/login";
         }

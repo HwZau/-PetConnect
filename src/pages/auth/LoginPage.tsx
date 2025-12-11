@@ -5,6 +5,7 @@ import logoImage from "../../assets/image/Logo.png";
 import { FaHome } from "react-icons/fa";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { showError } from "../../utils/toastUtils";
+import { isAdminRole } from "../../utils/authUtils";
 
 const LoginPage = () => {
   // Scroll to top when page loads
@@ -42,8 +43,8 @@ const LoginPage = () => {
       });
 
       if (result.success) {
-        // Navigate based on user role
-        if (result.user?.role === "admin") {
+        // Navigate based on user role (case-insensitive)
+        if (isAdminRole(result.user?.role)) {
           navigate("/admin/dashboard");
         } else {
           navigate("/");

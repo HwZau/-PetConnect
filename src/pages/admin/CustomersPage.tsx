@@ -1,4 +1,4 @@
-// file: CustomersPage.tsx
+// file: CustomersPage.tsx - Fixed version without mock data
 import React, { useState } from "react";
 import StatCard from "../../components/admin/StatCard";
 import CustomerCard from "../../components/admin/CustomerCard";
@@ -8,186 +8,55 @@ import {
   AiOutlineFileText,
   AiOutlineCalendar,
   AiOutlineTeam,
+  AiOutlineEnvironment,
 } from "react-icons/ai";
-
-const ITEMS_PER_PAGE = 6;
-
-// Định nghĩa cấu trúc dữ liệu khách hàng với các trường cần thiết cho lọc
-interface Customer {
-  id: number;
-  name: string;
-  subtitle: string;
-  pet: string | undefined; // Thông tin Pet đầy đủ
-  bookingCount: number; // Dùng cho lọc Số lần đặt
-  totalSpent: string;
-  lastBooking: string;
-  region: string; // Dùng cho lọc Khu vực
-  avatar: string;
-  badge: "Hoạt động" | "Không hoạt động" | "VIP"; // Dùng cho lọc Trạng thái
-  petTypeSimplified: "Chó" | "Mèo" | "Khác/Chưa có"; // Dùng cho lọc Loại thú cưng
-  joinDate: string; // YYYY-MM-DD, Dùng cho lọc Ngày tham gia
-}
-
-// MOCK DATA (Đã làm giàu để hỗ trợ 5 trường lọc)
-const allCustomers: Customer[] = [
-  {
-    id: 1,
-    name: "Nguyễn Thị Lan Anh",
-    subtitle: "lananh@email.com",
-    pet: "Buddy (Chó Golden)",
-    bookingCount: 15,
-    totalSpent: "12,500,000₫",
-    lastBooking: "2 ngày trước",
-    region: "Hà Nội",
-    avatar: "https://i.pravatar.cc/84?img=15",
-    badge: "Hoạt động",
-    petTypeSimplified: "Chó",
-    joinDate: "2023-08-01",
-  },
-  {
-    id: 2,
-    name: "Trần Văn Minh",
-    subtitle: "vanminh@email.com",
-    pet: "Mimi (Mèo Ba Tư)",
-    bookingCount: 28,
-    totalSpent: "35,000,000₫",
-    lastBooking: "1 tuần trước",
-    region: "TP.HCM",
-    avatar: "https://i.pravatar.cc/84?img=16",
-    badge: "VIP",
-    petTypeSimplified: "Mèo",
-    joinDate: "2023-03-10",
-  },
-  {
-    id: 3,
-    name: "Lê Thị Huệ",
-    subtitle: "thihue@email.com",
-    pet: undefined,
-    bookingCount: 1,
-    totalSpent: "500,000₫",
-    lastBooking: "6 tháng trước",
-    region: "Đà Nẵng",
-    avatar: "https://i.pravatar.cc/84?img=17",
-    badge: "Không hoạt động",
-    petTypeSimplified: "Khác/Chưa có",
-    joinDate: "2024-05-25",
-  },
-  {
-    id: 4,
-    name: "Võ Thị Mai",
-    subtitle: "votmai@email.com",
-    pet: "Luna (Mèo)",
-    bookingCount: 7,
-    totalSpent: "4,200,000₫",
-    lastBooking: "1 tháng trước",
-    region: "Hà Nội",
-    avatar: "https://i.pravatar.cc/84?img=18",
-    badge: "Hoạt động",
-    petTypeSimplified: "Mèo",
-    joinDate: "2024-07-15",
-  },
-  {
-    id: 5,
-    name: "Phạm Văn Lợi",
-    subtitle: "pvanloi@email.com",
-    pet: "Rex (Chó Alaska)",
-    bookingCount: 40,
-    totalSpent: "50,000,000₫",
-    lastBooking: "3 ngày trước",
-    region: "TP.HCM",
-    avatar: "https://i.pravatar.cc/84?img=19",
-    badge: "VIP",
-    petTypeSimplified: "Chó",
-    joinDate: "2023-01-01",
-  },
-  {
-    id: 6,
-    name: "Đặng Tiến Dũng",
-    subtitle: "tdzung@email.com",
-    pet: "Kitty (Mèo Anh)",
-    bookingCount: 10,
-    totalSpent: "9,000,000₫",
-    lastBooking: "4 tuần trước",
-    region: "Hải Phòng",
-    avatar: "https://i.pravatar.cc/84?img=20",
-    badge: "Hoạt động",
-    petTypeSimplified: "Mèo",
-    joinDate: "2024-02-20",
-  },
-  {
-    id: 7,
-    name: "Hoàng Ngọc Ánh",
-    subtitle: "hna@email.com",
-    pet: "Chưa có",
-    bookingCount: 2,
-    totalSpent: "1,500,000₫",
-    lastBooking: "2 tháng trước",
-    region: "Đà Nẵng",
-    avatar: "https://i.pravatar.cc/84?img=21",
-    badge: "Hoạt động",
-    petTypeSimplified: "Khác/Chưa có",
-    joinDate: "2024-09-01",
-  },
-  {
-    id: 8,
-    name: "Trịnh Quang Hùng",
-    subtitle: "tqh@email.com",
-    pet: "Lucky (Chó Poodle)",
-    bookingCount: 3,
-    totalSpent: "2,000,000₫",
-    lastBooking: "9 tháng trước",
-    region: "Hà Nội",
-    avatar: "https://i.pravatar.cc/84?img=22",
-    badge: "Không hoạt động",
-    petTypeSimplified: "Chó",
-    joinDate: "2023-06-12",
-  },
-  {
-    id: 9,
-    name: "Bùi Thị Yến",
-    subtitle: "btyen@email.com",
-    pet: "Gấu (Mèo Ragdoll)",
-    bookingCount: 50,
-    totalSpent: "70,000,000₫",
-    lastBooking: "Hôm qua",
-    region: "TP.HCM",
-    avatar: "https://i.pravatar.cc/84?img=23",
-    badge: "VIP",
-    petTypeSimplified: "Mèo",
-    joinDate: "2023-11-20",
-  },
-  {
-    id: 10,
-    name: "Ngô Văn Phát",
-    subtitle: "nvphat@email.com",
-    pet: "Vẹt (Cockatiel)",
-    bookingCount: 8,
-    totalSpent: "5,800,000₫",
-    lastBooking: "1 tháng trước",
-    region: "Cần Thơ",
-    avatar: "https://i.pravatar.cc/84?img=24",
-    badge: "Hoạt động",
-    petTypeSimplified: "Khác/Chưa có",
-    joinDate: "2024-04-05",
-  },
-];
-
 import { useSearch } from "../../contexts/SearchContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import type { CustomerFormData } from "../../components/admin/modal/CustomerModal";
-import { AiOutlineEnvironment } from "react-icons/ai";
 import CustomerModal from "../../components/admin/modal/CustomerModal";
+import { useAdminUsers } from "../../hooks/useAdmin";
+
+const ITEMS_PER_PAGE = 6;
+
+type CustomerFilter = {
+  status: string;
+  petType: string;
+  bookingCount: string;
+  joinDate: string;
+  region: string;
+};
 
 const CustomersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { theme } = useSettings();
+  const { users, loading, error, fetchUsers, createUser } = useAdminUsers();
 
-  const handleCreateCustomer = (data: CustomerFormData) => {
+  // Fetch users on mount
+  React.useEffect(() => {
+    fetchUsers({ role: "Customer" });
+  }, [fetchUsers]);
+
+  const handleCreateCustomer = async (data: CustomerFormData) => {
     console.log("Creating customer:", data);
-    // TODO: Implement customer creation
+    const result = await createUser({
+      name: data.name || "",
+      email: data.email,
+      phone: data.phone || "",
+      role: "Customer",
+      status: "Active",
+      password: "TempPassword123!", // Should be generated on backend
+    });
+
+    if (result.success) {
+      setIsModalOpen(false);
+      alert("Khách hàng tạo thành công!");
+      await fetchUsers({ role: "Customer" });
+    } else {
+      alert("Lỗi: " + (result.error || "Không thể tạo khách hàng"));
+    }
   };
 
-  // Mock data for modal dropdowns based on existing customers
+  // Mock data for modal dropdowns
   const mockPetTypes = [
     { id: "dog", name: "Chó" },
     { id: "cat", name: "Mèo" },
@@ -202,14 +71,6 @@ const CustomersPage: React.FC = () => {
     { id: "british", name: "Anh Lông Ngắn", petTypeId: "cat" },
     { id: "ragdoll", name: "Ragdoll", petTypeId: "cat" },
   ];
-  // Kiểu cho bộ lọc của trang Customers
-  type CustomerFilter = {
-    status: string;
-    petType: string;
-    bookingCount: string;
-    joinDate: string;
-    region: string;
-  };
 
   const [filter, setFilter] = useState<CustomerFilter>({
     status: "All",
@@ -221,44 +82,41 @@ const CustomersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { searchQuery } = useSearch();
 
-  // LOGIC LỌC
-  const filteredCustomers = allCustomers.filter((c) => {
+  // LOGIC LỌC - Use API data from users hook
+  const filteredCustomers = users.filter((c) => {
     // 1. Trạng thái
-    if (filter.status !== "All" && c.badge !== filter.status) return false;
+    if (filter.status !== "All" && c.status !== filter.status) return false;
 
     // 2. Loại thú cưng
-    if (filter.petType !== "All" && c.petTypeSimplified !== filter.petType)
+    if (filter.petType !== "All" && c.petInfo && !c.petInfo.includes(filter.petType))
       return false;
 
     // 3. Số lần đặt
-    if (filter.bookingCount !== "All") {
+    if (filter.bookingCount !== "All" && c.bookingCount !== undefined) {
       const count = c.bookingCount;
-      if (filter.bookingCount === "Low" && count > 5) return false; // Dưới 5 lần
+      if (filter.bookingCount === "Low" && count > 5) return false;
       if (filter.bookingCount === "Medium" && (count <= 5 || count > 15))
-        return false; // 6-15 lần
-      if (filter.bookingCount === "High" && count <= 15) return false; // Trên 15 lần
+        return false;
+      if (filter.bookingCount === "High" && count <= 15) return false;
     }
 
-    // 4. Ngày tham gia (Lọc đơn giản: Mới vs Cũ, dùng 6 tháng)
-    if (filter.joinDate !== "All") {
+    // 4. Ngày tham gia
+    if (filter.joinDate !== "All" && c.joinDate) {
       const date = new Date(c.joinDate);
       const sixMonthsAgo = new Date();
-      // Lấy ngày hiện tại trừ đi 6 tháng
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      if (filter.joinDate === "New" && date < sixMonthsAgo) return false; // Mới: Tham gia trong 6 tháng gần nhất
-      if (filter.joinDate === "Old" && date >= sixMonthsAgo) return false; // Cũ: Tham gia trước 6 tháng
+      if (filter.joinDate === "New" && date < sixMonthsAgo) return false;
+      if (filter.joinDate === "Old" && date >= sixMonthsAgo) return false;
     }
 
     // 5. Khu vực
     if (filter.region !== "All" && c.region !== filter.region) return false;
 
-    // Header search (tìm theo tên, email, pet hoặc khu vực)
+    // Header search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const hay = `${c.name} ${c.subtitle} ${c.pet || ""} ${
-        c.region
-      }`.toLowerCase();
+      const hay = `${c.name} ${c.email} ${c.petInfo || ""} ${c.region || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
 
@@ -274,17 +132,17 @@ const CustomersPage: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-  // END LOGIC PHÂN TRANG
 
-  // Tính toán lại Stat Cards dựa trên dữ liệu thật
-  const totalVip = allCustomers.filter((c) => c.badge === "VIP").length;
-  const totalNewCustomers = allCustomers.filter(
+  // Tính toán lại Stat Cards dựa trên dữ liệu API
+  const totalVip = users.filter((c) => c.status === "VIP").length;
+  const totalNewCustomers = users.filter(
     (c) =>
+      c.joinDate &&
       new Date(c.joinDate) >
-      new Date(new Date().setMonth(new Date().getMonth() - 1))
-  ).length; // Khách hàng mới trong 1 tháng
-  const totalBookings = allCustomers.reduce(
-    (sum, c) => sum + c.bookingCount,
+        new Date(new Date().setMonth(new Date().getMonth() - 1))
+  ).length;
+  const totalBookings = users.reduce(
+    (sum, c) => sum + (c.bookingCount || 0),
     0
   );
 
@@ -357,7 +215,7 @@ const CustomersPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Tổng Khách Hàng"
-          value={allCustomers.length}
+          value={users.length}
           delta="8% so với tháng trước"
           icon={<AiOutlineUser />}
         />
@@ -381,6 +239,7 @@ const CustomersPage: React.FC = () => {
           icon={<AiOutlineCalendar />}
         />
       </div>
+
       {/* FILTER */}
       <FiltersPanel
         fields={[
@@ -390,8 +249,8 @@ const CustomersPage: React.FC = () => {
             type: "select",
             icon: <AiOutlineUser />,
             options: [
-              { value: "Hoạt động", label: "Hoạt Động" },
-              { value: "Không hoạt động", label: "Không Hoạt Động" },
+              { value: "Active", label: "Hoạt Động" },
+              { value: "Inactive", label: "Không Hoạt Động" },
               { value: "VIP", label: "VIP" },
             ],
           },
@@ -403,7 +262,7 @@ const CustomersPage: React.FC = () => {
             options: [
               { value: "Chó", label: "Chó" },
               { value: "Mèo", label: "Mèo" },
-              { value: "Khác/Chưa có", label: "Khác/Chưa có" },
+              { value: "Khác", label: "Khác" },
             ],
           },
           {
@@ -436,7 +295,6 @@ const CustomersPage: React.FC = () => {
               { value: "Hà Nội", label: "Hà Nội" },
               { value: "TP.HCM", label: "TP.HCM" },
               { value: "Đà Nẵng", label: "Đà Nẵng" },
-              { value: "Khác", label: "Khác" },
             ],
           },
         ]}
@@ -460,23 +318,27 @@ const CustomersPage: React.FC = () => {
         Danh Sách Khách Hàng ({filteredCustomers.length})
       </h3>
 
-      {/* DANH SÁCH CUSTOMER CARD (Đã cập nhật để dùng dữ liệu đã lọc) */}
+      {/* DANH SÁCH CUSTOMER CARD */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentCustomers.length > 0 ? (
+        {!loading && currentCustomers.length > 0 ? (
           currentCustomers.map((c) => (
             <CustomerCard
               key={c.id}
               name={c.name}
-              subtitle={c.subtitle}
+              subtitle={c.email}
               avatar={c.avatar}
-              badge={c.badge}
-              pet={c.pet}
-              bookingCount={c.bookingCount}
+              badge={c.status as "Active" | "Inactive" | "VIP"}
+              pet={c.petInfo}
+              bookingCount={c.bookingCount || 0}
               totalSpent={c.totalSpent}
-              lastBooking={c.lastBooking}
-              region={c.region}
+              lastBooking={c.joinDate || ""}
+              region={c.region || ""}
             />
           ))
+        ) : loading ? (
+          <div className="md:col-span-3 text-center py-10">
+            <p className="text-gray-500">Đang tải dữ liệu...</p>
+          </div>
         ) : (
           <div className="md:col-span-3 text-center py-10 rounded-2xl shadow-md px-6">
             <div
@@ -486,7 +348,7 @@ const CustomersPage: React.FC = () => {
                   : "bg-white text-gray-500"
               } rounded-2xl py-6`}
             >
-              Không tìm thấy khách hàng nào phù hợp với bộ lọc.
+              {error ? `Lỗi: ${error}` : "Không tìm thấy khách hàng nào phù hợp với bộ lọc."}
             </div>
           </div>
         )}
