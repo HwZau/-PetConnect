@@ -9,6 +9,8 @@ import { AiOutlineDollar, AiOutlineUser, AiOutlineFileText, AiOutlineProfile } f
 import StatCard from "../../components/admin/StatCard";
 import JobCardDashboard from "../../components/admin/JobCardDashboard";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useAdminDashboard } from "../../hooks";
+import { useEffect } from "react";
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
@@ -216,6 +218,11 @@ import TransactionCard from "../../components/admin/TransactionCard"; // Giữ n
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate(); 
   const { theme } = useSettings();
+  const { stats, recentBookings, recentTransactions, fetchDashboardData } = useAdminDashboard();
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
   // Map incoming (possibly-English) job status values to the Vietnamese literals
   // that `JobCardDashboard` now expects.
   type JobStatusVi = "Đang Chờ" | "Đã Hoàn Thành" | "Đang Xử Lý" | "Đã Giao" | "Đã Hủy";
@@ -247,40 +254,29 @@ const DashboardPage: React.FC = () => {
     navigate("/admin/jobs"); // Chuyển hướng đến trang JobsPage
   };
 
-    // Dữ liệu mock cho Recent Job Requests (Đã chuyển sang cấu trúc đơn giản)
-    const recentJobs = [
-        { 
-            id: 1, 
-            title: "Chăm Sóc Tai Nhỏ - Buddy", 
-            client: "Nguyễn Thị Lan Anh", 
-            status: "Pending", 
-            date: "2 giờ trước", 
-            price: "300,000₫" 
-        },
-        { 
-            id: 2, 
-            title: "Tắm Rửa & Cắt Tỉa - Mimi", 
-            client: "Trần Văn Minh", 
-            status: "Completed", 
-            date: "1 ngày trước", 
-            price: "450,000₫" 
-        },
-        { 
-            id: 3, 
-            title: "Huấn Luyện Cơ Bản - Kiki", 
-            client: "Lê Văn Hải", 
-            status: "In Progress", 
-            date: "11/10/2025", 
-            price: "800,000₫" 
-        },
-    ];
+    // recentBookings provided by useAdminDashboard (fetched on mount)
+    const recentJobs = (recentBookings || []).map((b) => ({
+      id: b.bookingId || b.id || Math.random(),
+      title: `${b.pets?.[0]?.petName ?? 'Pet'} - ${b.customerName ?? ''}`,
+      client: b.customerName ?? '',
+      status: b.status ?? 'Pending',
+      date: b.bookingDate ? String(b.bookingDate) : '',
+      price: b.totalPrice ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.totalPrice) : '',
+    }));
 
-    // Dữ liệu mock cho Transaction Card (Giữ nguyên)
-    const recentTransactions = [
-        { id: 1, title: "Thanh toán Dịch vụ", customer: "Nguyễn Thị Lan", amount: "$120", status: "Success", date: "12/01/2025", freelancer: "Trần Văn B", service: "Cắt Tỉa", method: "Thẻ", platformFee: "$12" },
-        { id: 2, title: "Yêu cầu rút tiền", customer: "Trần Văn Minh", amount: "$45", status: "Pending", date: "12/02/2025", freelancer: "Trần Văn Minh", service: "Rút tiền", method: "Chuyển khoản", platformFee: "$0" },
-        { id: 3, title: "Thanh toán Dịch vụ", customer: "Võ Thị Mai", amount: "$200", status: "Failed", date: "12/03/2025", freelancer: "Lê Thị C", service: "Giữ Hộ", method: "Ví Điện Tử", platformFee: "$20" },
-    ];
+    // recentTransactions provided by useAdminDashboard
+    const recentTx = (recentTransactions || []).map((t) => ({
+      id: t.id || Math.random(),
+      title: t.title || 'Thanh toán',
+      customer: t.customer || '',
+      amount: t.amount ? String(t.amount) : '',
+      status: t.status || 'Pending',
+      date: t.date || '',
+      freelancer: t.freelancer || '',
+      service: t.service || '',
+      method: t.method || '',
+      platformFee: typeof t.platformFee === 'number' ? String(t.platformFee) : '',
+    }));
 
   return (
     <div className={`min-h-screen flex ${theme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
@@ -291,10 +287,10 @@ const DashboardPage: React.FC = () => {
 
           {/* STAT CARDS (Giữ nguyên) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard title="Tổng Freelancers" value="247" delta="+12% so với tháng trước" icon={<AiOutlineUser />} />
-            <StatCard title="Khách Hàng Hoạt Động" value="1,834" delta="+8% so với tháng trước" icon={<AiOutlineFileText />} />
-            <StatCard title="Công Việc Đang Thực Hiện" value="89" delta="-3% so với tuần trước" icon={<AiOutlineProfile />} />
-            <StatCard title="Tổng Doanh Thu" value="$48,392" delta="+22% so với tháng trước" icon={<AiOutlineDollar />} />
+            <StatCard title="Tổng Freelancers" value={String(stats.totalFreelancers ?? 0)} delta={`${stats.growthRate ? (stats.growthRate > 0 ? '+' : '') + stats.growthRate + '% so với tháng trước' : ''}`} icon={<AiOutlineUser />} />
+            <StatCard title="Khách Hàng Hoạt Động" value={String(stats.totalCustomers ?? 0)} delta="" icon={<AiOutlineFileText />} />
+            <StatCard title="Công Việc Đang Thực Hiện" value={String(stats.activeJobs ?? 0)} delta="" icon={<AiOutlineProfile />} />
+            <StatCard title="Tổng Doanh Thu" value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalRevenue ?? 0)} delta="" icon={<AiOutlineDollar />} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -322,15 +318,14 @@ const DashboardPage: React.FC = () => {
                 </div>
               <div className="space-y-4">
                 {recentJobs.map((j) => (
-                    // Sử dụng JobCardDashboard với props đơn giản
-          <JobCardDashboard 
-                        key={j.id} 
-                        title={j.title} 
-                        client={j.client} 
-                        status={toJobStatus(j.status)} 
-                        date={j.date}
-                        price={j.price} 
-                    />
+                  <JobCardDashboard
+                    key={j.id}
+                    title={j.title}
+                    client={j.client}
+                    status={toJobStatus(j.status)}
+                    date={j.date}
+                    price={j.price}
+                  />
                 ))}
               </div>
             </div>
@@ -339,14 +334,14 @@ const DashboardPage: React.FC = () => {
           {/* RECENT TRANSACTIONS (Giữ nguyên) */}
           <h3 className="font-bold text-xl mt-8 mb-4">Giao Dịch Gần Đây</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {recentTransactions.map((t) => (
-                <TransactionCard 
-                key={t.id} 
-                title={t.title} 
-                customer={t.customer} 
-                amount={t.amount} 
-                status={toTransactionStatus(t.status)} 
-                date={t.date} 
+            {recentTx.map((t) => (
+              <TransactionCard
+                key={t.id}
+                title={t.title}
+                customer={t.customer}
+                amount={t.amount}
+                status={toTransactionStatus(t.status)}
+                date={t.date}
                 freelancer={t.freelancer}
                 service={t.service}
                 method={t.method}

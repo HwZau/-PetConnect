@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { AiOutlineSearch, AiOutlineBell, AiOutlineBulb } from "react-icons/ai";
 import { useSearch } from "../../contexts/SearchContext";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useAuth } from "../../hooks";
 
 const AdminHeader: React.FC = () => {
   const { searchQuery, setSearchQuery } = useSearch();
@@ -19,6 +20,7 @@ const AdminHeader: React.FC = () => {
   }, [local, setSearchQuery]);
 
   const { theme, toggleTheme } = useSettings();
+  const { user } = useAuth();
 
   return (
     // THAY ĐỔI: header theme-aware
@@ -60,10 +62,14 @@ const AdminHeader: React.FC = () => {
 
         {/* Avatar Admin */}
         <div className="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:bg-gray-100 transition-colors">
-          <img src="https://i.pravatar.cc/40" alt="avatar" className="w-10 h-10 rounded-full border-2 border-green-500" />
+          <img
+            src={user?.avatarUrl || user?.avatar || "https://i.pravatar.cc/40"}
+            alt={user?.name || user?.email || "Admin"}
+            className="w-10 h-10 rounded-full border-2 border-green-500 object-cover"
+          />
           <div className="text-sm hidden sm:block">
-            <div className="font-medium">Quản Trị Viên</div>
-            <div className="text-xs text-gray-500">Người quản trị hệ thống</div>
+            <div className="font-medium">{user?.name || user?.email || "Quản Trị Viên"}</div>
+            <div className="text-xs text-gray-500">{user?.role ? user.role : "Người quản trị hệ thống"}</div>
           </div>
         </div>
       </div>

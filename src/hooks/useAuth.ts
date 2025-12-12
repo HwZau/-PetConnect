@@ -56,26 +56,7 @@ export const useAuth = () => {
         console.log("[useAuth.login] tokenRole:", tokenRole);
         console.log("[useAuth.login] tokenUserId:", tokenUserId);
 
-        // Step 4: Check if user is admin
-        // If admin, use minimal user object with role (no need to call getProfile)
-        if (isAdminRole(tokenRole)) {
-          console.log("[useAuth.login] Admin detected, setting user and returning");
-
-          const adminUser: User = {
-            id: tokenUserId || "",
-            role: tokenRole || "admin",
-          } as User;
-
-          setUser(adminUser);
-          localStorage.setItem("user", JSON.stringify(adminUser));
-          localStorage.setItem("auth_token", token);
-          showSuccess("Đăng nhập thành công!");
-          return { success: true, user: adminUser };
-        }
-
-        console.log("[useAuth.login] Non-admin user, calling getProfile");
-
-        // Step 5: For non-admin users, try to fetch full profile
+        // Step 4: Fetch full profile from backend (endpoint now supports all roles)
         const profileResponse = await authService.getProfile();
 
         console.log("[useAuth.login] profileResponse:", profileResponse);
@@ -86,10 +67,13 @@ export const useAuth = () => {
           localStorage.setItem("user", JSON.stringify(profileResponse.data));
           localStorage.setItem("auth_token", token);
           showSuccess("Đăng nhập thành công!");
+
+          // No automatic navigation here; caller (LoginPage) will handle redirects
+
           return { success: true, user: profileResponse.data };
         }
 
-        // Step 6: getProfile failed, but token is valid - use fallback user from token
+        // getProfile failed, but token is valid - use fallback user from token
         console.log(
           "[useAuth.login] getProfile failed, using fallback user from token"
         );
@@ -102,6 +86,9 @@ export const useAuth = () => {
         localStorage.setItem("user", JSON.stringify(fallbackUser));
         localStorage.setItem("auth_token", token);
         showSuccess("Đăng nhập thành công!");
+
+        // No automatic navigation here; caller (LoginPage) will handle redirects
+
         return { success: true, user: fallbackUser };
       } catch (error) {
         console.error("Login error:", error);
@@ -123,19 +110,10 @@ export const useAuth = () => {
           return { success: false };
         }
 
-        // After register, set user from response data
+        // After register, set token and try to fetch full profile
         const { token, user: registerUser } = response.data;
         apiClient.setToken(token);
 
-        // If admin, use registerUser directly; if not, fetch full profile
-        if (registerUser && isAdminRole(registerUser.role)) {
-          setUser(registerUser);
-          localStorage.setItem("user", JSON.stringify(registerUser));
-          showSuccess("Đăng ký thành công!");
-          return { success: true, user: registerUser };
-        }
-
-        // For non-admin, fetch full profile
         const profileResponse = await authService.getProfile();
 
         if (profileResponse.success && profileResponse.data) {
@@ -143,6 +121,14 @@ export const useAuth = () => {
           localStorage.setItem("user", JSON.stringify(profileResponse.data));
           showSuccess("Đăng ký thành công!");
           return { success: true, user: profileResponse.data };
+        }
+
+        // Fallback to register response user if profile fetch failed
+        if (registerUser) {
+          setUser(registerUser);
+          localStorage.setItem("user", JSON.stringify(registerUser));
+          showSuccess("Đăng ký thành công!");
+          return { success: true, user: registerUser };
         }
 
         return { success: false };
@@ -178,28 +164,8 @@ export const useAuth = () => {
         return { success: false };
       }
 
-      // Check if current user is admin - if so, don't need to fetch profile
-      const userStr = localStorage.getItem("user");
-      let userObj: unknown = null;
-      try {
-        userObj = userStr ? JSON.parse(userStr) : null;
-      } catch {
-        /* ignore */
-      }
 
-      if (
-        userObj &&
-        typeof userObj === "object" &&
-        userObj !== null &&
-        "role" in userObj &&
-        typeof (userObj as { role: unknown }).role === "string" &&
-        isAdminRole((userObj as { role: string }).role)
-      ) {
-        // Admin user - no need to refresh profile
-        return { success: true, user: userObj as User };
-      }
-
-      // For non-admin, fetch profile
+      // Always fetch profile from backend (endpoint supports all roles now)
       const response = await authService.getProfile();
 
       if (response.success && response.data) {

@@ -10,22 +10,21 @@ import { FaDog } from 'react-icons/fa';
 
 export interface CustomerFormData {
   name: string;
-  email: string;
-  phone: string;
-  region: string;
-  petName: string;
-  petType: string;
-  petBreed: string;
-  petAge: string;
-  petGender: string;
+  email?: string;
+  password?: string;
+  phoneNumber?: string;
+  address?: string;
 }
 
 interface CustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CustomerFormData) => void;
-  petTypes: Array<{ id: string; name: string; }>;
-  petBreeds: Array<{ id: string; name: string; petTypeId: string; }>;
+  petTypes?: Array<{ id: string; name: string; }>;
+  petBreeds?: Array<{ id: string; name: string; petTypeId: string; }>;
+  initialData?: Partial<CustomerFormData>;
+  title?: string;
+  submitLabel?: string;
 }
 
 // --- FORM INPUT COMPONENT (TÁCH BIỆT VÀ DÙNG MEMO) ---
@@ -136,39 +135,48 @@ const FormInput = React.memo(({
 const initialData: CustomerFormData = {
   name: '',
   email: '',
-  phone: '',
-  region: '',
-  petName: '',
-  petType: '',
-  petBreed: '',
-  petAge: '',
-  petGender: '',
+  password: '',
+  phoneNumber: '',
+  address: '',
 };
 
-const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes, petBreeds }: CustomerModalProps) => {
-  const [formData, setFormData] = useState<CustomerFormData>(initialData);
+const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes = [], petBreeds = [], initialData: init, title, submitLabel }: CustomerModalProps) => {
+  const [formData, setFormData] = useState<CustomerFormData>(init || initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
   
+  // Update form data when modal opens with initialData (edit mode)
+  React.useEffect(() => {
+    if (isOpen) {
+      if (init) {
+        setFormData({ ...initialData, ...init });
+      } else {
+        setFormData(initialData);
+      }
+      setErrors({});
+    }
+  }, [isOpen, init]);
 
-  // Bọc hàm validate bằng useCallback
+  // Validation logic
   const validateForm = useCallback((): boolean => {
     const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
 
     if (!formData.name.trim()) { newErrors.name = 'Vui lòng nhập họ tên'; }
-    if (!formData.email.trim()) { newErrors.email = 'Vui lòng nhập email'; } 
+    if (!formData.email || !formData.email.trim()) { newErrors.email = 'Vui lòng nhập email'; } 
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { newErrors.email = 'Email không hợp lệ'; }
     
-    if (!formData.phone.trim()) { newErrors.phone = 'Vui lòng nhập số điện thoại'; } 
-    // Giữ regex kiểm tra 10 số như yêu cầu ban đầu
-    else if (!/^[0-9]{10}$/.test(formData.phone)) { newErrors.phone = 'Số điện thoại không hợp lệ (10 số)'; }
+    if (!formData.phoneNumber || !formData.phoneNumber.trim()) { newErrors.phoneNumber = 'Vui lòng nhập số điện thoại'; } 
+    else if (!/^[0-9]{10}$/.test(formData.phoneNumber)) { newErrors.phoneNumber = 'Số điện thoại không hợp lệ (10 số)'; }
 
-    if (!formData.region) { newErrors.region = 'Vui lòng chọn khu vực'; }
-    if (formData.petName && !formData.petType) { newErrors.petType = 'Vui lòng chọn loại thú cưng'; }
-    if (formData.petName && !formData.petGender) { newErrors.petGender = 'Vui lòng chọn giới tính thú cưng'; }
+    if (!formData.address || !formData.address.trim()) { newErrors.address = 'Vui lòng nhập địa chỉ'; }
+
+    // Password is required only in create mode (when !init)
+    if (!init && (!formData.password || !formData.password.trim())) {
+      newErrors.password = 'Vui lòng nhập mật khẩu';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, init]);
 
   const handleResetAndClose = useCallback(() => {
     setFormData(initialData);
@@ -185,7 +193,7 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes, petBreeds }: Custo
     }
   }, [formData, validateForm, onSubmit, handleResetAndClose]);
 
-  // Handler chung cho Input/Select (đã mở rộng type)
+  // Handler chung cho Input/Select
   const handleInputChange = useCallback((e: ChangeEvent<InputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -195,157 +203,72 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes, petBreeds }: Custo
     }
   }, [errors]);
 
-  // Handler riêng cho PetType: khi thay đổi PetType, reset PetBreed
-  const handlePetTypeChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
-    handleInputChange(e); // Gọi handler chung để cập nhật petType
-    setFormData(prev => ({ ...prev, petBreed: '' })); // Reset petBreed
-    
-    if (errors.petBreed) {
-      setErrors(prev => ({ ...prev, petBreed: undefined }));
-    }
-  }, [handleInputChange, errors.petBreed]);
-
 
   return (
-    <Modal isOpen={isOpen} onClose={handleResetAndClose} title="Thêm Khách Hàng Mới">
+    <Modal isOpen={isOpen} onClose={handleResetAndClose} title={title || "Thêm Khách Hàng Mới"}>
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        <div className="space-y-4">
           
-          {/* Cột trái: Thông tin khách hàng */}
-          <div>
-            <h4 className="font-bold text-lg text-gray-700 mb-4  pb-2">Thông tin Khách hàng</h4>
+          <FormInput
+            label="Họ và Tên"
+            name="name"
+            placeholder="Nhập họ và tên"
+            icon={<AiOutlineUser />}
+            error={errors.name}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+          
+          <FormInput
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="email@example.com"
+            icon={<AiOutlineMail />}
+            error={errors.email}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+
+          <FormInput
+            label="Số điện thoại"
+            name="phoneNumber"
+            type="tel"
+            placeholder="0123456789"
+            icon={<AiOutlinePhone />}
+            error={errors.phoneNumber}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+
+          <FormInput
+            label="Địa chỉ"
+            name="address"
+            type="text"
+            placeholder="Nhập địa chỉ"
+            icon={<AiOutlineEnvironment />}
+            error={errors.address}
+            formData={formData}
+            handleInputChange={handleInputChange}
+          />
+
+          {/* Password field - only required in create mode */}
+          {!init && (
             <FormInput
-              label="Họ và Tên"
-              name="name"
-              placeholder="Nhập họ và tên"
+              label="Mật khẩu"
+              name="password"
+              type="password"
+              placeholder="Nhập mật khẩu"
               icon={<AiOutlineUser />}
-              error={errors.name}
+              error={errors.password}
               formData={formData}
               handleInputChange={handleInputChange}
             />
-            
-            <FormInput
-              label="Email"
-              name="email"
-              type="email"
-              placeholder="email@example.com"
-              icon={<AiOutlineMail />}
-              error={errors.email}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            />
-
-            <FormInput
-              label="Số điện thoại"
-              name="phone"
-              type="tel" // Đổi type="number" thành "tel" cho SĐT
-              placeholder="0123456789"
-              icon={<AiOutlinePhone />}
-              error={errors.phone}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            />
-
-            <FormInput
-              label="Khu vực"
-              name="region"
-              type="select"
-              icon={<AiOutlineEnvironment />}
-              error={errors.region}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            >
-              <option value="">Chọn khu vực</option>
-              <option value="Hà Nội" className="text-gray-900">Hà Nội</option>
-              <option value="TP.HCM" className="text-gray-900">TP.HCM</option>
-              <option value="Đà Nẵng" className="text-gray-900">Đà Nẵng</option>
-              <option value="Hải Phòng" className="text-gray-900">Hải Phòng</option>
-              <option value="Cần Thơ" className="text-gray-900">Cần Thơ</option>
-            </FormInput>
-          </div>
-
-          {/* Cột phải: Thông tin thú cưng */}
-          <div>
-            <h4 className="font-bold text-lg text-gray-700 mb-4  pb-2">Thông tin Thú cưng (Tùy chọn)</h4>
-            
-            <FormInput
-              label="Tên thú cưng"
-              name="petName"
-              placeholder="Nhập tên thú cưng"
-              icon={<FaDog />}
-              error={errors.petName}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            />
-
-            <FormInput
-              label="Loại thú cưng"
-              name="petType"
-              type="select"
-              icon={<FaDog />}
-              error={errors.petType}
-              formData={formData}
-              handleInputChange={handleInputChange}
-              onChange={handlePetTypeChange} // Sử dụng handler riêng
-            >
-              <option value="">Chọn loại thú cưng</option>
-              {petTypes.map(type => (
-                <option key={type.id} value={type.id} className="text-gray-900">
-                  {type.name}
-                </option>
-              ))}
-            </FormInput>
-
-            <FormInput
-              label="Giống thú cưng"
-              name="petBreed"
-              type="select"
-              icon={<FaDog />}
-              error={errors.petBreed}
-              formData={formData}
-              handleInputChange={handleInputChange}
-              disabled={!formData.petType}
-            >
-              <option value="">Chọn giống</option>
-              {formData.petType && petBreeds
-                .filter(breed => breed.petTypeId === formData.petType)
-                .map(breed => (
-                  <option key={breed.id} value={breed.id} className="text-gray-900">
-                    {breed.name}
-                  </option>
-                ))
-              }
-            </FormInput>
-
-            <FormInput
-              label="Tuổi (năm)"
-              name="petAge"
-              type="number"
-              placeholder="Nhập tuổi"
-              icon={<FaDog />}
-              error={errors.petAge}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            />
-
-            <FormInput
-              label="Giới tính"
-              name="petGender"
-              type="select"
-              icon={<FaDog />}
-              error={errors.petGender}
-              formData={formData}
-              handleInputChange={handleInputChange}
-            >
-              <option value="">Chọn giới tính</option>
-              <option value="male" className="text-gray-900">Đực</option>
-              <option value="female" className="text-gray-900">Cái</option>
-            </FormInput>
-          </div>
+          )}
         </div>
 
         {/* Thanh hành động */}
-        <div className="mt-6 pt-4  border-gray-100 flex justify-end gap-3">
+        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
           <button
             type="button"
             onClick={handleResetAndClose}
@@ -357,7 +280,7 @@ const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes, petBreeds }: Custo
             type="submit"
             className="px-6 py-2 bg-green-600 text-white rounded-xl font-medium shadow-md hover:bg-green-700 transition duration-150"
           >
-            Thêm Khách Hàng
+            {submitLabel || "Thêm Khách Hàng"}
           </button>
         </div>
       </form>

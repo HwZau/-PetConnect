@@ -5,6 +5,7 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { AiOutlineStar, AiOutlineTrophy, AiOutlineDollarCircle, AiOutlineEnvironment, AiOutlineClockCircle } from "react-icons/ai";
 
 interface FreelancerCardProps {
+    id?: string;
     name: string;
     subtitle?: string;
     avatar?: string;
@@ -50,6 +51,7 @@ const getBadgeClasses = (badge: string) => {
 
 
 const FreelancerCard: React.FC<FreelancerCardProps> = ({
+    id,
     name,
     subtitle,
     avatar,
@@ -77,6 +79,12 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
         buttonClass = "flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors"; 
     }
     // END LOGIC CHO NÚT BẤM
+
+    const navigateToProfile = () => {
+        if (id) {
+            window.location.href = `/admin/freelancers/${id}`;
+        }
+    };
 
     return (
         <div className={`${theme === 'dark' ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} rounded-2xl p-5 shadow-xl transition duration-300 hover:shadow-2xl`}>
@@ -106,7 +114,7 @@ const FreelancerCard: React.FC<FreelancerCardProps> = ({
 
             {/* NÚT BẤM */}
             <div className={`mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'} flex justify-center`}>
-                <button className={buttonClass}>
+                <button className={buttonClass} onClick={navigateToProfile}>
                     {buttonLabel}
                 </button>
             </div>

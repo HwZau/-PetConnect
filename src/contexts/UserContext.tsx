@@ -2,7 +2,6 @@ import { createContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { UserContextType, User } from "../types";
 import { authService } from "../services/auth/authService";
-import { isAdminRole } from "../utils/authUtils";
 
 // Create the context with default values
 // eslint-disable-next-line react-refresh/only-export-components
@@ -27,7 +26,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       console.log("[UserContext.initializeUser] START");
 
       const token = localStorage.getItem("auth_token");
-      // Nếu đã có user trong localStorage và là admin thì không gọi getProfile
+      // If token exists, always try to fetch latest profile from backend
       const userStr = localStorage.getItem("user");
       let userObj: unknown = null;
       try {
@@ -37,24 +36,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       console.log("[UserContext.initializeUser] token:", !!token);
       console.log("[UserContext.initializeUser] userObj:", userObj);
 
-      if (
-        token &&
-        userObj &&
-        typeof userObj === "object" &&
-        userObj !== null &&
-        "role" in userObj &&
-        typeof (userObj as { role: unknown }).role === "string" &&
-        isAdminRole((userObj as { role: string }).role)
-      ) {
-        console.log("[UserContext.initializeUser] Admin user detected, returning cached");
-        setUser(userObj as User);
-        setIsLoading(false);
-        return;
-      }
-
       if (token) {
         try {
-          console.log("[UserContext.initializeUser] Non-admin, calling getProfile");
+          console.log("[UserContext.initializeUser] Calling getProfile");
           // Fetch fresh user data from API
           const response = await authService.getProfile();
 
@@ -130,21 +114,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       userObj = userStr ? JSON.parse(userStr) : null;
     } catch { /* ignore JSON parse error */ }
 
-    // If admin, no need to refresh from API
-    if (
-      token &&
-      userObj &&
-      typeof userObj === "object" &&
-      userObj !== null &&
-      "role" in userObj &&
-      typeof (userObj as { role: unknown }).role === "string" &&
-      isAdminRole((userObj as { role: string }).role)
-    ) {
-      setUser(userObj as User);
-      return;
-    }
-
-    // For non-admin, try to fetch from API, but fall back to cached if it fails
+    // Always try to refresh from API, fall back to cached if it fails
     if (token) {
       try {
         const response = await authService.getProfile();

@@ -65,37 +65,7 @@ export const authService = {
 
   async getProfile(): Promise<ApiResponse<User>> {
     console.log("[authService.getProfile] START");
-
-    // Check if current user is admin - if so, return cached user instead of calling API
-    const userStr = localStorage.getItem("user");
-    let userObj: unknown = null;
-    try {
-      userObj = userStr ? JSON.parse(userStr) : null;
-    } catch {
-      /* ignore */
-    }
-
-    console.log("[authService.getProfile] userObj:", userObj);
-
-    if (
-      userObj &&
-      typeof userObj === "object" &&
-      userObj !== null &&
-      "role" in userObj &&
-      typeof (userObj as { role: unknown }).role === "string" &&
-      isAdminRole((userObj as { role: string }).role)
-    ) {
-      // Admin user - return cached user without calling API
-      console.log("[authService.getProfile] Admin detected, returning cached user");
-      return {
-        success: true,
-        data: userObj as User,
-        message: "User from cache",
-        statusCode: 200,
-      };
-    }
-
-    console.log("[authService.getProfile] Non-admin user, calling API");
+    console.log("[authService.getProfile] Calling API for profile");
 
     // For non-admin users, try to fetch profile from API
     const basicProfile = await apiClient.get<User>(API_ENDPOINTS.USERS.PROFILE);

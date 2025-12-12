@@ -1,5 +1,5 @@
-// file: CustomersPage.tsx - Fixed version without mock data
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import StatCard from "../../components/admin/StatCard";
 import CustomerCard from "../../components/admin/CustomerCard";
 import FiltersPanel from "../../components/admin/FiltersPanel";
@@ -15,103 +15,99 @@ import { useSettings } from "../../contexts/SettingsContext";
 import type { CustomerFormData } from "../../components/admin/modal/CustomerModal";
 import CustomerModal from "../../components/admin/modal/CustomerModal";
 import { useAdminUsers } from "../../hooks/useAdmin";
+import { showSuccess, showError } from "../../utils/toastUtils";
+import adminService from "../../services/admin/adminService";
 
 const ITEMS_PER_PAGE = 6;
 
 type CustomerFilter = {
   status: string;
-  petType: string;
-  bookingCount: string;
-  joinDate: string;
   region: string;
 };
 
 const CustomersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { theme } = useSettings();
-  const { users, loading, error, fetchUsers, createUser } = useAdminUsers();
-
-  // Fetch users on mount
-  React.useEffect(() => {
-    fetchUsers({ role: "Customer" });
-  }, [fetchUsers]);
+  const navigate = useNavigate();
+  const { users, loading, error, pagination, fetchUsers } = useAdminUsers();
 
   const handleCreateCustomer = async (data: CustomerFormData) => {
     console.log("Creating customer:", data);
-    const result = await createUser({
-      name: data.name || "",
-      email: data.email,
-      phone: data.phone || "",
-      role: "Customer",
-      status: "Active",
-      password: "TempPassword123!", // Should be generated on backend
-    });
+    
+    try {
+      const email = data.email || `${data.name.replace(/\s+/g, '.').toLowerCase()}@example.com`;
+      const password = data.password || 'TempPass123!';
+      
+      const payload = {
+        name: data.name,
+        email,
+        phoneNumber: data.phoneNumber || '',
+        address: data.address || '',
+        role: 'Customer',
+        password,
+        confirmPassword: password,
+      };
 
-    if (result.success) {
-      setIsModalOpen(false);
-      alert("Khách hàng tạo thành công!");
-      await fetchUsers({ role: "Customer" });
-    } else {
-      alert("Lỗi: " + (result.error || "Không thể tạo khách hàng"));
+      console.log("Create user payload:", payload);
+      const res = await adminService.createUser({
+        name: payload.name,
+        email: payload.email,
+        phoneNumber: payload.phoneNumber,
+        address: payload.address,
+        password: payload.password,
+        role: 'Customer',
+      });
+
+      console.log("Create response:", res);
+
+      if (res.success) {
+        showSuccess('Khách hàng tạo thành công!');
+        setIsModalOpen(false);
+        setCurrentPage(1);
+        await fetchUsers({ role: "Customer", page: 1, pageSize: ITEMS_PER_PAGE });
+      } else {
+        showError('Lỗi khi tạo khách hàng: ' + (res.error || res.message || 'Unknown'));
+      }
+    } catch (err) {
+      console.error('Create customer error', err);
+      showError('Lỗi khi tạo khách hàng');
     }
   };
 
-  // Mock data for modal dropdowns
-  const mockPetTypes = [
-    { id: "dog", name: "Chó" },
-    { id: "cat", name: "Mèo" },
-    { id: "other", name: "Khác" },
-  ];
-
-  const mockPetBreeds = [
-    { id: "golden", name: "Golden Retriever", petTypeId: "dog" },
-    { id: "alaska", name: "Alaska", petTypeId: "dog" },
-    { id: "poodle", name: "Poodle", petTypeId: "dog" },
-    { id: "persian", name: "Ba Tư", petTypeId: "cat" },
-    { id: "british", name: "Anh Lông Ngắn", petTypeId: "cat" },
-    { id: "ragdoll", name: "Ragdoll", petTypeId: "cat" },
-  ];
+  const handleViewDetails = (customerId: string) => {
+    navigate(`/admin/customers/${customerId}`);
+  };
 
   const [filter, setFilter] = useState<CustomerFilter>({
     status: "All",
-    petType: "All",
-    bookingCount: "All",
-    joinDate: "All",
     region: "All",
   });
   const [currentPage, setCurrentPage] = useState(1);
   const { searchQuery } = useSearch();
 
+  // Refetch when filters or search query or page change
+  React.useEffect(() => {
+    const params: Record<string, unknown> = { role: "Customer", page: currentPage, pageSize: ITEMS_PER_PAGE };
+    if (filter.status && filter.status !== "All") params.status = filter.status;
+    if (filter.region && filter.region !== "All") params.region = filter.region;
+    if (searchQuery) params.search = searchQuery;
+
+    fetchUsers(params);
+  }, [filter, searchQuery, currentPage, fetchUsers]);
+
   // LOGIC LỌC - Use API data from users hook
-  const filteredCustomers = users.filter((c) => {
+  const filteredCustomers = (users ?? []).filter((c) => {
     // 1. Trạng thái
-    if (filter.status !== "All" && c.status !== filter.status) return false;
-
-    // 2. Loại thú cưng
-    if (filter.petType !== "All" && c.petInfo && !c.petInfo.includes(filter.petType))
-      return false;
-
-    // 3. Số lần đặt
-    if (filter.bookingCount !== "All" && c.bookingCount !== undefined) {
-      const count = c.bookingCount;
-      if (filter.bookingCount === "Low" && count > 5) return false;
-      if (filter.bookingCount === "Medium" && (count <= 5 || count > 15))
-        return false;
-      if (filter.bookingCount === "High" && count <= 15) return false;
+    // 1. Trạng thái: backend exposes IsActive (or isActive)
+    const isActive = (c as any).isActive ?? (c as any).IsActive ?? ((c as any).status ? ((c as any).status === "Active") : undefined);
+    if (filter.status !== "All") {
+      if (filter.status === "Active" && isActive === false) return false;
+      if (filter.status === "Inactive" && isActive === true) return false;
     }
 
-    // 4. Ngày tham gia
-    if (filter.joinDate !== "All" && c.joinDate) {
-      const date = new Date(c.joinDate);
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-      if (filter.joinDate === "New" && date < sixMonthsAgo) return false;
-      if (filter.joinDate === "Old" && date >= sixMonthsAgo) return false;
-    }
-
-    // 5. Khu vực
-    if (filter.region !== "All" && c.region !== filter.region) return false;
+    // 2. Khu vực/address - backend uses Address/AddressUrl fields
+    const address = (c as any).address ?? (c as any).Address ?? (c as any).region ?? (c as any).Region ?? "";
+    if (filter.region !== "All" && !address.includes(filter.region)) return false;
 
     // Header search
     if (searchQuery) {
@@ -124,24 +120,27 @@ const CustomersPage: React.FC = () => {
   });
 
   // LOGIC PHÂN TRANG
-  const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
+  // Use server-provided pagination; fetchUsers is called with role=Customer.
+  // Also guard by role in case API returns mixed results.
+  const totalPages = pagination?.totalPages || 1;
+  const customers = (users ?? []).filter((u) => u.role === "Customer");
+  const currentCustomers = customers;
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > (pagination?.totalPages || 1)) return;
     setCurrentPage(page);
+    fetchUsers({ role: "Customer", page, pageSize: ITEMS_PER_PAGE });
   };
 
   // Tính toán lại Stat Cards dựa trên dữ liệu API
-  const totalVip = users.filter((c) => c.status === "VIP").length;
-  const totalNewCustomers = users.filter(
+  const totalVip = customers.filter((c) => c.status === "VIP").length;
+  const totalNewCustomers = customers.filter(
     (c) =>
       c.joinDate &&
       new Date(c.joinDate) >
         new Date(new Date().setMonth(new Date().getMonth() - 1))
   ).length;
-  const totalBookings = users.reduce(
+  const totalBookings = customers.reduce(
     (sum, c) => sum + (c.bookingCount || 0),
     0
   );
@@ -215,7 +214,7 @@ const CustomersPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatCard
           title="Tổng Khách Hàng"
-          value={users.length}
+          value={(users ?? []).length}
           delta="8% so với tháng trước"
           icon={<AiOutlineUser />}
         />
@@ -251,39 +250,6 @@ const CustomersPage: React.FC = () => {
             options: [
               { value: "Active", label: "Hoạt Động" },
               { value: "Inactive", label: "Không Hoạt Động" },
-              { value: "VIP", label: "VIP" },
-            ],
-          },
-          {
-            key: "petType",
-            label: "Loại Thú Cưng",
-            type: "select",
-            icon: <AiOutlineFileText />,
-            options: [
-              { value: "Chó", label: "Chó" },
-              { value: "Mèo", label: "Mèo" },
-              { value: "Khác", label: "Khác" },
-            ],
-          },
-          {
-            key: "bookingCount",
-            label: "Số Lần Đặt",
-            type: "select",
-            icon: <AiOutlineTeam />,
-            options: [
-              { value: "Low", label: "Dưới 5" },
-              { value: "Medium", label: "6-15" },
-              { value: "High", label: "Trên 15" },
-            ],
-          },
-          {
-            key: "joinDate",
-            label: "Ngày Tham Gia",
-            type: "select",
-            icon: <AiOutlineCalendar />,
-            options: [
-              { value: "New", label: "6 Tháng Gần Nhất" },
-              { value: "Old", label: "Trên 6 Tháng" },
             ],
           },
           {
@@ -306,9 +272,6 @@ const CustomersPage: React.FC = () => {
         onReset={() =>
           setFilter({
             status: "All",
-            petType: "All",
-            bookingCount: "All",
-            joinDate: "All",
             region: "All",
           })
         }
@@ -324,6 +287,7 @@ const CustomersPage: React.FC = () => {
           currentCustomers.map((c) => (
             <CustomerCard
               key={c.id}
+              id={c.id}
               name={c.name}
               subtitle={c.email}
               avatar={c.avatar}
@@ -333,6 +297,7 @@ const CustomersPage: React.FC = () => {
               totalSpent={c.totalSpent}
               lastBooking={c.joinDate || ""}
               region={c.region || ""}
+              onViewDetails={handleViewDetails}
             />
           ))
         ) : loading ? (
@@ -362,8 +327,6 @@ const CustomersPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateCustomer}
-        petTypes={mockPetTypes}
-        petBreeds={mockPetBreeds}
       />
     </div>
   );

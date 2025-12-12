@@ -6,12 +6,14 @@ import { AiOutlineCalendar, AiOutlineDollarCircle, AiOutlineClockCircle, AiOutli
 import { FaPaw } from "react-icons/fa";
 
 interface CustomerCardProps {
+  id: string;
   name: string;
   subtitle?: string;
   meta?: string;
   avatar?: string;
   badge?: string;
   actionLabel?: string;
+  onViewDetails?: (id: string) => void;
 
   // 5 TRƯỜNG MỚI CHO CUSTOMER
   pet?: string;
@@ -52,12 +54,14 @@ const getBadgeClasses = (badge: string) => {
 
 
 const CustomerCard: React.FC<CustomerCardProps> = ({
+  id,
   name,
   subtitle,
   
   avatar,
   badge,
   actionLabel,
+  onViewDetails,
   pet,
   bookingCount,
   totalSpent,
@@ -76,15 +80,19 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
 
   // LOGIC CHO NÚT BẤM
   let buttonLabel = actionLabel || 'Xem Chi Tiết';
-  let buttonClass = "flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium transition-colors";
+  let buttonClass = "flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 font-medium transition-colors cursor-pointer";
   let buttonIcon = null;
 
   if (isInactive) {
     buttonLabel = 'Liên hệ lại';
-    buttonClass = "flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors";
+    buttonClass = "flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors cursor-pointer";
     buttonIcon = <AiOutlineMail className="mr-2" />;
   }
   // END LOGIC CHO NÚT BẤM
+
+  const handleClick = () => {
+    onViewDetails?.(id);
+  };
 
   return (
     <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-5 shadow-xl`}>
@@ -114,7 +122,7 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
 
       {/* NÚT BẤM (ĐÃ CẬP NHẬT) */}
       <div className={`mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-100'} flex justify-center`}>
-        <button className={buttonClass}>
+        <button onClick={handleClick} className={buttonClass}>
           {buttonIcon}
           {buttonLabel}
         </button>

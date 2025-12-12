@@ -5,9 +5,12 @@ import PageLoader from "./components/common/PageLoader";
 import { isAdminRole } from "./utils/authUtils";
 import DashboardPage from "./pages/admin/DashboardPage";
 import FreelancersPage from "./pages/admin/FreelancersPage";
+import FreelancerDetailPage from "./pages/admin/FreelancerDetailPage";
 import CustomersPage from "./pages/admin/CustomersPage";
+import CustomerDetailPage from "./pages/admin/CustomerDetailPage";
 import JobsPage from "./pages/admin/JobsPage";
 import PaymentsPage from "./pages/admin/PaymentsPage";
+import PaymentDetailPage from "./pages/admin/PaymentDetailPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import AdminLayout from "./layouts/AdminLayout";
 import { SettingsProvider } from "./contexts/SettingsContext";
@@ -78,11 +81,16 @@ const AppRoutes = () => {
             isAdminRole(user?.role) ? <AdminLayout /> : <Navigate to="/" />
           }
         >
-          <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="freelancers" element={<FreelancersPage />} />
+          <Route path="freelancers/:id" element={<FreelancerDetailPage />} />
           <Route path="customers" element={<CustomersPage />} />
-          <Route path="jobs" element={<JobsPage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="bookings" element={<JobsPage />} />
+          {/* Legacy route: keep /admin/jobs redirecting to /admin/bookings */}
+          <Route path="jobs" element={<Navigate to="/admin/bookings" replace />} />
           <Route path="payments" element={<PaymentsPage />} />
+          <Route path="payments/:id" element={<PaymentDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

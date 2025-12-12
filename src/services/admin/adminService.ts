@@ -123,7 +123,11 @@ const realService = {
    * Create new user
    */
   async createUser(
-    data: Partial<AdminUser> & {
+    data: {
+      name: string;
+      email: string;
+      phoneNumber: string;
+      address: string;
       password: string;
       role: string;
     }
@@ -138,7 +142,9 @@ const realService = {
     userId: string,
     data: Partial<AdminUser>
   ): Promise<ApiResponse<AdminUser>> {
-    return apiClient.put(`${API_V1}/user/update/${userId}`, data);
+    // Route template is /user/update/{id}, but controller expects userId as [FromQuery].
+    // Send userId in both path and query to match backend routing + binding.
+    return apiClient.put(`${API_V1}/user/update/${userId}`, data, { params: { userId } });
   },
 
   /**
@@ -278,61 +284,65 @@ const realService = {
       search?: string;
     }
   ): Promise<ApiResponse<PagingResponse<AdminPayment>>> {
-    // Try the direct payments list endpoint first (some backends may expose it)
-    const listResp = await apiClient.get(`${API_V1}/payment`, params);
-
-    if (listResp.success && listResp.data) {
-      return listResp as ApiResponse<PagingResponse<AdminPayment>>;
-    }
-
-    // If the direct list endpoint is not available (404) or not supported,
-    // fall back to building a list by iterating bookings and fetching payment by booking.
-    // This requires authorization and may be slower, but returns real backend data.
+    // The backend doesn't expose a direct payments list endpoint,
+    // so we build a list by iterating bookings and fetching payment by booking.
+    // This returns real backend data.
+    
     // Fetch bookings first
     const bookingsResp = await apiClient.get(`${API_V1}/booking/getall`, { page: 1, pageSize: 100 });
     if (!bookingsResp.success || !bookingsResp.data) {
-      return { success: false, error: listResp.error || bookingsResp.error || 'Payments endpoint not available' } as ApiResponse<PagingResponse<AdminPayment>>;
+      return { success: false, error: bookingsResp.error || 'Bookings endpoint not available' } as ApiResponse<PagingResponse<AdminPayment>>;
     }
 
-    const bookingsList = ((bookingsResp.data as PagingResponse<AdminBooking>)?.items ?? (bookingsResp.data as AdminBooking[])) as AdminBooking[];
+    // Handle both PagingResponse and direct array responses
+    let bookingsList: any[] = [];
+    if (Array.isArray(bookingsResp.data)) {
+      bookingsList = bookingsResp.data;
+    } else if ((bookingsResp.data as any)?.items) {
+      bookingsList = (bookingsResp.data as any).items;
+    } else {
+      bookingsList = [];
+    }
+
     const paymentsAccum: AdminPayment[] = [];
 
     for (const b of bookingsList) {
-      try {
-        const pResp = await apiClient.get(`${API_V1}/payment/booking/${b.id}`);
-        if (pResp.success && pResp.data) {
-          // Normalize shape if necessary
-          const pd = pResp.data as Record<string, unknown>;
-          const getString = (k: string, fallback = '') => {
-            const v = pd[k];
-            return typeof v === 'string' ? v : v !== undefined && v !== null ? String(v) : fallback;
-          };
-          const getNumber = (k: string, fallback = 0) => {
-            const v = pd[k];
-            return typeof v === 'number' ? v : v !== undefined && v !== null ? Number(v) || fallback : fallback;
-          };
+      const bookingId = (b as any).bookingId || (b as any).id;
+      if (!bookingId) continue;
 
-          paymentsAccum.push({
-            id: getString('paymentId', getString('id', `${b.id}-p`)),
-            title: getString('title', `Payment for ${b.title || b.id}`),
-            bookingId: getString('bookingId', b.id),
-            customerId: getString('customerId', getString('customerId', '')),
-            customer: getString('customer', b.customer || 'N/A'),
-            freelancer: getString('freelancer', 'N/A'),
-            service: getString('service', b.service || 'N/A'),
-            amount: getNumber('amount', getNumber('total', 0)),
-            platformFee: getNumber('commissionAmount', getNumber('platformFee', 0)),
-            method: getString('method', 'Unknown') as AdminPayment['method'],
-            status: (getString('status', 'Pending') as AdminPayment['status']),
-            type: (getString('type', 'Payment') as AdminPayment['type']),
-            date: getString('createdAt', getString('date', new Date().toISOString())),
-            transactionId: getString('transactionId', getString('txId', undefined as unknown as string)) || undefined,
-          });
-        }
-      } catch {
-        // ignore per-booking failures
-      }
+      // Build base payment-like record from booking
+      const petNames = ((b as any).pets || []).map((p: any) => p.petName).filter(Boolean);
+      const bookingName = petNames.length > 0 ? petNames.join(', ') : `Booking ${String(bookingId).substring(0, 8)}`;
+
+      // Build payment record from booking data only. Backend doesn't guarantee payment exists
+      // for every booking, so we derive status from isPaid flag and skip per-booking fetches
+      // to avoid 404 spam in console.
+      const baseRecord: any = {
+        id: `${bookingId}-p`,
+        title: `Payment for ${bookingName}`,
+        bookingId: bookingId,
+        customerId: (b as any).customerId || '',
+        customer: (b as any).customerName || (b as any).customer || 'N/A',
+        freelancer: (b as any).freelancerName || (b as any).freelancer || 'N/A',
+        service: (b as any).service || 'N/A',
+        amount: Number((b as any).totalPrice || 0),
+        platformFee: 0,
+        method: 'Unknown',
+        status: (b as any).isPaid ? 'Success' : 'Pending',
+        type: 'Payment',
+        date: (b as any).bookingDate || (b as any).createdAt || new Date().toISOString(),
+        transactionId: undefined,
+      };
+
+      paymentsAccum.push(baseRecord as AdminPayment);
     }
+
+    // Sort payments by date (newest first) so page 1 contains most recent transactions
+    paymentsAccum.sort((a: any, b: any) => {
+      const da = a && a.date ? new Date(a.date).getTime() : 0;
+      const db = b && b.date ? new Date(b.date).getTime() : 0;
+      return (db || 0) - (da || 0);
+    });
 
     const page = params?.page || 1;
     const pageSize = params?.pageSize || 6;
@@ -366,6 +376,14 @@ const realService = {
     bookingId: string
   ): Promise<ApiResponse<AdminPayment>> {
     return apiClient.get(`${API_V1}/payment/booking/${bookingId}`);
+  },
+
+  /**
+   * Get payment status by booking ID
+   * Backend endpoint: GET /api/v1/payment/{bookingId}/status
+   */
+  async getPaymentStatusByBookingId(bookingId: string): Promise<ApiResponse<{ status: string }>> {
+    return apiClient.get(`${API_V1}/payment/${bookingId}/status`);
   },
 
   /**

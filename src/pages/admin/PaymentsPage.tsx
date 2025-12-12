@@ -1,44 +1,152 @@
 // file: PaymentsPage.tsx - Updated with API Integration
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import StatCard from "../../components/admin/StatCard";
 import TransactionCard from "../../components/admin/TransactionCard";
 import { AiOutlineDollarCircle, AiOutlineLineChart, AiOutlineSwap, AiOutlineDownload, AiOutlineFilePdf, AiOutlineCalendar, AiOutlineUser } from "react-icons/ai";
 import FiltersPanel from "../../components/admin/FiltersPanel";
-import PaymentModal from "../../components/admin/modal/PaymentModal";
-import type { PaymentFormData } from "../../components/admin/modal/PaymentModal";
 import { useSearch } from "../../contexts/SearchContext";
 import { useSettings } from "../../contexts/SettingsContext";
-import { useAdminPayments, useAdminExport } from "../../hooks/useAdmin";
+import { useAdminPayments } from "../../hooks/useAdmin";
+import html2pdf from "html2pdf.js";
+import { showSuccess, showError } from "../../utils/toastUtils";
 
 const ITEMS_PER_PAGE = 6;
 
 const PaymentsPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const { theme } = useSettings();
-  const { payments, loading, error, fetchPayments, createPayment } = useAdminPayments();
-  const { exportToCsv, exportToPdf } = useAdminExport();
+  const navigate = useNavigate();
+  const { payments, loading, error, fetchPayments } = useAdminPayments();
 
-  // Fetch payments on mount
+  // Fetch all payments on mount with large page size for client-side pagination
   React.useEffect(() => {
-    fetchPayments();
+    fetchPayments({ page: 1, pageSize: 1000 });
   }, [fetchPayments]);
 
-  const handleCreatePayment = async (data: PaymentFormData) => {
-    console.log("Creating payment:", data);
-    const result = await createPayment({
-      bookingId: data.customer,
-      customerId: data.customer,
-      amount: Number(data.amount),
-      method: data.method,
-      notes: data.note,
-    });
+  const handleExportPdf = () => {
+    try {
+      // Calculate totals
+      const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalFees = payments.reduce((sum, p) => sum + (p.platformFee || 0), 0);
+      
+      // Create HTML content with proper Vietnamese support
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h1 style="text-align: center; margin-bottom: 10px;">Báo Cáo Giao Dịch</h1>
+          <p style="text-align: center; margin-bottom: 20px; color: #666;">Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}</p>
+          
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <p style="margin: 5px 0;"><strong>Tổng doanh thu:</strong> ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalRevenue)}</p>
+            <p style="margin: 5px 0;"><strong>Phí nền tảng:</strong> ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalFees)}</p>
+            <p style="margin: 5px 0;"><strong>Tổng giao dịch:</strong> ${payments.length}</p>
+            <p style="margin: 5px 0;"><strong>Doanh thu ròng:</strong> ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalRevenue - totalFees)}</p>
+          </div>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background: #2c3e50; color: white;">
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Tiêu đề</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Khách hàng</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Freelancer</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Số tiền</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: right;">Phí</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Trạng thái</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Ngày</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${payments.map((p, idx) => `
+                <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">
+                  <td style="padding: 10px; border: 1px solid #ddd;">${p.title}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${p.customer}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${p.freelancer}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.amount || 0)}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.platformFee || 0)}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                    <span style="padding: 4px 8px; border-radius: 3px; ${
+                      p.status === 'Success' ? 'background: #d4edda; color: #155724;' :
+                      p.status === 'Pending' ? 'background: #fff3cd; color: #856404;' :
+                      p.status === 'Failed' ? 'background: #f8d7da; color: #721c24;' :
+                      'background: #e2e3e5; color: #383d41;'
+                    }">
+                      ${p.status === 'Success' ? 'Thành công' : p.status === 'Pending' ? 'Chờ' : p.status === 'Failed' ? 'Lỗi' : 'Hủy'}
+                    </span>
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${new Date(p.date).toLocaleDateString('vi-VN')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      // Create a temporary div to hold the HTML
+      const element = document.createElement('div');
+      element.innerHTML = htmlContent;
+      
+      // Configure and export using html2pdf
+      const opt = {
+        margin: 10,
+        filename: `payments_${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'landscape' as const, unit: 'mm', format: 'a4' }
+      };
+      
+      html2pdf().set(opt).from(element).save();
+      showSuccess('PDF xuất thành công!');
+    } catch (err) {
+      showError('Lỗi xuất PDF: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
 
-    if (result.success) {
-      setIsModalOpen(false);
-      alert("Giao dịch tạo thành công!");
-      await fetchPayments();
-    } else {
-      alert("Lỗi: " + (result.error || "Không thể tạo giao dịch"));
+  const handleExportCsv = () => {
+    try {
+      const header = ['Tiêu đề', 'Khách hàng', 'Freelancer', 'Dịch vụ', 'Số tiền (VND)', 'Phí nền tảng (VND)', 'Phương thức', 'Trạng thái', 'Ngày'];
+      
+      // Map status to Vietnamese display names
+      const statusMap: { [key: string]: string } = {
+        'Success': 'Thành công',
+        'Pending': 'Chờ',
+        'Failed': 'Lỗi',
+        'Cancelled': 'Hủy'
+      };
+      
+      const rows = payments.map(p => [
+        p.title || 'N/A',
+        p.customer || 'N/A',
+        p.freelancer || 'N/A',
+        p.service || 'N/A',
+        p.amount || 0,
+        p.platformFee || 0,
+        p.method || 'Unknown',
+        statusMap[p.status] || p.status,
+        new Date(p.date).toLocaleDateString('vi-VN')
+      ]);
+      
+      // Create CSV with proper encoding for Vietnamese characters
+      const csvContent = [
+        header.map(h => `"${h}"`).join(','),
+        ...rows.map(r => r.map(c => `"${String(c)}"`).join(','))
+      ].join('\n');
+      
+      // Add BOM for UTF-8 encoding to handle Vietnamese characters properly in Excel
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `payments_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSuccess('CSV xuất thành công!');
+    } catch (err) {
+      showError('Lỗi xuất CSV: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -157,36 +265,6 @@ const PaymentsPage: React.FC = () => {
             <div className="text-right flex flex-col items-end gap-2">
               <div className="text-sm opacity-90">Giao dịch hôm nay</div>
               <div className="text-2xl font-semibold">{payments.filter(t => t.date === new Date().toLocaleDateString('vi-VN')).length || 0}</div>
-              <div className="mt-4 flex items-center gap-2">
-                <button 
-                  onClick={() => setIsModalOpen(true)} 
-                  className="px-3 py-2 bg-white text-green-600 rounded-lg font-medium hover:scale-105 transition-transform"
-                >
-                  + Tạo Giao Dịch Mới
-                </button>
-              </div>
-
-              <PaymentModal 
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSubmit={handleCreatePayment}
-                customers={Array.from(new Set(
-                  payments
-                    .filter(t => t.customer !== 'N/A')
-                    .map(t => ({ id: t.id, name: t.customer }))
-                ))}
-                freelancers={Array.from(new Set(
-                  payments
-                    .filter(t => t.freelancer !== 'N/A')
-                    .map(t => ({ id: t.id, name: t.freelancer }))
-                ))}
-                services={[
-                  { id: '1', name: 'Grooming', price: 1200000 },
-                  { id: '2', name: 'Sitting', price: 500000 },
-                  { id: '3', name: 'Training', price: 300000 },
-                  { id: '4', name: 'Medical', price: 750000 }
-                ]}
-              />
             </div>
           </div>
           {/* small sparkline / decorative svg */}
@@ -250,13 +328,13 @@ const PaymentsPage: React.FC = () => {
       {/* ACTIONS */}
       <div className="mb-6 flex items-center justify-end gap-2">
         <button 
-          onClick={() => exportToCsv()} 
+          onClick={() => handleExportCsv()} 
           className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}
         >
           <AiOutlineDownload /> Xuất CSV
         </button>
         <button 
-          onClick={() => exportToPdf()} 
+          onClick={() => handleExportPdf()} 
           className={`${theme === 'dark' ? 'bg-gray-800 text-gray-200 border-gray-700' : 'bg-white'} px-4 py-2 border rounded-xl hover:bg-gray-50 flex items-center gap-2`}
         >
           <AiOutlineFilePdf /> Xuất PDF
@@ -266,7 +344,7 @@ const PaymentsPage: React.FC = () => {
       {/* FILTER */}
       <FiltersPanel
         fields={[
-          { key: 'status', label: 'Trạng Thái', type: 'select', icon: <AiOutlineLineChart />, options: [{ value: 'Success', label: 'Thành Công' }, { value: 'Pending', label: 'Đang Chờ' }, { value: 'Failed', label: 'Thất Bại' }] },
+          { key: 'status', label: 'Trạng Thái', type: 'select', icon: <AiOutlineLineChart />, options: [{ value: 'Success', label: 'Thành Công' }, { value: 'Pending', label: 'Đang Chờ' }, { value: 'Failed', label: 'Thất Bại' }, { value: 'Cancelled', label: 'Đã Hủy' }] },
           { key: 'method', label: 'Phương Thức', type: 'select', icon: <AiOutlineDollarCircle />, options: [{ value: 'CreditCard', label: 'Credit Card' }, { value: 'BankTransfer', label: 'Chuyển Khoản' }, { value: 'Wallet', label: 'Ví Điện Tử' }, { value: 'VNPay', label: 'VNPay' }, { value: 'MoMo', label: 'MoMo' }] },
           { key: 'type', label: 'Loại Giao Dịch', type: 'select', icon: <AiOutlineSwap />, options: [{ value: 'Payment', label: 'Thanh Toán Dịch Vụ' }, { value: 'Refund', label: 'Hoàn Tiền/Rút Tiền' }, { value: 'Fee', label: 'Phí Nền Tảng' }] },
           { key: 'amountRange', label: 'Khoảng Tiền', type: 'select', icon: <AiOutlineDollarCircle />, options: [{ value: 'Low', label: 'Dưới 500K' }, { value: 'Medium', label: '500K - 1.5M' }, { value: 'High', label: 'Trên 1.5M' }] },
@@ -284,7 +362,7 @@ const PaymentsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {!loading && currentTransactions.length > 0 ? (
           currentTransactions.map((t) => (
-            <TransactionCard
+              <TransactionCard
               key={t.id}
               title={t.title}
               customer={t.customer}
@@ -292,9 +370,10 @@ const PaymentsPage: React.FC = () => {
               service={t.service}
               method={t.method}
               date={t.date}
-              amount={`${(t.amount / 1000).toFixed(0)}K ₫`}
-              platformFee={`${(t.platformFee / 1000).toFixed(0)}K ₫`}
+                amount={t.amount}
+                platformFee={t.platformFee}
               status={t.status}
+              onView={() => navigate(`/admin/payments/${t.id}`)}
             />
           ))
         ) : loading ? (

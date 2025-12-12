@@ -40,20 +40,54 @@ export function useAdminUsers() {
       setError(null);
 
       try {
+        // Call the paged getUsers endpoint and pass role as a query parameter when provided.
+        // Some backends expose a path-based role endpoint that may be misconfigured (method/route mismatch),
+        // so we use query param `role` to avoid 400 responses.
         const response = await adminService.getUsers({
           page: params?.page || pagination.page,
           pageSize: params?.pageSize || pagination.pageSize,
-          ...params,
+          role: params?.role,
+          status: params?.status,
+          region: params?.region,
+          search: params?.search,
         });
 
         if (response.success && response.data) {
-          const data = response.data as PagingResponse<AdminUser>;
-          setUsers(data.items);
+          const dataAny: any = response.data;
+          // Normalize backend responses: some endpoints return a PagingResponse, others return a plain array of users
+          let items: AdminUser[] = [];
+          let pageNumber = params?.page || pagination.page;
+          let pageSize = params?.pageSize || pagination.pageSize;
+          let totalCount = 0;
+          let totalPages = 1;
+
+          if (Array.isArray(dataAny)) {
+            items = dataAny as AdminUser[];
+            totalCount = items.length;
+            totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+          } else {
+            // Assume PagingResponse shape
+            const data = dataAny as PagingResponse<AdminUser>;
+            items = data.items ?? [];
+            pageNumber = data.pageNumber ?? pageNumber;
+            pageSize = data.pageSize ?? pageSize;
+            totalCount = data.totalCount ?? items.length;
+            totalPages = data.totalPages ?? Math.max(1, Math.ceil(totalCount / pageSize));
+          }
+
+          // If caller requested a role, additionally filter client-side to be safe
+          if (params?.role) {
+            items = items.filter((u) => (u.role ?? (u as any).Role ?? "").toString() === params.role);
+            totalCount = items.length;
+            totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+          }
+
+          setUsers(items);
           setPagination({
-            page: data.pageNumber,
-            pageSize: data.pageSize,
-            totalCount: data.totalCount,
-            totalPages: data.totalPages,
+            page: pageNumber,
+            pageSize,
+            totalCount,
+            totalPages,
           });
         } else {
           setError(response.error || "Failed to fetch users");
@@ -68,7 +102,14 @@ export function useAdminUsers() {
   );
 
   const createUser = useCallback(
-    async (userData: Partial<AdminUser> & { password: string; role: string }) => {
+    async (userData: {
+      name: string;
+      email: string;
+      phoneNumber: string;
+      address: string;
+      password: string;
+      role: string;
+    }) => {
       setLoading(true);
       setError(null);
 
@@ -167,7 +208,7 @@ export function useAdminFreelancers() {
 
         if (response.success && response.data) {
           const data = response.data as PagingResponse<AdminFreelancer>;
-          setFreelancers(data.items);
+          setFreelancers(data.items ?? []);
           setPagination({
             page: data.pageNumber,
             pageSize: data.pageSize,
@@ -229,14 +270,109 @@ export function useAdminBookings() {
         });
 
         if (response.success && response.data) {
-          const data = response.data as PagingResponse<AdminBooking>;
-          setBookings(data.items);
-          setPagination({
-            page: data.pageNumber,
-            pageSize: data.pageSize,
-            totalCount: data.totalCount,
-            totalPages: data.totalPages,
+          // Handle both array and PagingResponse shapes from backend
+          let items: any[] = [];
+          if (Array.isArray(response.data)) {
+            items = response.data;
+          } else {
+            const data = response.data as PagingResponse<AdminBooking>;
+            items = data.items || [];
+          }
+
+          // Normalize booking items to support varying backend shapes used across endpoints
+          const normalized = items.map((it: any) => {
+            const bookingId = it.bookingId || it.BookingId || it.id || it._id || '';
+
+            // customer / freelancer names may be nested or absent
+            const customerName = it.customerName || it.customer?.name || it.Customer?.Name || it.customerFullName || '';
+            const freelancerName = it.freelancerName || it.freelancer?.name || it.Freelancer?.Name || '';
+
+            // Normalize pets array to objects with `petName` property
+            const rawPets = it.pets || it.Pets || [];
+            const pets = Array.isArray(rawPets)
+              ? rawPets.map((p: any) => ({ petName: p.petName || p.PetName || p.name || '' }))
+              : (it.pet ? [{ petName: it.pet }] : []);
+
+            const totalPrice = Number(it.totalPrice ?? it.TotalPrice ?? it.price ?? it.amount ?? 0);
+
+            // Map pickup time enum: backend sends 0..4, convert to Slot1..Slot5
+            const rawPickUpTime = it.pickUpTime ?? it.PickUpTime ?? it.time ?? it.scheduledTime ?? '';
+            let pickUpTime = '';
+            if (rawPickUpTime === 0 || rawPickUpTime === 1 || rawPickUpTime === 2 || rawPickUpTime === 3 || rawPickUpTime === 4) {
+              pickUpTime = `Slot${Number(rawPickUpTime) + 1}`;
+            } else if (typeof rawPickUpTime === 'string' && /^\d+$/.test(rawPickUpTime)) {
+              const n = Number(rawPickUpTime);
+              if (n >= 0 && n <= 4) pickUpTime = `Slot${n + 1}`;
+            } else if (typeof rawPickUpTime === 'string') {
+              pickUpTime = rawPickUpTime;
+            }
+
+            // Map pickup status enum: 0=NotPickedUp, 1=PickedUp, 2=Delivered
+            const rawPickUpStatus = it.pickUpStatus ?? it.PickUpStatus ?? it.pickupStatus ?? it.pickUpState ?? it.pickUp ?? 0;
+            let pickUpStatus = 'NotPickedUp';
+            if (rawPickUpStatus === 0) {
+              pickUpStatus = 'NotPickedUp';
+            } else if (rawPickUpStatus === 1) {
+              pickUpStatus = 'PickedUp';
+            } else if (rawPickUpStatus === 2) {
+              pickUpStatus = 'Delivered';
+            } else if (typeof rawPickUpStatus === 'string' && /^\d+$/.test(rawPickUpStatus)) {
+              const n = Number(rawPickUpStatus);
+              pickUpStatus = n === 1 ? 'PickedUp' : n === 2 ? 'Delivered' : 'NotPickedUp';
+            } else if (rawPickUpStatus && typeof rawPickUpStatus === 'string') {
+              pickUpStatus = rawPickUpStatus;
+            }
+
+            // isPaid boolean (handle capitalized or different fields)
+            const isPaid = typeof it.isPaid === 'boolean' ? it.isPaid : (typeof it.IsPaid === 'boolean' ? it.IsPaid : !!it.paid || !!it.paidStatus || false);
+
+            // booking date normalization
+            const bookingDate = it.bookingDate || it.BookingDate || it.scheduledDate || it.CreatedAt || it.createdDate || it.date || '';
+
+            // Normalize status enum: 0=Pending, 1=Confirmed, 2=Completed, 3=Cancelled
+            const rawStatus = it.status ?? it.Status ?? it.bookingStatus ?? 0;
+            let status = 'Pending';
+            if (rawStatus === 0) {
+              status = 'Pending';
+            } else if (rawStatus === 1) {
+              status = 'Confirmed';
+            } else if (rawStatus === 2) {
+              status = 'Completed';
+            } else if (rawStatus === 3) {
+              status = 'Cancelled';
+            } else if (typeof rawStatus === 'string' && /^\d+$/.test(rawStatus)) {
+              const n = Number(rawStatus);
+              status = n === 1 ? 'Confirmed' : n === 2 ? 'Completed' : n === 3 ? 'Cancelled' : 'Pending';
+            } else if (rawStatus && typeof rawStatus === 'string') {
+              const s = rawStatus;
+              if (/assigned|in progress/i.test(s)) status = 'Confirmed';
+              else if (/pending/i.test(s)) status = 'Pending';
+              else if (/completed|done/i.test(s)) status = 'Completed';
+              else if (/cancelled|canceled/i.test(s)) status = 'Cancelled';
+              else status = s;
+            }
+
+            return {
+              ...it,
+              bookingId,
+              customerName,
+              freelancerName,
+              pets,
+              totalPrice,
+              pickUpTime,
+              pickUpStatus,
+              isPaid,
+              bookingDate,
+              status,
+            } as AdminBooking;
           });
+
+          setBookings(normalized);
+          // Set pagination defaults or from response if available
+          const pageData = Array.isArray(response.data) 
+            ? { page: 1, pageSize: 100, totalCount: items.length, totalPages: 1 }
+            : { page: (response.data as PagingResponse<AdminBooking>).pageNumber || 1, pageSize: (response.data as PagingResponse<AdminBooking>).pageSize || 100, totalCount: (response.data as PagingResponse<AdminBooking>).totalCount || items.length, totalPages: (response.data as PagingResponse<AdminBooking>).totalPages || 1 };
+          setPagination(pageData);
         } else {
           setError(response.error || "Failed to fetch bookings");
         }

@@ -15,14 +15,13 @@ import { useSettings } from "../../contexts/SettingsContext";
 import type { FreelancerFormData } from "../../components/admin/modal/FreelancerModal";
 import FreelancerModal from "../../components/admin/modal/FreelancerModal";
 import { useAdminFreelancers } from "../../hooks/useAdmin";
+import adminService from "../../services/admin/adminService";
+import { showError, showSuccess } from "../../utils/toastUtils";
 
 const ITEMS_PER_PAGE = 6;
 
 type FreelancerFilter = {
   status: string;
-  serviceType: string;
-  ratingRange: string;
-  experience: string;
   region: string;
 };
 
@@ -39,10 +38,44 @@ const FreelancersPage: React.FC = () => {
 
   const handleCreateFreelancer = async (data: FreelancerFormData) => {
     console.log("Creating freelancer:", data);
-    // For now, just log to console since backend isn't ready
-    // In a real app, you would call createFreelancer here
-    alert("Freelancer tạo thành công!");
-    await fetchFreelancers();
+    
+    try {
+      const email = data.email || `${data.name.replace(/\s+/g, '.').toLowerCase()}@example.com`;
+      const password = data.password || 'TempPass123!';
+      
+      const payload = {
+        name: data.name,
+        email,
+        phoneNumber: data.phoneNumber || '',
+        address: data.address || '',
+        role: 'Freelancer',
+        password,
+        confirmPassword: password,
+      };
+
+      console.log("Create user payload:", payload);
+      const res = await adminService.createUser({
+        name: payload.name,
+        email: payload.email,
+        phoneNumber: payload.phoneNumber,
+        address: payload.address,
+        password: payload.password,
+        role: 'Freelancer',
+      });
+
+      console.log("Create response:", res);
+
+      if (res.success) {
+        showSuccess('Freelancer tạo thành công!');
+        setIsModalOpen(false);
+        await fetchFreelancers();
+      } else {
+        showError('Lỗi khi tạo freelancer: ' + (res.error || res.message || 'Unknown'));
+      }
+    } catch (err) {
+      console.error('Create freelancer error', err);
+      showError('Lỗi khi tạo freelancer');
+    }
   };
 
   // Mock data for modal dropdowns
@@ -53,49 +86,21 @@ const FreelancersPage: React.FC = () => {
     { id: "veterinary", name: "Veterinary", price: 1500000 },
   ];
 
-  const [filter, setFilter] = useState<FreelancerFilter>({
+  const [filters, setFilters] = useState<FreelancerFilter>({
     status: "All",
-    serviceType: "All",
-    ratingRange: "All",
-    experience: "All",
+
     region: "All",
   });
   const [currentPage, setCurrentPage] = useState(1);
   const { searchQuery } = useSearch();
 
   // LOGIC LỌC - Use API data from freelancers hook
-  const filteredFreelancers = freelancers.filter((f) => {
+  const filteredFreelancers = (freelancers ?? []).filter((f) => {
     // 1. Trạng thái
-    if (filter.status !== "All" && f.status !== filter.status) return false;
-
-    // 2. Loại dịch vụ - using services array
-    if (filter.serviceType !== "All" && f.services) {
-      if (!f.services.some(s => s.includes(filter.serviceType))) return false;
-    }
-
-    // 3. Đánh giá
-    if (filter.ratingRange !== "All" && f.rating !== undefined) {
-      const rating = f.rating;
-      if (filter.ratingRange === "High" && rating < 4) return false;
-      if (filter.ratingRange === "Medium" && (rating < 3 || rating >= 4))
-        return false;
-      if (filter.ratingRange === "Low" && rating >= 3) return false;
-    }
-
-    // 4. Kinh nghiệm
-    if (filter.experience !== "All" && f.experience !== undefined) {
-      const exp = parseInt(f.experience, 10) || 0;
-      if (filter.experience === "Junior" && exp > 2) return false;
-      if (
-        filter.experience === "Mid" &&
-        (exp <= 2 || exp > 5)
-      )
-        return false;
-      if (filter.experience === "Senior" && exp <= 5) return false;
-    }
+    if (filters.status !== "All" && f.status !== filters.status) return false;
 
     // 5. Khu vực
-    if (filter.region !== "All" && f.region !== filter.region) return false;
+    if (filters.region !== "All" && f.region !== filters.region) return false;
 
     // Header search
     if (searchQuery) {
@@ -118,15 +123,15 @@ const FreelancersPage: React.FC = () => {
   };
 
   // Tính toán lại Stat Cards dựa trên dữ liệu API
-  const totalActive = freelancers.filter((f) => f.status === "Active").length;
+  const totalActive = (freelancers ?? []).filter((f) => f.status === "Active").length;
   const avgRating =
-    freelancers.length > 0
+    (freelancers ?? []).length > 0
       ? (
-          freelancers.reduce((sum, f) => sum + (f.rating || 0), 0) /
-          freelancers.length
+          (freelancers ?? []).reduce((sum, f) => sum + (f.rating || 0), 0) /
+          (freelancers ?? []).length
         ).toFixed(1)
       : "0";
-  const totalHires = freelancers.reduce((sum, f) => sum + (f.jobsCompleted || 0), 0);
+  const totalHires = (freelancers ?? []).reduce((sum, f) => sum + (f.jobsCompleted || 0), 0);
 
   const renderPagination = () => (
     <div className="flex justify-center items-center space-x-2 mt-6">
@@ -237,40 +242,6 @@ const FreelancersPage: React.FC = () => {
             ],
           },
           {
-            key: "serviceType",
-            label: "Loại Dịch Vụ",
-            type: "select",
-            icon: <AiOutlineFileText />,
-            options: [
-              { value: "Grooming", label: "Grooming" },
-              { value: "Training", label: "Training" },
-              { value: "Dog Walking", label: "Dog Walking" },
-              { value: "Veterinary", label: "Veterinary" },
-            ],
-          },
-          {
-            key: "ratingRange",
-            label: "Đánh Giá",
-            type: "select",
-            icon: <AiOutlineStar />,
-            options: [
-              { value: "High", label: "Từ 4.0 sao" },
-              { value: "Medium", label: "3.0 - 3.9 sao" },
-              { value: "Low", label: "Dưới 3.0 sao" },
-            ],
-          },
-          {
-            key: "experience",
-            label: "Kinh Nghiệm",
-            type: "select",
-            icon: <AiOutlineUser />,
-            options: [
-              { value: "Junior", label: "0-2 năm" },
-              { value: "Mid", label: "2-5 năm" },
-              { value: "Senior", label: "Trên 5 năm" },
-            ],
-          },
-          {
             key: "region",
             label: "Khu Vực",
             type: "select",
@@ -282,17 +253,15 @@ const FreelancersPage: React.FC = () => {
             ],
           },
         ]}
-        values={filter}
+        values={filters}
         onChange={(next: FreelancerFilter) => {
-          setFilter(next);
+          setFilters(next);
           setCurrentPage(1);
         }}
         onReset={() =>
-          setFilter({
+          setFilters({
             status: "All",
-            serviceType: "All",
-            ratingRange: "All",
-            experience: "All",
+
             region: "All",
           })
         }
@@ -308,6 +277,7 @@ const FreelancersPage: React.FC = () => {
           currentFreelancers.map((f) => (
             <FreelancerCard
               key={f.id}
+              id={f.id}
               name={f.name}
               subtitle={f.subtitle || "Freelancer"}
               avatar={f.avatar}
