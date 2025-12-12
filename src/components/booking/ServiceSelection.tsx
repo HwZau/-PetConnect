@@ -1,9 +1,15 @@
 import React from "react";
-import type { ServiceSelectionProps } from "../../types";
 import { ServiceManager } from "../../services/booking/serviceManager";
 
+interface ServiceSelectionProps {
+  selectedServiceIds?: string[];
+  onServiceChange?: (serviceId: string) => void;
+  error?: string;
+  freelancer?: any;
+}
+
 const ServiceSelection: React.FC<ServiceSelectionProps> = ({
-  selectedServiceIds, // Changed to array
+  selectedServiceIds,
   onServiceChange,
   error,
   freelancer,

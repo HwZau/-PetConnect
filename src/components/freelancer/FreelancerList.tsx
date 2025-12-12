@@ -7,9 +7,12 @@ import {
   AiOutlinePhone,
   AiOutlineMail,
 } from "react-icons/ai";
-import type { FreelancerListProps } from "../../types";
 import { freelancerService, type FreelancerData } from "../../services";
 import { showError } from "../../utils";
+
+interface FreelancerListProps {
+  filters: any;
+}
 
 const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
   const navigate = useNavigate();
@@ -38,8 +41,6 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         if (response.success && response.data) {
           setFreelancers(response.data.items);
           setTotalPages(response.data.totalPages);
-        } else {
-          showError(response.message || "Không thể tải danh sách freelancer");
         }
       } catch (error) {
         console.error("Error fetching freelancers:", error);

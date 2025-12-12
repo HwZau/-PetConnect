@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { FaTimes, FaDog, FaCat } from "react-icons/fa";
-import ConfirmDialog from "../common/ConfirmDialog";
 
 interface EditPetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (petId: string, petData: PetFormData) => void;
-  onDelete: (petId: string) => void;
   petData: {
     petId: string;
     petName: string;
@@ -25,7 +23,6 @@ const EditPetModal = ({
   isOpen,
   onClose,
   onSave,
-  onDelete,
   petData,
 }: EditPetModalProps) => {
   const [formData, setFormData] = useState<PetFormData>({
@@ -33,7 +30,6 @@ const EditPetModal = ({
     species: "",
     breed: "",
   });
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errors, setErrors] = useState<
     Partial<Record<keyof PetFormData, string>>
   >({});
@@ -112,19 +108,8 @@ const EditPetModal = ({
     }
   };
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleConfirmDelete = () => {
-    onDelete(petData.petId);
-    setShowDeleteConfirm(false);
-    handleClose();
-  };
-
   const handleClose = () => {
     setErrors({});
-    setShowDeleteConfirm(false);
     onClose();
   };
 
@@ -247,13 +232,12 @@ const EditPetModal = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <div className="flex gap-3 pt-4">
               <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="sm:order-first px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-all shadow-lg"
+                type="submit"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
               >
-                Xóa thú cưng
+                Cập nhật
               </button>
               <button
                 type="button"
@@ -262,28 +246,10 @@ const EditPetModal = ({
               >
                 Hủy
               </button>
-              <button
-                type="submit"
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl"
-              >
-                Cập nhật
-              </button>
             </div>
           </form>
         </div>
       </div>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        title="Xác nhận xóa thú cưng"
-        message={`Bạn có chắc chắn muốn xóa "${petData.petName}"? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
-        type="danger"
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
-      />
     </>
   );
 };

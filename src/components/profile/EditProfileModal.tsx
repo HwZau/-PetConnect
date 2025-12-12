@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { AiOutlineClose, AiOutlineSave } from "react-icons/ai";
-import { FaPaw } from "react-icons/fa";
+import { FaPaw, FaUpload, FaSpinner } from "react-icons/fa";
+import { cloudinaryService } from "../../services";
+import { showError, showSuccess } from "../../utils";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -8,9 +10,9 @@ interface EditProfileModalProps {
   onSave: () => void;
   formData: {
     name: string;
-    phone: string;
-    location: string;
-    bio: string;
+    phoneNumber: string;
+    address: string;
+    avatarUrl: string;
   };
   onChange: (field: string, value: string) => void;
 }
@@ -22,7 +24,47 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   formData,
   onChange,
 }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!isOpen) return null;
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showError("Vui lòng chọn file ảnh");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Kích thước ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const response = await cloudinaryService.uploadImage(file);
+      if (response.success && response.data) {
+        onChange("avatarUrl", response.data.secureUrl);
+        showSuccess("Tải ảnh lên thành công");
+      } else {
+        showError("Không thể tải ảnh lên");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      showError("Lỗi khi tải ảnh lên");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -60,8 +102,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </label>
             <input
               type="tel"
-              value={formData.phone}
-              onChange={(e) => onChange("phone", e.target.value)}
+              value={formData.phoneNumber}
+              onChange={(e) => onChange("phoneNumber", e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="Nhập số điện thoại"
             />
@@ -69,28 +111,69 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Vị trí
+              Địa chỉ
             </label>
             <input
               type="text"
-              value={formData.location}
-              onChange={(e) => onChange("location", e.target.value)}
+              value={formData.address}
+              onChange={(e) => onChange("address", e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              placeholder="Thành phố của bạn"
+              placeholder="Nhập địa chỉ của bạn"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giới thiệu
+              Avatar URL
             </label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => onChange("bio", e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-              placeholder="Giới thiệu về bạn và những boss đáng yêu"
-            />
+            <div className="space-y-3">
+              {formData.avatarUrl && (
+                <div className="flex items-center justify-center">
+                  <img
+                    src={formData.avatarUrl}
+                    alt="Avatar preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-teal-500"
+                  />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={formData.avatarUrl}
+                  onChange={(e) => onChange("avatarUrl", e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  placeholder="URL ảnh đại diện"
+                />
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  disabled={uploading}
+                  className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      <span>Đang tải...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaUpload />
+                      <span>Tải lên</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-500">
+                Tải ảnh lên Cloudinary hoặc nhập URL trực tiếp (tối đa 5MB)
+              </p>
+            </div>
           </div>
         </div>
 

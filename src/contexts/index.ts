@@ -3,3 +3,5 @@
 // export { PetProvider, usePetContext } from './PetContext';
 // export { BookingProvider, useBookingContext } from './BookingContext';
 // export { ThemeProvider, useThemeContext } from './ThemeContext';
+
+export { WebSocketProvider, useWebSocket } from "./WebSocketContext";

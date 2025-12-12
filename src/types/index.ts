@@ -2,10 +2,8 @@
  * ORGANIZED TYPE SYSTEM
  *
  * This file serves as the main entry point for all type definitions.
- * Types are organized into two categories:
- *
- * 1. DOMAINS: Business logic interfaces (User, Payment, etc.)
- * 2. COMPONENTS: React component prop interfaces
+ * Types are organized for domain entities (business logic interfaces).
+ * Component props are now defined within their respective components.
  *
  * See /types/README.md for detailed explanation
  * ================================= */
@@ -17,15 +15,7 @@ export * from "./domains/events";
 export * from "./domains/community";
 export * from "./domains/booking";
 export * from "./domains/profile";
-
-// Export all component prop types (React component interfaces)
-export * from "./components/common";
-export * from "./components/payment";
-export * from "./components/freelancer";
-export * from "./components/events";
-export * from "./components/community";
-export * from "./components/booking";
-export * from "./components/profile";
+export * from "./domains/PostCategory";
 
 /* ===================================
  * LEGACY INTERFACES (MIGRATION IN PROGRESS)

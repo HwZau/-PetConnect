@@ -5,3 +5,5 @@ export { default as CustomerInformation } from "./CustomerInformation";
 export { default as SpecialRequests } from "./SpecialRequests";
 export { default as BookingSummary } from "./BookingSummary";
 export { default as BookingHeader } from "./BookingHeader";
+export { default as BookingStatusTracker } from "./BookingStatusTracker";
+export { default as BookingDetailModal } from "./BookingDetailModal";

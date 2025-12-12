@@ -313,6 +313,7 @@ const BookingPage: React.FC = () => {
         navigate("/payment", {
           state: {
             bookingId: bookingResponse.bookingId,
+            totalPrice: bookingResponse.totalPrice || 0,
             bookingData: {
               freelancer: {
                 id: freelancerData.id,
