@@ -21,7 +21,7 @@ import { showSuccess, showError } from "../../utils/toastUtils";
 import html2pdf from "html2pdf.js";
 
 const ITEMS_PER_PAGE = 6;
-const API_V1 = "/api/v1";
+// NOTE: API_V1 constant removed — use adminService for API calls
 
 // Định nghĩa kiểu dữ liệu cho filter
 type BookingFilter = {
@@ -47,7 +47,13 @@ const BookingPage: React.FC = () => {
   const handleCreateBooking = async (data: BookingFormData) => {
     try {
       const payload = {
-        pickUpTime: data.pickupTime,
+        pickUpTime: (() => {
+          if (!data.pickupTime) return data.pickupTime;
+          const m = String(data.pickupTime).match(/Slot(\d+)/i);
+          if (m) return Number(m[1]) - 1; // Backend expects 0-based slot index
+          const n = Number(String(data.pickupTime));
+          return Number.isNaN(n) ? data.pickupTime : n;
+        })(),
         bookingDate: data.bookingDate,
         serviceIds: Array.isArray(data.serviceIds) ? data.serviceIds : [data.serviceIds],
         freelancerId: data.freelancerId,
@@ -82,6 +88,10 @@ const BookingPage: React.FC = () => {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    if (!bookingId) {
+      showError('Không tìm thấy booking id để hủy.');
+      return;
+    }
     if (!window.confirm("Bạn có chắc chắn muốn hủy đặt lịch này?")) return;
 
     try {
@@ -109,8 +119,20 @@ const BookingPage: React.FC = () => {
   };
 
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+    if (!bookingId) {
+      showError('Không tìm thấy booking id để cập nhật.');
+      return;
+    }
     try {
-      const response = await adminService.updateBooking(bookingId, { status: newStatus } as any);
+      // Map UI status to backend enum number if necessary
+      const statusMap: Record<string, number | string> = {
+        Pending: 0,
+        Confirmed: 1,
+        Completed: 2,
+        Cancelled: 3,
+      };
+      const backendStatus = statusMap[newStatus] ?? newStatus;
+      const response = await adminService.updateBooking(bookingId, { status: backendStatus } as any);
       if (response.success) {
         showSuccess("Cập nhật trạng thái thành công!");
         await fetchBookings();
@@ -123,8 +145,18 @@ const BookingPage: React.FC = () => {
   };
 
   const handleUpdatePickupStatus = async (bookingId: string, newStatus: string) => {
+    if (!bookingId) {
+      showError('Không tìm thấy booking id để cập nhật trạng thái lấy.');
+      return;
+    }
     try {
-      const response = await adminService.updateBooking(bookingId, { pickUpStatus: newStatus } as any);
+      const pickupMap: Record<string, number | string> = {
+        NotPickedUp: 0,
+        PickedUp: 1,
+        Delivered: 2,
+      };
+      const backendPickUp = pickupMap[newStatus] ?? newStatus;
+      const response = await adminService.updateBooking(bookingId, { pickUpStatus: backendPickUp } as any);
       if (response.success) {
         showSuccess("Cập nhật trạng thái lấy hàng thành công!");
         await fetchBookings();
@@ -151,11 +183,6 @@ const BookingPage: React.FC = () => {
     const t = String(timeStr).toLowerCase();
     // If backend already returns slot codes, pass-through
     if (/slot\d/.test(t)) return t.match(/slot\d/)?.[0] ?? '';
-    // If backend returned numeric enum index (0..4), map to Slot1..Slot5
-    if (/^\d+$/.test(t)) {
-      const idx = Number(t);
-      if (idx >= 0 && idx <= 4) return `Slot${idx + 1}`;
-    }
     // Try to parse hour from strings like "8:00" or "08:00 - 10:00" or "8 - 10"
     const m = t.match(/(\d{1,2})(?::\d{2})?/);
     if (!m) return '';
@@ -176,34 +203,11 @@ const BookingPage: React.FC = () => {
   };
 
   const getPickupStatus = (b: any) => {
-    const val = b.pickUpStatus ?? b.pickupStatus ?? b.pickUpState ?? b.pickUp;
-    if (typeof val === 'number' || (/^\d+$/.test(String(val)))) {
-      const n = Number(val);
-      switch (n) {
-        case 0: return 'NotPickedUp';
-        case 1: return 'PickedUp';
-        case 2: return 'Delivered';
-        default: return 'NotPickedUp';
-      }
-    }
-    return val || 'NotPickedUp';
+    return b.pickUpStatus || b.pickupStatus || b.pickUpState || b.pickUp || 'NotPickedUp';
   };
 
   const getStatus = (b: any) => {
-    const raw = b.status ?? b.Status ?? '';
-    // If numeric enum from backend
-    if (typeof raw === 'number' || (/^\d+$/.test(String(raw)))) {
-      const n = Number(raw);
-      switch (n) {
-        case 0: return 'Pending';
-        case 1: return 'Confirmed';
-        case 2: return 'Completed';
-        case 3: return 'Cancelled';
-        default: return 'Pending';
-      }
-    }
-
-    const s = String(raw || '').toString();
+    const s = (b.status || '').toString();
     if (/assigned|in progress/i.test(s)) return 'Confirmed';
     if (/pending/i.test(s)) return 'Pending';
     if (/completed|done/i.test(s)) return 'Completed';
@@ -299,10 +303,10 @@ const BookingPage: React.FC = () => {
               ${filteredBookings.map((b: Booking, idx: number) => `
                 <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f9f9f9'};">
                   <td style="padding: 10px; border: 1px solid #ddd;">${b.customerName || 'N/A'}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd;">${b.pets.map(p => p.petName).join(', ')}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${(b.pets || []).map((p: any) => p.petName || p.name || '').join(', ')}</td>
                   <td style="padding: 10px; border: 1px solid #ddd;">${b.freelancerName || 'N/A'}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${b.bookingDate}</td>
-                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.totalPrice)}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${b.bookingDate || ''}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.totalPrice || 0)}</td>
                   <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
                     <span style="padding: 4px 8px; border-radius: 3px; ${
                       b.status === 'Completed' ? 'background: #d4edda; color: #155724;' :
@@ -523,19 +527,19 @@ const BookingPage: React.FC = () => {
           currentBookings.map((b: Booking) => (
             <BookingCard
               key={b.bookingId}
-              bookingId={b.bookingId}
+              bookingId={b.bookingId || b.id || ''}
               customerName={b.customerName || "N/A"}
               freelancerName={b.freelancerName || "N/A"}
-              petNames={b.pets.map(p => p.petName).join(", ")}
-              bookingDate={b.bookingDate}
-              pickupTime={b.pickUpTime}
-              totalPrice={b.totalPrice}
+              petNames={(b.pets || []).map((p: any) => p.petName || p.name || '').join(", ")}
+              bookingDate={b.bookingDate || ''}
+              pickupTime={String(b.pickUpTime ?? b.time ?? '')}
+              totalPrice={Number(b.totalPrice ?? b.price ?? 0)}
               status={b.status as "Pending" | "Confirmed" | "Completed" | "Cancelled"}
-              pickupStatus={b.pickUpStatus}
-              isPaid={b.isPaid}
-              onCancel={() => handleCancelBooking(b.bookingId)}
-              onStatusChange={(newStatus) => handleUpdateStatus(b.bookingId, newStatus)}
-              onPickupStatusChange={(newStatus) => handleUpdatePickupStatus(b.bookingId, newStatus)}
+              pickupStatus={String(b.pickUpStatus ?? '')}
+              isPaid={!!b.isPaid}
+              onCancel={() => handleCancelBooking(b.bookingId || b.id || '')}
+              onStatusChange={(newStatus) => handleUpdateStatus(b.bookingId || b.id || '', newStatus)}
+              onPickupStatusChange={(newStatus) => handleUpdatePickupStatus(b.bookingId || b.id || '', newStatus)}
             />
           ))
         ) : loading ? (

@@ -422,7 +422,8 @@ export function useAdminBookings() {
         if (response.success) {
           setBookings((prev) =>
             prev.map((b) =>
-              b.id === bookingId ? { ...b, status: "Cancelled" } : b
+              // Match by normalized bookingId or original id to reflect cancel in UI
+              (b.bookingId === bookingId || b.id === bookingId) ? { ...b, status: "Cancelled" } : b
             )
           );
           return { success: true };

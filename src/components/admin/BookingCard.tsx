@@ -59,7 +59,7 @@ const BookingCard: React.FC<BookingCardProps> = ({
         </div>
         <div className="text-right">
           <div className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusStyle(status)}`}>{status}</div>
-          <div className="text-xs text-gray-400 mt-1">{bookingId.substring(0, 8)}</div>
+          <div className="text-xs text-gray-400 mt-1">{(bookingId || '').substring(0, 8)}</div>
         </div>
       </div>
 

@@ -34,7 +34,7 @@ const BookingModal: React.FC<Props> = ({ isOpen, onClose, onSubmit, services = [
   return (
     <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
-        <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+        <div aria-hidden className="fixed inset-0 bg-black opacity-30" />
 
         <div className="relative bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full p-6 shadow-lg z-10">
           <div className="flex items-center justify-between mb-4">

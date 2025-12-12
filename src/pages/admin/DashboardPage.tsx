@@ -266,13 +266,13 @@ const DashboardPage: React.FC = () => {
 
     // recentTransactions provided by useAdminDashboard
     const recentTx = (recentTransactions || []).map((t) => ({
-      id: t.id || Math.random(),
+      id: (t.paymentId || t.transactionId || (t as any).id) ? String((t.paymentId || t.transactionId || (t as any).id)) : String(Math.random()),
       title: t.title || 'Thanh toán',
-      customer: t.customer || '',
-      amount: t.amount ? String(t.amount) : '',
+      customer: (t as any).customerName || (t as any).customer || '',
+      amount: t.amount != null ? String(t.amount) : '',
       status: t.status || 'Pending',
-      date: t.date || '',
-      freelancer: t.freelancer || '',
+      date: (t as any).createdAt || (t as any).date || '',
+      freelancer: (t as any).freelancerName || (t as any).freelancer || '',
       service: t.service || '',
       method: t.method || '',
       platformFee: typeof t.platformFee === 'number' ? String(t.platformFee) : '',
@@ -290,7 +290,7 @@ const DashboardPage: React.FC = () => {
             <StatCard title="Tổng Freelancers" value={String(stats.totalFreelancers ?? 0)} delta={`${stats.growthRate ? (stats.growthRate > 0 ? '+' : '') + stats.growthRate + '% so với tháng trước' : ''}`} icon={<AiOutlineUser />} />
             <StatCard title="Khách Hàng Hoạt Động" value={String(stats.totalCustomers ?? 0)} delta="" icon={<AiOutlineFileText />} />
             <StatCard title="Công Việc Đang Thực Hiện" value={String(stats.activeJobs ?? 0)} delta="" icon={<AiOutlineProfile />} />
-            <StatCard title="Tổng Doanh Thu" value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(stats.totalRevenue ?? 0)} delta="" icon={<AiOutlineDollar />} />
+            <StatCard title="Tổng Doanh Thu" value={new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.totalRevenue ?? 0)} delta="" icon={<AiOutlineDollar />} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

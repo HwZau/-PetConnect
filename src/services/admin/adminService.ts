@@ -39,23 +39,35 @@ export interface AdminFreelancer {
 
 export interface AdminBooking {
   id: string;
+  bookingId?: string;
   title: string;
   customerId: string;
-  customer: string;
+  // customer can be returned as `customer` or `customerName` depending on endpoint / normalization
+  customer?: string;
+  customerName?: string;
   petId: string;
   pet: string;
+  // normalized pets shape used in UI
+  pets?: { petName?: string }[];
   freelancerId?: string;
-  freelancer: string;
+  freelancer?: string;
+  freelancerName?: string;
   serviceId: string;
   service: string;
-  scheduledDate: string;
-  time: string;
+  scheduledDate?: string;
+  time?: string;
   location: string;
   region: string;
-  status: "Pending" | "Assigned" | "In Progress" | "Completed" | "Cancelled";
-  price: number;
+  status: "Pending" | "Assigned" | "In Progress" | "Confirmed" | "Completed" | "Cancelled";
+  price?: number;
+  // normalized fields used by admin UI
+  bookingDate?: string;
+  totalPrice?: number;
+  pickUpTime?: string | number;
+  pickUpStatus?: string | number;
+  isPaid?: boolean;
   notes?: string;
-  createdDate: string;
+  createdDate?: string;
 }
 
 export interface AdminPayment {
@@ -63,8 +75,11 @@ export interface AdminPayment {
   title: string;
   bookingId: string;
   customerId: string;
-  customer: string;
+  // normalized customer fields - UI uses `customer` but some endpoints return `customerName`
+  customer?: string;
+  customerName?: string;
   freelancer: string;
+  freelancerName?: string;
   service: string;
   amount: number;
   platformFee: number;
@@ -72,6 +87,8 @@ export interface AdminPayment {
   status: "Success" | "Pending" | "Failed";
   type: "Payment" | "Refund" | "Fee";
   date: string;
+  createdAt?: string;
+  paymentId?: string;
   transactionId?: string;
 }
 
@@ -617,7 +634,7 @@ const realService = {
     const items: AdminPayment[] = paymentsResp.data.items || [];
     const header = ['id','title','bookingId','customer','freelancer','service','amount','platformFee','method','status','date'];
     const rows = items.map((p: AdminPayment) => [p.id, p.title, p.bookingId, p.customer, p.freelancer, p.service, p.amount, p.platformFee, p.method, p.status, p.date]);
-    const csv = [header.join(','), ...rows.map((r: Array<string|number>) => r.map((c: unknown) => `"${String(c ?? '')}"`).join(','))].join('\n');
+    const csv = [header.join(','), ...rows.map(r => r.map((c: unknown) => `"${String(c ?? '')}"`).join(','))].join('\n');
     return new Blob([csv], { type: 'text/csv' });
   },
 

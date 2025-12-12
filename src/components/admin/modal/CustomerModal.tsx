@@ -141,7 +141,7 @@ const initialData: CustomerFormData = {
 };
 
 const CustomerModal = ({ isOpen, onClose, onSubmit, petTypes = [], petBreeds = [], initialData: init, title, submitLabel }: CustomerModalProps) => {
-  const [formData, setFormData] = useState<CustomerFormData>(init || initialData);
+  const [formData, setFormData] = useState<CustomerFormData>(() => (init ? { ...initialData, ...init } : initialData));
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
   
   // Update form data when modal opens with initialData (edit mode)

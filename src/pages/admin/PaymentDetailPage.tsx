@@ -36,7 +36,7 @@ const PaymentDetailPage: React.FC = () => {
         const bookingId = id.replace(/-p$/, "");
         // try get payment by booking id
         const pByBooking = await adminService.getPaymentByBookingId(bookingId).catch(() => ({ success: false }));
-        if (pByBooking && pByBooking.success && pByBooking.data) {
+        if (pByBooking && pByBooking.success && 'data' in pByBooking && pByBooking.data) {
           const pd = pByBooking.data as any;
           const mapped: any = {
             id: pd.paymentId || pd.id,
@@ -56,7 +56,7 @@ const PaymentDetailPage: React.FC = () => {
           // If payment doesn't include customer/freelancer names, fetch booking to populate them
           if ((!mapped.customer || !mapped.freelancer) && mapped.bookingId) {
             const bookingResp: any = await adminService.getBookingById(mapped.bookingId).catch(() => null);
-            if (bookingResp && bookingResp.success && bookingResp.data) {
+            if (bookingResp && bookingResp.success && 'data' in bookingResp && bookingResp.data) {
               const b = bookingResp.data as any;
               mapped.customer = mapped.customer || b.customerName || b.customer || '—';
               mapped.freelancer = mapped.freelancer || b.freelancerName || b.freelancer || '—';
@@ -73,7 +73,7 @@ const PaymentDetailPage: React.FC = () => {
         }
         // fallback: try to fetch booking and construct
         const bResp = await adminService.getBookingById(bookingId).catch(() => ({ success: false }));
-        if (bResp && bResp.success && bResp.data) {
+        if (bResp && bResp.success && 'data' in bResp && bResp.data) {
           const b = (bResp.data as any);
           const petNames = ((b.pets || []).map((p: any) => p.petName).filter(Boolean)).join(', ');
           const constructed = {
@@ -103,7 +103,7 @@ const PaymentDetailPage: React.FC = () => {
 
       // First try: treat `id` as real paymentId
       let resp = await adminService.getPaymentById(id).catch(() => ({ success: false }));
-      if (resp && resp.success && resp.data) {
+      if (resp && resp.success && 'data' in resp && resp.data) {
         // Normalize backend payment shape to local UI shape
         const pd = resp.data as any;
         const mapped: any = {
@@ -121,7 +121,7 @@ const PaymentDetailPage: React.FC = () => {
 
         if (mapped.bookingId) {
           const bookingResp: any = await adminService.getBookingById(mapped.bookingId).catch(() => null);
-          if (bookingResp && bookingResp.success && bookingResp.data) {
+          if (bookingResp && bookingResp.success && 'data' in bookingResp && bookingResp.data) {
             const b = bookingResp.data as any;
             mapped['customer'] = b.customerName || b.customer || '—';
             mapped['freelancer'] = b.freelancerName || b.freelancer || '—';
@@ -144,7 +144,7 @@ const PaymentDetailPage: React.FC = () => {
 
         // Try get payment by booking id
         const pByBooking = await adminService.getPaymentByBookingId(bookingId).catch(() => ({ success: false }));
-        if (pByBooking && pByBooking.success && pByBooking.data) {
+        if (pByBooking && pByBooking.success && 'data' in pByBooking && pByBooking.data) {
           const pd = pByBooking.data as any;
           const mapped: any = {
             id: pd.paymentId || pd.id,
@@ -159,7 +159,7 @@ const PaymentDetailPage: React.FC = () => {
           };
           if (mapped.bookingId) {
             const bookingResp2: any = await adminService.getBookingById(mapped.bookingId).catch(() => null);
-            if (bookingResp2 && bookingResp2.success && bookingResp2.data) {
+            if (bookingResp2 && bookingResp2.success && 'data' in bookingResp2 && bookingResp2.data) {
               const b = bookingResp2.data as any;
               mapped['customer'] = b.customerName || b.customer || '—';
               mapped['freelancer'] = b.freelancerName || b.freelancer || '—';
@@ -174,7 +174,7 @@ const PaymentDetailPage: React.FC = () => {
         } else {
           // As last resort, fetch booking and construct a payment-like object
           const bResp = await adminService.getBookingById(bookingId).catch(() => ({ success: false }));
-          if (bResp && bResp.success && bResp.data) {
+          if (bResp && bResp.success && 'data' in bResp && bResp.data) {
             const b = (bResp.data as any);
             const petNames = ((b.pets || []).map((p: any) => p.petName).filter(Boolean)).join(', ');
             const constructed = {
