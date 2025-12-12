@@ -1,10 +1,12 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import { showSuccess, showError } from "../../utils";
 import { bookingService } from "../../services/booking/bookingService";
-import { freelancerService } from "../../services/freelancer/freelancerService";
-import { serviceService } from "../../services/service/serviceService";
-import { UserContext } from "../../contexts/UserContext";
+import {
+  paymentService,
+  PaymentMethodCode,
+} from "../../services/payment/paymentService";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 // Reusable Components
 interface SectionHeaderProps {
@@ -143,123 +145,49 @@ const BookingDetailModal = ({
   onStatusUpdate,
 }: BookingDetailModalProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [freelancerData, setFreelancerData] = useState<any>(null);
-  const [servicesData, setServicesData] = useState<any[]>([]);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [fullBookingData, setFullBookingData] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
-  const { user } = useContext(UserContext);
-
-  // Fetch details khi modal mở
+  // Fetch full booking details khi modal mở
   useEffect(() => {
-    const fetchDetails = async () => {
-      if (!isOpen) return;
+    const fetchBookingDetails = async () => {
+      if (!isOpen || !booking.bookingId) return;
 
       setIsLoadingDetails(true);
       try {
-        // Nếu là CUSTOMER -> fetch freelancer info
-        // Nếu là FREELANCER -> fetch customer info
-
-        if (
-          userRole === "customer" &&
-          booking.freelancerId &&
-          !booking.freelancer
-        ) {
-          // Customer xem booking của mình -> lấy thông tin freelancer
-          try {
-            const response = await freelancerService.getFreelancerById(
-              booking.freelancerId
-            );
-            if (response.success && response.data) {
-              setFreelancerData({
-                name: response.data.name,
-                phone: response.data.phoneNumber,
-                email: response.data.email,
-                avatar: response.data.avatarUrl,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to fetch freelancer:", error);
-          }
-        }
-
-        if (
-          userRole === "freelancer" &&
-          booking.customerId &&
-          !booking.customer
-        ) {
-          // Freelancer xem booking khách hàng đặt -> lấy thông tin customer
-          // TODO: Implement khi backend có API GET /api/v1/customer/{id}
-          // const response = await customerService.getCustomerById(booking.customerId);
-          // setCustomerData(...);
-        }
-
-        // Fetch service details nếu có serviceIds
-        if (booking.serviceIds && !booking.services) {
-          const serviceIds = Array.isArray(booking.serviceIds)
-            ? booking.serviceIds
-            : [booking.serviceIds];
-
-          const servicePromises = serviceIds.map((id) =>
-            serviceService.getServiceDetail(id).catch((err) => {
-              console.error(`Failed to fetch service ${id}:`, err);
-              return null;
-            })
-          );
-
-          const serviceResponses = await Promise.all(servicePromises);
-          const validServices = serviceResponses
-            .filter((res) => res?.success && res?.data)
-            .map((res) => ({
-              serviceId: res?.data?.id || "",
-              serviceName: res?.data?.title || "",
-              description: res?.data?.description || "",
-              price: res?.data?.price || 0,
-              type: res?.data?.type || "",
-            }));
-
-          if (validServices.length > 0) {
-            setServicesData(validServices);
-          }
-        }
+        // Call API to get full booking details with payment, services, pets, customer, freelancer
+        const details = await bookingService.getBookingDetails(
+          booking.bookingId
+        );
+        console.log("Full booking details from API:", details);
+        setFullBookingData(details);
+      } catch (error) {
+        console.error("Failed to fetch booking details:", error);
+        showError("Không thể tải chi tiết đơn hàng");
       } finally {
         setIsLoadingDetails(false);
       }
     };
 
-    fetchDetails();
-  }, [
-    isOpen,
-    booking.freelancerId,
-    booking.customerId,
-    booking.serviceIds,
-    userRole,
-  ]);
+    fetchBookingDetails();
+  }, [isOpen, booking.bookingId]);
 
   if (!isOpen) return null;
 
+  // Use data from fullBookingData if available, otherwise fall back to booking prop
+  const bookingData = fullBookingData || booking;
+
   // Logic hiển thị dựa trên userRole
   const displayFreelancer =
-    userRole === "customer"
-      ? freelancerData || booking.freelancer
-      : {
-          name: user?.name,
-          phone: user?.phoneNumber,
-          email: user?.email,
-          avatar: user?.avatarUrl,
-        };
-
-  const displayCustomer =
-    userRole === "freelancer"
-      ? booking.customer
-      : {
-          name: user?.name,
-          phone: user?.phoneNumber,
-          email: user?.email,
-          avatar: user?.avatarUrl,
-        };
-
-  const displayServices =
-    servicesData.length > 0 ? servicesData : booking.services;
+    bookingData.freelancer || booking.freelancer || null;
+  const displayCustomer = bookingData.customer || booking.customer || null;
+  const displayServices = bookingData.services || booking.services || [];
+  const displayPets = bookingData.pets || booking.pets || [];
+  const displayPayment = bookingData.payment || booking.payment || null;
 
   const statusMap: Record<string, number> = {
     Pending: 0,
@@ -306,10 +234,9 @@ const BookingDetailModal = ({
   const handleUpdateStatus = async (newStatus: string) => {
     setIsUpdating(true);
     try {
-      await bookingService.updateBookingStatus(
-        booking.bookingId,
-        statusMap[newStatus]
-      );
+      const statusValue = statusMap[newStatus];
+      console.log(`Updating booking status to ${newStatus} (${statusValue})`);
+      await bookingService.updateBookingStatus(booking.bookingId, statusValue);
       showSuccess(`Đã cập nhật trạng thái thành ${newStatus}`);
       onStatusUpdate?.();
       onClose();
@@ -321,8 +248,68 @@ const BookingDetailModal = ({
     }
   };
 
-  const canUpdateStatus =
-    userRole === "freelancer" && currentStatus !== "Cancelled";
+  const handleCancelBooking = async () => {
+    setIsCancelling(true);
+    try {
+      await bookingService.cancelBooking(booking.bookingId);
+      showSuccess("Đã hủy đơn thành công");
+      onStatusUpdate?.();
+      onClose();
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      showError("Không thể hủy đơn");
+    } finally {
+      setIsCancelling(false);
+      setShowCancelConfirm(false);
+    }
+  };
+
+  const handleUpdatePickupStatus = async (newPickupStatus: number) => {
+    setIsUpdating(true);
+    try {
+      console.log(`Updating pickup status to ${newPickupStatus}`);
+      await bookingService.updatePickUpStatus(
+        booking.bookingId,
+        newPickupStatus
+      );
+      const statusText =
+        newPickupStatus === 0
+          ? "Chưa đón"
+          : newPickupStatus === 1
+          ? "Đã đón"
+          : "Đã trả";
+      showSuccess(`Đã cập nhật trạng thái đưa đón thành ${statusText}`);
+      onStatusUpdate?.();
+      onClose();
+    } catch (error) {
+      console.error("Error updating pickup status:", error);
+      showError("Không thể cập nhật trạng thái đưa đón");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCompleteBooking = async () => {
+    setIsUpdating(true);
+    try {
+      // Cập nhật trạng thái pickup thành Delivered (2)
+      await bookingService.updatePickUpStatus(booking.bookingId, 2);
+      // Cập nhật trạng thái booking thành Completed
+      await bookingService.updateBookingStatus(
+        booking.bookingId,
+        statusMap["Completed"]
+      );
+      showSuccess("Đã hoàn thành đơn và giao thú cưng lại cho khách hàng");
+      onStatusUpdate?.();
+      onClose();
+    } catch (error) {
+      console.error("Error completing booking:", error);
+      showError("Không thể hoàn thành đơn");
+    } finally {
+      setIsUpdating(false);
+      setShowCompleteConfirm(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> =
@@ -402,8 +389,8 @@ const BookingDetailModal = ({
                 Thông tin thú cưng
               </h3>
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                {booking.pets && booking.pets.length > 0 ? (
-                  booking.pets.map((pet: any, index: number) => (
+                {displayPets && displayPets.length > 0 ? (
+                  displayPets.map((pet: any, index: number) => (
                     <div
                       key={pet.petId || index}
                       className="bg-white rounded-lg p-3 border border-gray-200"
@@ -459,7 +446,7 @@ const BookingDetailModal = ({
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900">
-                      {new Date(booking.bookingDate).toLocaleDateString(
+                      {new Date(bookingData.bookingDate).toLocaleDateString(
                         "vi-VN",
                         {
                           weekday: "long",
@@ -477,29 +464,39 @@ const BookingDetailModal = ({
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900">
-                      {timeSlotMap[booking.pickUpTime] || "Chưa chọn"}
+                      {timeSlotMap[bookingData.pickUpTime] || "Chưa chọn"}
                     </p>
                   </div>
                 </div>
-                {booking.pickUpStatus !== undefined && (
+                {bookingData.pickUpStatus !== undefined && (
                   <div className="flex items-start">
                     <div className="w-20 text-xs text-gray-500 pt-0.5">
                       Đưa đón:
                     </div>
                     <div className="flex-1">
-                      <span className="inline-block px-2.5 py-1 bg-white border border-gray-300 rounded text-xs font-medium text-gray-700">
-                        {pickUpStatusToString(booking.pickUpStatus)}
+                      <span
+                        className={`inline-block px-2.5 py-1 rounded text-xs font-medium ${
+                          bookingData.pickUpStatus === 0
+                            ? "bg-gray-100 text-gray-700 border border-gray-300"
+                            : bookingData.pickUpStatus === 1
+                            ? "bg-blue-100 text-blue-700 border border-blue-300"
+                            : "bg-green-100 text-green-700 border border-green-300"
+                        }`}
+                      >
+                        {pickUpStatusToString(bookingData.pickUpStatus)}
                       </span>
                     </div>
                   </div>
                 )}
-                {booking.address && (
+                {bookingData.address && (
                   <div className="flex items-start">
                     <div className="w-20 text-xs text-gray-500 pt-0.5">
                       Địa chỉ:
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-700">{booking.address}</p>
+                      <p className="text-sm text-gray-700">
+                        {bookingData.address}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -530,7 +527,9 @@ const BookingDetailModal = ({
                       >
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-gray-900">
-                            {service.serviceName || "Dịch vụ không xác định"}
+                            {service.title ||
+                              service.serviceName ||
+                              "Dịch vụ thú cưng"}
                           </p>
                           {service.description && (
                             <p className="text-xs text-gray-500 mt-1">
@@ -577,7 +576,7 @@ const BookingDetailModal = ({
               ) : (
                 <UserInfoCard
                   user={displayFreelancer}
-                  userId={booking.freelancerId}
+                  userId={bookingData.freelancerId}
                   fallbackInitial="F"
                   avatarBgColor="bg-orange-100"
                   avatarTextColor="text-orange-600"
@@ -603,7 +602,7 @@ const BookingDetailModal = ({
               ) : (
                 <UserInfoCard
                   user={displayCustomer}
-                  userId={booking.customerId}
+                  userId={bookingData.customerId}
                   fallbackInitial="C"
                   avatarBgColor="bg-teal-100"
                   avatarTextColor="text-teal-600"
@@ -612,13 +611,13 @@ const BookingDetailModal = ({
               )}
             </div>
 
-            {booking.notes && (
+            {bookingData.notes && (
               <div>
                 <h3 className="text-sm font-bold text-gray-900 mb-2">
                   Ghi chú
                 </h3>
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
-                  <p className="text-sm text-gray-700">{booking.notes}</p>
+                  <p className="text-sm text-gray-700">{bookingData.notes}</p>
                 </div>
               </div>
             )}
@@ -639,7 +638,7 @@ const BookingDetailModal = ({
                     {displayServices.map((service: any, index: number) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {service.serviceName}
+                          {service.title || service.serviceName || "Dịch vụ"}
                         </span>
                         <span className="font-medium text-gray-900">
                           {Number(service.price || 0).toLocaleString()} VNĐ
@@ -654,7 +653,7 @@ const BookingDetailModal = ({
                       Tổng cộng
                     </span>
                     <span className="text-2xl font-bold text-indigo-700">
-                      {Number(booking.totalPrice || 0).toLocaleString()} VNĐ
+                      {Number(bookingData.totalPrice || 0).toLocaleString()} VNĐ
                     </span>
                   </div>
                 </div>
@@ -664,42 +663,44 @@ const BookingDetailModal = ({
                   </span>
                   <span
                     className={`text-sm font-semibold ${
-                      booking.isPaid === true || booking.isPaid === "true"
+                      bookingData.isPaid === true ||
+                      bookingData.isPaid === "true"
                         ? "text-green-600"
                         : "text-orange-600"
                     }`}
                   >
-                    {booking.isPaid === true || booking.isPaid === "true"
-                      ? "✓ Đã thanh toán"
-                      : "○ Chưa thanh toán"}
+                    {bookingData.isPaid === true ||
+                    bookingData.isPaid === "true"
+                      ? "Đã thanh toán"
+                      : "Chưa thanh toán"}
                   </span>
                 </div>
-                {booking.payment && (
+                {displayPayment && (
                   <div className="bg-white rounded-lg p-3 mt-3 space-y-1">
                     <p className="text-xs font-semibold text-gray-700 mb-2">
                       Thông tin giao dịch
                     </p>
-                    {booking.payment.method && (
+                    {displayPayment.method && (
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">Phương thức:</span>
                         <span className="font-medium text-gray-900">
-                          {booking.payment.method}
+                          {displayPayment.method}
                         </span>
                       </div>
                     )}
-                    {booking.payment.transactionId && (
+                    {displayPayment.transactionId && (
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">Mã giao dịch:</span>
                         <span className="font-mono text-gray-900">
-                          {booking.payment.transactionId}
+                          {displayPayment.transactionId}
                         </span>
                       </div>
                     )}
-                    {booking.payment.paidAt && (
+                    {displayPayment.paidAt && (
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-500">Thời gian:</span>
                         <span className="text-gray-900">
-                          {new Date(booking.payment.paidAt).toLocaleString(
+                          {new Date(displayPayment.paidAt).toLocaleString(
                             "vi-VN"
                           )}
                         </span>
@@ -710,11 +711,11 @@ const BookingDetailModal = ({
               </div>
             </div>
 
-            {booking.updatedAt && (
+            {bookingData.updatedAt && (
               <div className="text-center">
                 <p className="text-xs text-gray-400">
                   Cập nhật lần cuối:{" "}
-                  {new Date(booking.updatedAt).toLocaleString("vi-VN")}
+                  {new Date(bookingData.updatedAt).toLocaleString("vi-VN")}
                 </p>
               </div>
             )}
@@ -723,60 +724,209 @@ const BookingDetailModal = ({
 
         {/* Footer - Fixed at bottom */}
         <div className="border-t border-gray-200 px-6 py-4 bg-white">
-          {booking.isPaid === true || booking.isPaid === "true" ? (
-            <button
-              className="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
-              disabled
-            >
-              Đã thanh toán
-            </button>
-          ) : currentStatus === "Cancelled" ? (
-            <button
-              className="w-full bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
-              disabled
-            >
-              Đã hủy
-            </button>
+          {userRole === "freelancer" ? (
+            // FREELANCER: Chỉ hiển thị nút quản lý đơn hàng
+            <>
+              {currentStatus === "Cancelled" ? (
+                <button
+                  className="w-full bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
+                  disabled
+                >
+                  Đã hủy
+                </button>
+              ) : currentStatus === "Completed" ? (
+                <button
+                  className="w-full bg-green-100 text-green-600 font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
+                  disabled
+                >
+                  Đã hoàn thành
+                </button>
+              ) : currentStatus === "Pending" ? (
+                <div className="space-y-3">
+                  {/* Nút đón/trả pet động dựa trên pickupStatus */}
+                  {bookingData.pickUpStatus === 0 ? (
+                    // Chưa đón -> Hiện nút "Đón pet"
+                    <button
+                      onClick={() => handleUpdatePickupStatus(1)}
+                      disabled={isUpdating}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUpdating ? "Đang xử lý..." : "Đón pet"}
+                    </button>
+                  ) : bookingData.pickUpStatus === 1 ? (
+                    // Đã đón -> Hiện nút "Trả pet"
+                    <button
+                      onClick={() => handleUpdatePickupStatus(0)}
+                      disabled={isUpdating}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUpdating ? "Đang xử lý..." : "Trả pet"}
+                    </button>
+                  ) : (
+                    // Đã trả -> Disabled
+                    <button
+                      className="w-full bg-green-100 text-green-600 font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
+                      disabled
+                    >
+                      Đã trả pet
+                    </button>
+                  )}
+                  {/* Nút xác nhận/từ chối ở dưới */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleUpdateStatus("Confirmed")}
+                      disabled={isUpdating}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUpdating ? "Đang xử lý..." : "Xác nhận"}
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus("Cancelled")}
+                      disabled={isUpdating}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Từ chối
+                    </button>
+                  </div>
+                </div>
+              ) : currentStatus === "Confirmed" ? (
+                <button
+                  onClick={() => setShowCompleteConfirm(true)}
+                  disabled={isUpdating}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpdating ? "Đang xử lý..." : "Hoàn thành"}
+                </button>
+              ) : null}
+            </>
           ) : (
-            <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm"
-              onClick={onClose}
-            >
-              Tiến hành thanh toán
-            </button>
-          )}
+            // CUSTOMER: Hiển thị thanh toán và hủy đơn
+            <>
+              {bookingData.isPaid === true || bookingData.isPaid === "true" ? (
+                <button
+                  className="w-full bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
+                  disabled
+                >
+                  Đã thanh toán
+                </button>
+              ) : currentStatus === "Cancelled" ? (
+                <button
+                  className="w-full bg-red-100 text-red-600 font-semibold py-3 px-4 rounded-lg cursor-not-allowed"
+                  disabled
+                >
+                  Đã hủy
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isProcessingPayment}
+                    onClick={async () => {
+                      setIsProcessingPayment(true);
+                      try {
+                        // Call API to create payment
+                        const returnUrl =
+                          import.meta.env.VITE_PAYMENT_SUCCESS_URL ||
+                          `${window.location.origin}/payment-success`;
 
-          {/* Nút hành động cho freelancer */}
-          {canUpdateStatus && currentStatus === "Pending" && (
-            <div className="mt-3 flex gap-3">
-              <button
-                onClick={() => handleUpdateStatus("Confirmed")}
-                disabled={isUpdating}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isUpdating ? "Đang xử lý..." : "Xác nhận"}
-              </button>
-              <button
-                onClick={() => handleUpdateStatus("Cancelled")}
-                disabled={isUpdating}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Từ chối
-              </button>
-            </div>
-          )}
+                        console.log(
+                          "Creating payment for booking:",
+                          booking.bookingId
+                        );
 
-          {canUpdateStatus && currentStatus === "Confirmed" && (
-            <button
-              onClick={() => handleUpdateStatus("Completed")}
-              disabled={isUpdating}
-              className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isUpdating ? "Đang xử lý..." : "Hoàn thành"}
-            </button>
+                        const paymentRes = await paymentService.createPayment({
+                          bookingId: booking.bookingId,
+                          method: PaymentMethodCode.PAYOS,
+                          returnUrl: returnUrl,
+                          description: "DV cham soc thu cung",
+                        });
+
+                        const redirectUrl =
+                          paymentService.extractRedirectUrl(paymentRes);
+
+                        // Save to localStorage for later reference
+                        if (paymentRes.paymentId) {
+                          localStorage.setItem(
+                            "last_payment_id",
+                            paymentRes.paymentId
+                          );
+                        }
+                        localStorage.setItem(
+                          "last_payment_booking_id",
+                          booking.bookingId
+                        );
+
+                        if (redirectUrl) {
+                          localStorage.setItem(
+                            `payment_url_${booking.bookingId}`,
+                            redirectUrl
+                          );
+
+                          // Redirect to payment gateway
+                          window.location.href = redirectUrl;
+                        } else {
+                          showError("Không nhận được liên kết thanh toán");
+                          setIsProcessingPayment(false);
+                        }
+                      } catch (error: any) {
+                        console.error("Payment creation error:", error);
+                        showError(
+                          error.message ||
+                            "Tạo thanh toán thất bại. Vui lòng thử lại."
+                        );
+                        setIsProcessingPayment(false);
+                      }
+                    }}
+                  >
+                    {isProcessingPayment
+                      ? "Đang xử lý..."
+                      : "Tiến hành thanh toán"}
+                  </button>
+
+                  {/* Nút hủy đơn cho customer - chỉ cho phép hủy khi Pending */}
+                  {currentStatus === "Pending" && (
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      disabled={isCancelling || isProcessingPayment}
+                      className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isCancelling ? "Đang hủy..." : "Hủy đơn"}
+                    </button>
+                  )}
+                  {currentStatus === "Confirmed" && (
+                    <p className="mt-3 text-sm text-gray-500 text-center">
+                      Đơn đã xác nhận không thể hủy
+                    </p>
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={showCancelConfirm}
+        onCancel={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelBooking}
+        title="Xác nhận hủy đơn"
+        message="Bạn có chắc muốn hủy đơn này?"
+        confirmText="Hủy đơn"
+        cancelText="Quay lại"
+        type="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={showCompleteConfirm}
+        onCancel={() => setShowCompleteConfirm(false)}
+        onConfirm={handleCompleteBooking}
+        title="Xác nhận hoàn thành"
+        message="Đánh dấu hoàn thành đơn này? Thú cưng sẽ được đánh dấu đã giao lại cho khách hàng."
+        confirmText="Hoàn thành"
+        cancelText="Quay lại"
+        type="success"
+      />
     </div>
   );
 };

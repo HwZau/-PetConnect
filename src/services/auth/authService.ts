@@ -91,7 +91,6 @@ export const authService = {
         success: true,
         data: userObj as User,
         message: "User from cache",
-        statusCode: 200,
       };
     }
 

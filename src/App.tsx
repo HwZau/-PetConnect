@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Suspense, lazy, useContext } from "react";
 import { UserProvider, UserContext } from "./contexts/UserContext";
+import { WebSocketProvider } from "./contexts/WebSocketContext";
 import PageLoader from "./components/common/PageLoader";
 import { isAdminRole } from "./utils/authUtils";
 import DashboardPage from "./pages/admin/DashboardPage";
@@ -23,6 +24,12 @@ const PaymentPage = lazy(() => import("./pages/payment/PaymentPage"));
 const SupportPage = lazy(() => import("./pages/support/SupportPage"));
 const PaymentStatusPage = lazy(
   () => import("./pages/payment/PaymentStatusPage")
+);
+const PaymentSuccessPage = lazy(
+  () => import("./pages/payment/PaymentSuccessPage")
+);
+const PaymentFailurePage = lazy(
+  () => import("./pages/payment/PaymentFailurePage")
 );
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
@@ -63,6 +70,9 @@ const AppRoutes = () => {
         {/* Payment routes */}
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment-status" element={<PaymentStatusPage />} />
+        <Route path="/payment-success" element={<PaymentSuccessPage />} />
+        <Route path="/payment-failure" element={<PaymentFailurePage />} />
+        <Route path="/payment-failed" element={<PaymentFailurePage />} />
 
         {/* Protected routes - requires authentication */}
         <Route path="/profile" element={<ProtectedProfile />} />
@@ -103,12 +113,13 @@ const AppRoutes = () => {
 function App() {
   return (
     <UserProvider>
-      <SettingsProvider >
+      <SettingsProvider>
         <BrowserRouter>
-          <AppRoutes />
+          <WebSocketProvider>
+            <AppRoutes />
+          </WebSocketProvider>
         </BrowserRouter>
       </SettingsProvider>
-
     </UserProvider>
   );
 }

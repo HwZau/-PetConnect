@@ -37,8 +37,8 @@ export const API_ENDPOINTS = {
 
   // Profile
   PROFILE: {
-    UPDATE_CUSTOMER: "/api/profile/customer",
-    UPDATE_FREELANCER: "/api/profile/freelancer",
+    UPDATE_CUSTOMER: "/user/profile/customer",
+    UPDATE_FREELANCER: "/user/profile/freelancer",
   },
 
   // Pets
@@ -149,6 +149,23 @@ export const API_ENDPOINTS = {
     MULTIPLE: "/upload/multiple",
     AVATAR: "/upload/avatar",
     PET_PHOTO: "/upload/pet-photo",
+  },
+
+  // Cloudinary
+  CLOUDINARY: {
+    UPLOAD: "/cloudinary/upload",
+    UPLOAD_BASE64: "/cloudinary/upload-base64",
+    UPLOAD_VIDEO: "/cloudinary/upload-video",
+    UPLOAD_VIDEO_BASE64: "/cloudinary/upload-base64-video",
+    DELETE: (publicId: string) => `/cloudinary/${publicId}`,
+    DELETE_VIDEO: (id: string) => `/cloudinary/video/${id}`,
+    DELETE_VIDEO_BY_PUBLIC: (publicId: string) =>
+      `/cloudinary/video/public/${publicId}`,
+    GET_BY_ID: (id: string) => `/cloudinary/${id}`,
+    GET_BY_PUBLIC_ID: (publicId: string) => `/cloudinary/public/${publicId}`,
+    GET_ALL: "/cloudinary",
+    GET_TRANSFORMED_URL: (publicId: string) => `/cloudinary/url/${publicId}`,
+    GET_VIDEO_BY_ID: (id: string) => `/cloudinary/video/${id}`,
   },
 } as const;
 

@@ -6,6 +6,7 @@ export { serviceService } from "./service/serviceService";
 export * from "./freelancer/freelancerService";
 export { bookingService } from "./booking/bookingService";
 export { default as adminService } from "./admin/adminService";
+export { default as cloudinaryService } from "./cloudinary/cloudinaryService";
 // export { caregiverService } from '../services/Caregiver/caregiverService';
 // export { reviewService } from '../services/Review/reviewService';
 // export { messageService } from '../services/Message/messageService';

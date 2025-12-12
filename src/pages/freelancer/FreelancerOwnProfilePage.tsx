@@ -2,36 +2,43 @@ import { useState, useEffect } from "react";
 import { isAdminRole } from "../../utils/authUtils";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
-import {
-  showSuccess,
-  showError,
-  getBookingStatusLabel,
-  getBookingStatusColor,
-  getPickUpTimeLabel,
-} from "../../utils";
-import { serviceService } from "../../services";
+import { showSuccess, showError } from "../../utils";
+import { serviceService, profileService } from "../../services";
+import { apiClient } from "../../services/apiClient";
+import { API_ENDPOINTS } from "../../config/api";
 import {
   FaUser,
   FaBriefcase,
-  FaChartLine,
-  FaStar,
   FaCalendarAlt,
   FaPencilAlt,
-  FaDog,
   FaBolt,
-  FaCog,
   FaCalendarCheck,
   FaPlus,
+  FaClipboardList,
+  FaClock,
+  FaDollarSign,
+  FaPaw,
+  FaComment,
+  FaCheckCircle,
 } from "react-icons/fa";
+import BookingDetailModal from "../../components/booking/BookingDetailModal";
 
 import Header from "../../components/profile/Header";
-import ProfileMainContent from "../../components/profile/ProfileMainContent";
 import FreelancerServiceCard from "../../components/freelancer/profile/FreelancerServiceCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
 import ChatBox from "../../components/profile/ChatBox";
 import AddServiceModal from "../../components/freelancer/profile/AddServiceModal";
 import EditServiceModal from "../../components/freelancer/profile/EditServiceModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Avatar from "../../components/common/Avatar";
+
+// Utility function to check if booking is upcoming soon (within 24 hours)
+const isUpcomingSoon = (bookingDate: string): boolean => {
+  const now = new Date();
+  const booking = new Date(bookingDate);
+  const diffHours = (booking.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return diffHours > 0 && diffHours <= 24;
+};
 
 interface EditFormData {
   name: string;
@@ -71,19 +78,108 @@ const FreelancerOwnProfilePage = () => {
     address: "Hồ Chí Minh",
     avatarUrl: "",
   });
+  const [bookingsHistory, setBookingsHistory] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [freelancerProfile, setFreelancerProfile] = useState<any>(null);
+  const [bookingsFilter, setBookingsFilter] = useState<
+    "all" | "pending" | "confirmed" | "completed" | "cancelled"
+  >("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [bookingsPage, setBookingsPage] = useState<number>(1);
+  const [bookingsPerPage] = useState<number>(5);
 
   useScrollToTop();
 
-  // Get services from user context (from API response)
-  const services = user?.services || [];
+  // Get services from freelancer profile or user context
+  const services = freelancerProfile?.services || user?.services || [];
 
-  // Calculate stats from user bookings
+  // Fetch freelancer profile on mount to get full data including services and bookings
+  useEffect(() => {
+    const loadFreelancerProfile = async () => {
+      if (!user?.id) return;
+
+      try {
+        setLoading(true);
+
+        const response = await apiClient.get<any>(
+          API_ENDPOINTS.USERS.FREELANCER_PROFILE
+        );
+
+        if (response.success && response.data) {
+          setFreelancerProfile(response.data);
+
+          if (response.data.bookings) {
+            setBookingsHistory(response.data.bookings);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading freelancer profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFreelancerProfile();
+  }, [user?.id]);
+
+  // Update bookings whenever freelancerProfile changes
+  useEffect(() => {
+    if (freelancerProfile?.bookings) {
+      setBookingsHistory(freelancerProfile.bookings);
+    }
+  }, [freelancerProfile]);
+
+  // Filter and paginate bookings
+  const filteredBookings = bookingsHistory.filter((booking: any) => {
+    const statusNum = Number(booking.status);
+
+    // Status filter
+    if (bookingsFilter !== "all") {
+      if (bookingsFilter === "pending" && statusNum !== 0) return false;
+      if (bookingsFilter === "confirmed" && statusNum !== 1) return false;
+      if (bookingsFilter === "completed" && statusNum !== 2) return false;
+      if (bookingsFilter === "cancelled" && statusNum !== 3) return false;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      const bookingDate = new Date(booking.bookingDate);
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        if (bookingDate < fromDate) return false;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999); // End of day
+        if (bookingDate > toDate) return false;
+      }
+    }
+
+    return true;
+  });
+
+  const totalBookingsPages = Math.ceil(
+    filteredBookings.length / bookingsPerPage
+  );
+  const paginatedBookings = filteredBookings.slice(
+    (bookingsPage - 1) * bookingsPerPage,
+    bookingsPage * bookingsPerPage
+  );
+
+  // Calculate stats from freelancer profile bookings
   const completedBookings =
-    user?.bookings?.filter((b) => b.status === "Completed").length || 0;
+    freelancerProfile?.bookings?.filter((b: any) => Number(b.status) === 2)
+      .length || 0;
   const totalEarnings =
-    user?.bookings
-      ?.filter((b) => b.status === "Completed")
-      .reduce((sum, booking) => sum + booking.totalPrice, 0) || 0;
+    freelancerProfile?.bookings
+      ?.filter((b: any) => Number(b.status) === 2)
+      .reduce(
+        (sum: number, booking: any) => sum + (booking.totalPrice || 0),
+        0
+      ) || 0;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -128,11 +224,34 @@ const FreelancerOwnProfilePage = () => {
 
   const handleSaveProfile = async () => {
     try {
-      // TODO: API call to update profile
-      showSuccess("Cập nhật hồ sơ thành công!");
-      setShowEditModal(false);
-    } catch (error) {
+      // Call API to update freelancer profile
+      const response = await profileService.updateFreelancerProfile({
+        name: editForm.name,
+        phoneNumber: editForm.phoneNumber,
+        address: editForm.address,
+        avatarUrl: editForm.avatarUrl,
+      });
+
+      if (response.success) {
+        showSuccess("Đã cập nhật hồ sơ thành công!");
+        setShowEditModal(false);
+        // Refresh user data
+        if (refreshUser) {
+          await refreshUser();
+        }
+        // Reload freelancer profile
+        const profileResponse = await apiClient.get<any>(
+          API_ENDPOINTS.USERS.FREELANCER_PROFILE
+        );
+        if (profileResponse.success && profileResponse.data) {
+          setFreelancerProfile(profileResponse.data);
+        }
+      } else {
+        showError(response.message || "Cập nhật hồ sơ thất bại");
+      }
+    } catch (error: any) {
       console.error("Failed to update profile:", error);
+      showError(error.message || "Đã xảy ra lỗi khi cập nhật hồ sơ");
     }
   };
 
@@ -290,20 +409,12 @@ const FreelancerOwnProfilePage = () => {
             <div className="flex items-start gap-6">
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="w-32 h-32 bg-white rounded-2xl shadow-xl p-3">
-                  <img
-                    src={
-                      user?.avatar ||
-                      "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&h=400"
-                    }
-                    alt={user?.name || "Freelancer"}
-                    className="w-full h-full rounded-xl object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&h=400";
-                    }}
-                  />
-                </div>
+                <Avatar
+                  src={user?.avatarUrl || user?.avatar}
+                  name={user?.name || "Freelancer"}
+                  size="xl"
+                  className="shadow-xl"
+                />
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
               </div>
 
@@ -315,40 +426,19 @@ const FreelancerOwnProfilePage = () => {
                       {user?.name || "Freelancer"}
                     </h1>
                     <p className="text-teal-100 text-sm mb-3">
-                      Freelancer - Chuyên gia thú cưng
+                      Freelancer - Chuyên gia chăm sóc thú cưng
                     </p>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
-                        <FaStar className="text-yellow-300" /> Chuyên gia được
-                        xác minh
-                      </span>
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
-                        {user?.email || "user@example.com"}
-                      </span>
-                    </div>
                     <div className="flex items-center gap-6 text-sm">
                       <div className="flex items-center gap-2">
                         <FaBriefcase className="text-orange-300" />
-                        <span>5 năm kinh nghiệm</span>
+                        <span>{services.length} dịch vụ</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaCalendarCheck className="text-green-300" />
                         <span>{completedBookings} dự án hoàn thành</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <FaStar className="text-yellow-300" />
-                        <span>4.9 đánh giá</span>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Edit Profile Button */}
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="bg-white hover:bg-gray-50 text-teal-600 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg flex items-center gap-2"
-                  >
-                    <FaPencilAlt /> CHỈNH SỬA
-                  </button>
                 </div>
               </div>
             </div>
@@ -387,15 +477,15 @@ const FreelancerOwnProfilePage = () => {
                       <span>Dịch vụ</span>
                     </button>
                     <button
-                      onClick={() => setActiveTab("activity")}
+                      onClick={() => setActiveTab("bookings")}
                       className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
-                        activeTab === "activity"
+                        activeTab === "bookings"
                           ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
                           : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
                       }`}
                     >
-                      <FaChartLine className="text-lg" />
-                      <span>Hoạt động</span>
+                      <FaClipboardList className="text-lg" />
+                      <span>Đơn hàng</span>
                     </button>
                     <button
                       onClick={() => setActiveTab("customers")}
@@ -405,7 +495,7 @@ const FreelancerOwnProfilePage = () => {
                           : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
                       }`}
                     >
-                      <FaDog className="text-lg" />
+                      <FaUser className="text-lg" />
                       <span>Khách hàng</span>
                     </button>
                   </div>
@@ -413,10 +503,80 @@ const FreelancerOwnProfilePage = () => {
 
                 {/* Tab Content */}
                 {activeTab === "profile" && (
-                  <ProfileMainContent
-                    bio="Chuyên gia chăm sóc thú cưng với nhiều năm kinh nghiệm."
-                    onEdit={() => setShowEditModal(true)}
-                  />
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                        <FaUser className="mr-3 text-2xl text-teal-600" />
+                        Thông tin cá nhân
+                      </h3>
+                      <button
+                        onClick={() => setShowEditModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md flex items-center gap-2 font-medium"
+                      >
+                        <FaPencilAlt /> Chỉnh sửa
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Name */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaUser className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Họ và tên
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {freelancerProfile?.name || user?.name || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-orange-50 to-pink-50 border border-orange-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaCalendarAlt className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Số điện thoại
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {freelancerProfile?.phoneNumber ||
+                              user?.phoneNumber || (
+                                <span className="text-gray-400 italic">
+                                  Chưa cập nhật
+                                </span>
+                              )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaBriefcase className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Địa chỉ
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {freelancerProfile?.address || user?.address || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {activeTab === "services" && (
@@ -434,8 +594,8 @@ const FreelancerOwnProfilePage = () => {
                       </button>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
-                      {services.length > 0 ? (
-                        services.map((service) => (
+                      {services && services.length > 0 ? (
+                        services.map((service: any) => (
                           <FreelancerServiceCard
                             key={service.id}
                             service={service}
@@ -461,102 +621,360 @@ const FreelancerOwnProfilePage = () => {
                   </div>
                 )}
 
-                {activeTab === "activity" && (
+                {activeTab === "bookings" && (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <FaChartLine className="mr-3 text-2xl text-teal-600" />
-                      Dịch vụ đã làm
+                      <FaClipboardList className="mr-3 text-2xl text-teal-600" />
+                      Quản lý đơn hàng
                     </h3>
-                    <div className="space-y-4">
-                      {user?.bookings && user.bookings.length > 0 ? (
-                        user.bookings.map((booking) => (
-                          <div
-                            key={booking.bookingId}
-                            className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-                          >
-                            <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center flex-shrink-0">
-                              <FaCalendarAlt className="text-white text-xl" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <h4 className="font-semibold text-gray-800">
-                                  {booking.serviceType}
-                                </h4>
-                                <span
-                                  className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${getBookingStatusColor(
-                                    booking.status
-                                  )}`}
-                                >
-                                  {getBookingStatusLabel(booking.status)}
-                                </span>
-                              </div>
-                              <div className="space-y-1 text-sm text-gray-600">
-                                <p>
-                                  📅{" "}
-                                  {new Date(
-                                    booking.scheduledDate
-                                  ).toLocaleDateString("vi-VN")}
-                                </p>
-                                {booking.pickUpTime && (
-                                  <p>
-                                    🕐 {getPickUpTimeLabel(booking.pickUpTime)}
-                                  </p>
-                                )}
-                                <p className="font-semibold text-teal-600">
-                                  💰{" "}
-                                  {booking.totalPrice.toLocaleString("vi-VN")} ₫
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
-                          <p className="text-lg font-medium">
-                            Chưa có dịch vụ nào
-                          </p>
-                          <p className="text-sm mt-2">
-                            Các dịch vụ bạn đã làm sẽ hiển thị ở đây
-                          </p>
-                        </div>
-                      )}
+
+                    {/* Filter buttons */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {[
+                        {
+                          id: "all",
+                          label: "Tất cả",
+                          icon: "📋",
+                          count: bookingsHistory.length,
+                        },
+                        {
+                          id: "pending",
+                          label: "Chờ xác nhận",
+                          icon: "⏳",
+                          count: bookingsHistory.filter(
+                            (b: any) => Number(b.status) === 0
+                          ).length,
+                        },
+                        {
+                          id: "confirmed",
+                          label: "Đã xác nhận",
+                          icon: "✅",
+                          count: bookingsHistory.filter(
+                            (b: any) => Number(b.status) === 1
+                          ).length,
+                        },
+                        {
+                          id: "completed",
+                          label: "Hoàn thành",
+                          icon: "🎉",
+                          count: bookingsHistory.filter(
+                            (b: any) => Number(b.status) === 2
+                          ).length,
+                        },
+                        {
+                          id: "cancelled",
+                          label: "Đã hủy",
+                          icon: "❌",
+                          count: bookingsHistory.filter(
+                            (b: any) => Number(b.status) === 3
+                          ).length,
+                        },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            setBookingsFilter(t.id as any);
+                            setBookingsPage(1);
+                          }}
+                          className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                            bookingsFilter === t.id
+                              ? "bg-teal-600 text-white border-teal-600 shadow-md"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-teal-300"
+                          }`}
+                        >
+                          {t.label} ({t.count})
+                        </button>
+                      ))}
                     </div>
+
+                    {/* Date Range Filter */}
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Lọc theo ngày:
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Từ ngày"
+                          />
+                          <span className="text-gray-500">→</span>
+                          <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Đến ngày"
+                          />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                          <button
+                            onClick={() => {
+                              setDateFrom("");
+                              setDateTo("");
+                            }}
+                            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Xóa bộ lọc
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {loadingBookings ? (
+                      <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+                        <p className="text-gray-500 mt-4">Đang tải...</p>
+                      </div>
+                    ) : paginatedBookings && paginatedBookings.length > 0 ? (
+                      <>
+                        <div className="space-y-4">
+                          {paginatedBookings.map((booking: any) => {
+                            const statusNum = Number(booking.status);
+                            const isPaid =
+                              booking.isPaid === true ||
+                              booking.isPaid === "true";
+                            const pets = booking.pets || [];
+
+                            const isUpcoming = isUpcomingSoon(
+                              booking.bookingDate
+                            );
+                            // Only highlight if status is Pending or Confirmed
+                            const shouldHighlight =
+                              isUpcoming &&
+                              (statusNum === 0 || statusNum === 1);
+
+                            return (
+                              <div
+                                key={booking.bookingId}
+                                className={`relative flex items-start gap-4 p-4 rounded-lg transition-all border cursor-pointer ${
+                                  shouldHighlight
+                                    ? "bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 shadow-md hover:shadow-lg"
+                                    : "bg-gray-50 hover:bg-gray-100 border-gray-200"
+                                }`}
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowBookingModal(true);
+                                }}
+                              >
+                                {shouldHighlight && (
+                                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse z-10">
+                                    <FaClock className="text-xs" />
+                                    Sắp tới!
+                                  </div>
+                                )}
+                                <div
+                                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                    shouldHighlight
+                                      ? "bg-gradient-to-br from-amber-400 to-orange-400"
+                                      : "bg-gradient-to-br from-teal-400 to-cyan-400"
+                                  }`}
+                                >
+                                  <FaCalendarAlt className="text-white text-xl" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div>
+                                      <h4 className="font-semibold text-gray-800">
+                                        Đơn hàng #
+                                        {booking.bookingId.slice(0, 8)}
+                                      </h4>
+                                      <p className="text-sm text-gray-600 flex items-center gap-1">
+                                        <FaCalendarAlt className="text-gray-500" />{" "}
+                                        {booking.bookingDate}
+                                      </p>
+                                      {pets.length > 0 && (
+                                        <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                          <FaPaw className="text-gray-400" />
+                                          {pets
+                                            .map((p: any) => p.petName)
+                                            .join(", ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <span
+                                        className={`inline-block text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${
+                                          statusNum === 0
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : statusNum === 1
+                                            ? "bg-blue-100 text-blue-800"
+                                            : statusNum === 2
+                                            ? "bg-green-100 text-green-800"
+                                            : "bg-red-100 text-red-800"
+                                        }`}
+                                      >
+                                        {statusNum === 0
+                                          ? "Chờ xác nhận"
+                                          : statusNum === 1
+                                          ? "Đã xác nhận"
+                                          : statusNum === 2
+                                          ? "Hoàn thành"
+                                          : "Đã hủy"}
+                                      </span>
+                                      {isPaid && (
+                                        <span className="mt-1 text-xs text-green-600 font-medium flex items-center gap-1">
+                                          <FaCheckCircle /> Đã thanh toán
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-600 flex items-center gap-1">
+                                      <FaClock className="text-gray-500" /> Slot{" "}
+                                      {booking.pickUpTime || 0} (
+                                      {8 + (booking.pickUpTime || 0) * 2}:00 -{" "}
+                                      {10 + (booking.pickUpTime || 0) * 2}:00)
+                                    </span>
+                                    <span className="font-semibold text-teal-600 flex items-center gap-1">
+                                      <FaDollarSign className="text-teal-600" />
+                                      {(booking.totalPrice || 0).toLocaleString(
+                                        "vi-VN"
+                                      )}{" "}
+                                      ₫
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalBookingsPages > 1 && (
+                          <div className="flex justify-center items-center gap-2 mt-6">
+                            <button
+                              onClick={() =>
+                                setBookingsPage((p) => Math.max(1, p - 1))
+                              }
+                              disabled={bookingsPage === 1}
+                              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Trước
+                            </button>
+                            {Array.from(
+                              { length: totalBookingsPages },
+                              (_, i) => i + 1
+                            ).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => setBookingsPage(page)}
+                                className={`px-4 py-2 rounded-lg font-medium ${
+                                  bookingsPage === page
+                                    ? "bg-teal-600 text-white"
+                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() =>
+                                setBookingsPage((p) =>
+                                  Math.min(totalBookingsPages, p + 1)
+                                )
+                              }
+                              disabled={bookingsPage === totalBookingsPages}
+                              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Tiếp
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <FaClipboardList className="text-6xl mb-4 mx-auto text-gray-400" />
+                        <p className="text-lg font-medium">
+                          Chưa có đơn hàng nào
+                        </p>
+                        <p className="text-sm mt-2">
+                          Các đơn hàng từ khách hàng sẽ hiển thị ở đây
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === "customers" && (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                      <FaDog className="mr-3 text-2xl text-teal-600" />
-                      Khách hàng đã liên hệ
+                      <FaUser className="mr-3 text-2xl text-teal-600" />
+                      Danh sách khách hàng
                     </h3>
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          onClick={() => handleSelectCustomer(`customer-${i}`)}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-teal-50 transition-all cursor-pointer border border-transparent hover:border-teal-200"
-                        >
-                          <img
-                            src={`https://images.unsplash.com/photo-${
-                              1500648767791 + i
-                            }-00dcc994a43e?auto=format&fit=crop&w=100&h=100`}
-                            alt={`Customer ${i}`}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800">
-                              Khách hàng {i}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Tin nhắn gần nhất...
-                            </p>
-                          </div>
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        </div>
-                      ))}
-                    </div>
+                    {bookingsHistory && bookingsHistory.length > 0 ? (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {Array.from(
+                          new Set(bookingsHistory.map((b: any) => b.customerId))
+                        ).map((customerId: any) => {
+                          const customerBookings = bookingsHistory.filter(
+                            (b: any) => b.customerId === customerId
+                          );
+                          const latestBooking = customerBookings[0];
+                          const completedCount = customerBookings.filter(
+                            (b: any) => Number(b.status) === 2
+                          ).length;
+                          const pets = latestBooking.pets || [];
+
+                          return (
+                            <div
+                              key={customerId}
+                              onClick={() => handleSelectCustomer(customerId)}
+                              className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-teal-50 transition-colors border border-gray-200 cursor-pointer hover:border-teal-300"
+                            >
+                              <Avatar
+                                src={
+                                  latestBooking?.customer?.avatarUrl ||
+                                  latestBooking?.customer?.avatar ||
+                                  ""
+                                }
+                                name={
+                                  latestBooking?.customer?.name ||
+                                  latestBooking?.customerName ||
+                                  "Khách hàng"
+                                }
+                                size="lg"
+                                className="flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-800 mb-1">
+                                  {latestBooking?.customer?.name ||
+                                    latestBooking?.customerName ||
+                                    `Khách hàng #${customerId.slice(0, 8)}`}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-2">
+                                  {customerBookings.length} đơn hàng •{" "}
+                                  <FaCheckCircle className="inline text-green-600" />{" "}
+                                  {completedCount} hoàn thành
+                                </p>
+                                {pets.length > 0 && (
+                                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    <FaPaw className="text-gray-400" />
+                                    {pets.map((p: any) => p.petName).join(", ")}
+                                  </p>
+                                )}
+                                <button className="mt-2 text-teal-600 hover:text-teal-700 text-sm font-medium flex items-center gap-1">
+                                  <FaComment /> Nhắn tin
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <FaUser className="text-6xl mb-4 mx-auto text-gray-400" />
+                        <p className="text-lg font-medium">
+                          Chưa có khách hàng nào
+                        </p>
+                        <p className="text-sm mt-2">
+                          Khách hàng đặt dịch vụ của bạn sẽ hiển thị ở đây
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -597,45 +1015,17 @@ const FreelancerOwnProfilePage = () => {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-teal-100">Đánh giá:</span>
-                        <span className="font-bold text-xl flex items-center gap-2">
-                          <FaStar /> 4.9
+                        <span className="text-teal-100">Khách hàng:</span>
+                        <span className="font-bold text-2xl">
+                          {bookingsHistory
+                            ? Array.from(
+                                new Set(
+                                  bookingsHistory.map((b: any) => b.customerId)
+                                )
+                              ).length
+                            : 0}
                         </span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Actions */}
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <FaCog className="mr-2" />
-                      Thao tác nhanh
-                    </h3>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => setShowAddServiceModal(true)}
-                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200"
-                      >
-                        <FaPlus className="text-xl text-blue-600" />
-                        <span className="font-medium text-gray-700">
-                          Thêm dịch vụ mới
-                        </span>
-                      </button>
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 rounded-lg transition-all flex items-center gap-3 border border-teal-200">
-                        <FaBriefcase className="text-xl text-teal-600" />
-                        <span className="font-medium text-gray-700">
-                          Quản lý dịch vụ
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setShowEditModal(true)}
-                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 hover:from-orange-100 hover:to-pink-100 rounded-lg transition-all flex items-center gap-3 border border-orange-200"
-                      >
-                        <FaPencilAlt className="text-xl text-orange-600" />
-                        <span className="font-medium text-gray-700">
-                          Chỉnh sửa hồ sơ
-                        </span>
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -688,6 +1078,35 @@ const FreelancerOwnProfilePage = () => {
           setServiceToDelete(null);
         }}
       />
+
+      {/* Booking Detail Modal */}
+      {selectedBooking && (
+        <BookingDetailModal
+          isOpen={showBookingModal}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedBooking(null);
+          }}
+          booking={selectedBooking}
+          userRole="freelancer"
+          onStatusUpdate={async () => {
+            // Reload freelancer profile to get updated bookings
+            try {
+              const response = await apiClient.get<any>(
+                API_ENDPOINTS.USERS.FREELANCER_PROFILE
+              );
+              if (response.success && response.data) {
+                setFreelancerProfile(response.data);
+                if (response.data.bookings) {
+                  setBookingsHistory(response.data.bookings);
+                }
+              }
+            } catch (error) {
+              console.error("Error reloading profile:", error);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

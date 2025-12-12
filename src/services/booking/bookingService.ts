@@ -188,8 +188,8 @@ export const updateBookingStatus = async (
   status: number
 ): Promise<void> => {
   const response = await apiClient.put<void>(
-    API_ENDPOINTS.BOOKINGS.UPDATE_STATUS(bookingId),
-    { status }
+    `${API_ENDPOINTS.BOOKINGS.UPDATE_STATUS(bookingId)}?status=${status}`,
+    {} // Empty body
   );
 
   if (!response.success) {
@@ -205,8 +205,10 @@ export const updatePickUpStatus = async (
   status: number
 ): Promise<void> => {
   const response = await apiClient.put<void>(
-    API_ENDPOINTS.BOOKINGS.UPDATE_PICKUP_STATUS(bookingId),
-    { status }
+    `${API_ENDPOINTS.BOOKINGS.UPDATE_PICKUP_STATUS(
+      bookingId
+    )}?status=${status}`,
+    {} // Empty body
   );
 
   if (!response.success) {

@@ -22,6 +22,8 @@ import {
   FaBullseye,
   FaCalendarCheck,
   FaEdit,
+  FaReceipt,
+  FaClock,
 } from "react-icons/fa";
 
 import Header from "../../components/profile/Header";
@@ -35,18 +37,22 @@ import AddPetModal, {
 } from "../../components/profile/AddPetModal";
 import EditPetModal from "../../components/profile/EditPetModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Avatar from "../../components/common/Avatar";
 import { BookingDetailModal } from "../../components/booking";
 import {
   getBookingStatusLabel,
   getBookingStatusColor,
   getPickUpTimeLabel,
 } from "../../utils/bookingUtils";
-import {
-  paymentService,
-  PaymentMethodCode,
-} from "../../services/payment/paymentService";
-import { apiClient } from "../../services/apiClient";
-import { API_ENDPOINTS } from "../../config/api";
+import { paymentService } from "../../services/payment/paymentService";
+
+// Utility function to check if booking is upcoming soon (within 24 hours)
+const isUpcomingSoon = (bookingDate: string): boolean => {
+  const now = new Date();
+  const booking = new Date(bookingDate);
+  const diffHours = (booking.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return diffHours > 0 && diffHours <= 24;
+};
 import { freelancerService } from "../../services/freelancer/freelancerService";
 import type { FreelancerData } from "../../services/freelancer/freelancerService";
 
@@ -69,7 +75,7 @@ const UserProfilePage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [activityFilter, setActivityFilter] = useState<
-    "all" | "upcoming" | "completed" | "cancelled"
+    "all" | "pending" | "confirmed" | "completed" | "cancelled"
   >("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
@@ -100,6 +106,10 @@ const UserProfilePage = () => {
   const [freelancersList, setFreelancersList] = useState<Freelancer[]>([]);
   const [bookingsHistory, setBookingsHistory] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState<boolean>(false);
+  const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState<boolean>(false);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [editForm, setEditForm] = useState<EditFormData>({
     name: "",
     phoneNumber: "",
@@ -150,7 +160,7 @@ const UserProfilePage = () => {
           name: user?.name || "",
           phoneNumber: user?.phoneNumber || "",
           address: user?.address || "",
-          avatarUrl: user?.avatar || "",
+          avatarUrl: user?.avatarUrl || user?.avatar || "",
         });
         const bookings = user?.bookings || [];
         if (bookings.length > 0) {
@@ -217,7 +227,168 @@ const UserProfilePage = () => {
       setLoadingBookings(true);
       try {
         const data = await bookingService.getMyBookingHistory();
-        setBookingsHistory(data || []);
+
+        // Auto-cancel overdue unpaid bookings
+        if (data && data.length > 0) {
+          const now = new Date();
+          let hasCancellations = false;
+
+          console.log("=== Auto-cancel check started ===");
+          console.log("Current time:", now.toLocaleString("vi-VN"));
+
+          for (const booking of data) {
+            try {
+              // BookingStatus: 0=Pending, 1=Confirmed, 2=Completed, 3=Cancelled
+              const bookingStatus = Number(booking.status);
+              const isPaid =
+                String(booking.isPaid) === "true" || booking.isPaid === true;
+
+              console.log(
+                `Booking ${
+                  booking.bookingId
+                }: Status=${bookingStatus} (${statusToString(
+                  bookingStatus
+                )}), IsPaid=${isPaid}, Raw data:`,
+                {
+                  status: booking.status,
+                  isPaid: booking.isPaid,
+                  pickUpDate: booking.pickUpDate,
+                }
+              );
+
+              // Only process Pending(0) or Confirmed(1) bookings that are unpaid
+              if (!isPaid && (bookingStatus === 0 || bookingStatus === 1)) {
+                // Parse booking date from pickUpDate or bookingDate
+                const bookingDateStr =
+                  booking.pickUpDate || booking.bookingDate;
+                if (!bookingDateStr) {
+                  console.log(`Booking ${booking.bookingId}: No date found`);
+                  continue;
+                }
+
+                // Try different date parsing methods
+                let bookingDate: Date;
+                try {
+                  // Try ISO format first (YYYY-MM-DD or ISO string)
+                  bookingDate = new Date(bookingDateStr);
+
+                  // If invalid, try manual parsing
+                  if (isNaN(bookingDate.getTime())) {
+                    // Try format: DD/MM/YYYY
+                    const parts = bookingDateStr.split(/[-/]/);
+                    if (parts.length === 3) {
+                      const day = parseInt(parts[0]);
+                      const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+                      const year = parseInt(parts[2]);
+                      bookingDate = new Date(year, month, day);
+                    } else {
+                      console.log(
+                        `Booking ${booking.bookingId}: Invalid date format: ${bookingDateStr}`
+                      );
+                      continue;
+                    }
+                  }
+                } catch (dateError) {
+                  console.log(
+                    `Booking ${booking.bookingId}: Date parsing error:`,
+                    dateError
+                  );
+                  continue;
+                }
+
+                // Add pickup time slot hours to booking date (each slot is 2 hours)
+                // Slot 0: 8-10, Slot 1: 10-12, Slot 2: 12-14, etc.
+                const pickUpTime = booking.pickUpTime || 0;
+                const slotStartHour = 8 + pickUpTime * 2;
+                const slotEndHour = slotStartHour + 2;
+                bookingDate.setHours(slotEndHour, 0, 0, 0); // Use end of slot
+
+                console.log(
+                  `Booking ${
+                    booking.bookingId
+                  }: Scheduled for ${bookingDate.toLocaleString(
+                    "vi-VN"
+                  )} (Slot ${pickUpTime}: ${slotStartHour}:00-${slotEndHour}:00)`
+                );
+
+                // Check if booking date+time has passed
+                if (bookingDate < now) {
+                  console.log(
+                    `✓ Auto-cancelling overdue booking: ${booking.bookingId}`
+                  );
+
+                  try {
+                    // Call API to cancel booking
+                    await bookingService.cancelBooking(booking.bookingId);
+                    hasCancellations = true;
+                    console.log(
+                      `✓ Booking ${booking.bookingId} cancelled successfully`
+                    );
+
+                    // Also try to cancel payment if exists
+                    try {
+                      const payment = await paymentService.getPaymentByBooking(
+                        booking.bookingId
+                      );
+                      if (payment && payment.paymentId) {
+                        await paymentService.cancelPayment(payment.paymentId);
+                        console.log(
+                          `✓ Payment ${payment.paymentId} cancelled successfully`
+                        );
+                      }
+                    } catch (paymentError) {
+                      console.error("Failed to cancel payment:", paymentError);
+                    }
+                  } catch (cancelError) {
+                    console.error(
+                      `✗ Failed to cancel booking ${booking.bookingId}:`,
+                      cancelError
+                    );
+                  }
+                } else {
+                  const diffMs = bookingDate.getTime() - now.getTime();
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                  const diffMinutes = Math.floor(
+                    (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+                  );
+                  console.log(
+                    `- Booking ${booking.bookingId}: Still valid (in ${diffHours}h ${diffMinutes}m)`
+                  );
+                }
+              } else if (bookingStatus === 3) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already cancelled`
+                );
+              } else if (bookingStatus === 2) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already completed`
+                );
+              } else if (isPaid) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already paid, skipping`
+                );
+              }
+            } catch (error) {
+              console.error(
+                `Error processing booking ${booking.bookingId}:`,
+                error
+              );
+            }
+          }
+
+          console.log("=== Auto-cancel check completed ===");
+
+          // Reload data after cancellations
+          if (hasCancellations) {
+            console.log("Reloading bookings after cancellations...");
+            const refreshedData = await bookingService.getMyBookingHistory();
+            setBookingsHistory(refreshedData || []);
+          } else {
+            setBookingsHistory(data || []);
+          }
+        } else {
+          setBookingsHistory(data || []);
+        }
       } catch (error) {
         console.error("Error loading bookings history:", error);
         setBookingsHistory([]);
@@ -227,6 +398,50 @@ const UserProfilePage = () => {
     };
 
     loadBookingsHistory();
+  }, [activeTab]);
+
+  // Fetch payments history when Payments tab is active
+  useEffect(() => {
+    const loadPaymentsHistory = async () => {
+      if (activeTab !== "payments") return;
+
+      setLoadingPayments(true);
+      try {
+        // Get all bookings first
+        const bookings = await bookingService.getMyBookingHistory();
+
+        // Then get payment details for each booking
+        const paymentsPromises = bookings.map(async (booking: any) => {
+          try {
+            const payment = await paymentService.getPaymentByBooking(
+              booking.bookingId
+            );
+            return {
+              ...payment,
+              booking: booking,
+            };
+          } catch (error) {
+            console.error(
+              `Error loading payment for booking ${booking.bookingId}:`,
+              error
+            );
+            return null;
+          }
+        });
+
+        const payments = (await Promise.all(paymentsPromises)).filter(
+          (p) => p !== null
+        );
+        setPaymentsHistory(payments);
+      } catch (error) {
+        console.error("Error loading payments history:", error);
+        setPaymentsHistory([]);
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+
+    loadPaymentsHistory();
   }, [activeTab]);
 
   // Reset pagination when filter changes
@@ -439,20 +654,12 @@ const UserProfilePage = () => {
             <div className="flex items-start gap-6">
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="w-32 h-32 bg-white rounded-2xl shadow-xl p-3">
-                  <img
-                    src={
-                      user?.avatar ||
-                      "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400"
-                    }
-                    alt={user?.name || "User"}
-                    className="w-full h-full rounded-xl object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400";
-                    }}
-                  />
-                </div>
+                <Avatar
+                  src={user?.avatarUrl || user?.avatar}
+                  name={user?.name || "User"}
+                  size="xl"
+                  className="shadow-xl"
+                />
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
               </div>
 
@@ -546,6 +753,17 @@ const UserProfilePage = () => {
                     >
                       <FaStar className="text-lg" />
                       <span>Nâng cấp</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("payments")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "payments"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaReceipt className="text-lg" />
+                      <span>Thanh toán</span>
                     </button>
                   </div>
                 </div>
@@ -718,25 +936,65 @@ const UserProfilePage = () => {
                       <FaChartLine className="mr-3 text-2xl text-teal-600" />
                       Hoạt động gần đây
                     </h3>
-                    <div className="flex gap-2 mb-4">
+
+                    {/* Status Filters */}
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {[
                         { id: "all", label: "Tất cả" },
-                        { id: "upcoming", label: "Sắp tới" },
+                        { id: "pending", label: "Chờ xác nhận" },
+                        { id: "confirmed", label: "Đã xác nhận" },
                         { id: "completed", label: "Hoàn thành" },
                         { id: "cancelled", label: "Đã hủy" },
                       ].map((t) => (
                         <button
                           key={t.id}
                           onClick={() => setActivityFilter(t.id as any)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium border ${
+                          className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                             activityFilter === t.id
-                              ? "bg-teal-600 text-white border-teal-600"
-                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                              ? "bg-teal-600 text-white border-teal-600 shadow-md"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-teal-300"
                           }`}
                         >
                           {t.label}
                         </button>
                       ))}
+                    </div>
+
+                    {/* Date Range Filter */}
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Lọc theo ngày:
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Từ ngày"
+                          />
+                          <span className="text-gray-500">→</span>
+                          <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Đến ngày"
+                          />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                          <button
+                            onClick={() => {
+                              setDateFrom("");
+                              setDateTo("");
+                            }}
+                            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Xóa bộ lọc
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {loadingBookings ? (
@@ -757,227 +1015,151 @@ const UserProfilePage = () => {
                                 return db - da;
                               })
                               .filter((b) => {
-                                if (activityFilter === "all") return true;
-                                const status = statusToString(b.status);
-                                if (activityFilter === "completed")
-                                  return status === "Completed";
-                                if (activityFilter === "cancelled")
-                                  return status === "Cancelled";
-                                if (activityFilter === "upcoming")
-                                  return (
-                                    status === "Confirmed" ||
-                                    status === "Pending"
-                                  );
+                                // Status filter
+                                if (activityFilter !== "all") {
+                                  const status = statusToString(b.status);
+                                  if (
+                                    activityFilter === "pending" &&
+                                    status !== "Pending"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "confirmed" &&
+                                    status !== "Confirmed"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "completed" &&
+                                    status !== "Completed"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "cancelled" &&
+                                    status !== "Cancelled"
+                                  )
+                                    return false;
+                                }
+
+                                // Date range filter
+                                if (dateFrom || dateTo) {
+                                  const bookingDate = new Date(b.bookingDate);
+                                  if (dateFrom) {
+                                    const fromDate = new Date(dateFrom);
+                                    if (bookingDate < fromDate) return false;
+                                  }
+                                  if (dateTo) {
+                                    const toDate = new Date(dateTo);
+                                    toDate.setHours(23, 59, 59, 999); // End of day
+                                    if (bookingDate > toDate) return false;
+                                  }
+                                }
+
                                 return true;
                               });
                             const paginatedBookings = filteredBookings.slice(
                               (bookingsPage - 1) * bookingsPerPage,
                               bookingsPage * bookingsPerPage
                             );
-                            return paginatedBookings.map((booking: any) => (
-                              <div
-                                key={booking.bookingId}
-                                className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                              >
-                                <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                                  <FaCalendarAlt className="text-white text-xl" />
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-800">
-                                    {Array.isArray(booking.services) &&
-                                    booking.services.length > 0
-                                      ? `Dịch vụ (${booking.services.length})`
-                                      : "Đặt dịch vụ"}
-                                  </p>
-                                  <div className="flex items-center gap-3 mt-1">
-                                    <p className="text-sm text-gray-500">
-                                      {new Date(
-                                        booking.bookingDate
-                                      ).toLocaleDateString("vi-VN")}{" "}
-                                      •{" "}
-                                      {getPickUpTimeLabel(
-                                        `Slot${(booking.pickUpTime ?? 0) + 1}`
-                                      )}
-                                    </p>
-                                    <span
-                                      className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(
-                                        statusToString(booking.status)
-                                      )}`}
-                                    >
-                                      {getBookingStatusLabel(
-                                        statusToString(booking.status)
-                                      )}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right flex flex-col items-end gap-2">
-                                  {String(booking.isPaid) === "false" &&
-                                  statusToString(booking.status) !==
-                                    "Cancelled" ? (
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          const savedUrlKey = `payment_url_${booking.bookingId}`;
-                                          const savedUrl =
-                                            localStorage.getItem(savedUrlKey);
-                                          if (savedUrl) {
-                                            let invalid = false;
-                                            try {
-                                              const u = new URL(savedUrl);
-                                              const tmn =
-                                                u.searchParams.get(
-                                                  "vnp_TmnCode"
-                                                );
-                                              const ret =
-                                                u.searchParams.get(
-                                                  "vnp_ReturnUrl"
-                                                );
-                                              if (
-                                                !tmn ||
-                                                tmn.toUpperCase() ===
-                                                  "YOUR_TMN_CODE"
-                                              )
-                                                invalid = true;
-                                              if (
-                                                !ret ||
-                                                ret.toLowerCase() === "string"
-                                              )
-                                                invalid = true;
-                                            } catch {
-                                              invalid = true;
-                                            }
-                                            if (invalid) {
-                                              showError(
-                                                "Liên kết VNPAY cũ không hợp lệ. Đang tạo liên kết mới..."
-                                              );
-                                            } else {
-                                              window.location.href = savedUrl;
-                                              return;
-                                            }
-                                          }
+                            return paginatedBookings.map((booking: any) => {
+                              const isUpcoming = isUpcomingSoon(
+                                booking.bookingDate
+                              );
+                              const statusStr = statusToString(booking.status);
+                              // Only highlight if status is Pending or Confirmed
+                              const shouldHighlight =
+                                isUpcoming &&
+                                (statusStr === "Pending" ||
+                                  statusStr === "Confirmed");
 
-                                          const returnUrl = `${apiClient.getBaseURL()}${
-                                            API_ENDPOINTS.PAYMENT.PAYOS_CALLBACK
-                                          }`;
-                                          const res =
-                                            await paymentService.createPayment({
-                                              bookingId: booking.bookingId,
-                                              method: PaymentMethodCode.PAYOS,
-                                              returnUrl,
-                                              description: `Thanh toán đặt lịch ${new Date(
-                                                booking.bookingDate
-                                              ).toLocaleDateString("vi-VN")}`,
-                                            });
-                                          const redirectUrl =
-                                            paymentService.extractRedirectUrl(
-                                              res
-                                            );
-                                          if (!redirectUrl) {
-                                            showError(
-                                              "Không nhận được liên kết thanh toán"
-                                            );
-                                            return;
-                                          }
-                                          let invalid = false;
-                                          try {
-                                            const u = new URL(redirectUrl);
-                                            const tmn =
-                                              u.searchParams.get("vnp_TmnCode");
-                                            const ret =
-                                              u.searchParams.get(
-                                                "vnp_ReturnUrl"
-                                              );
-                                            if (
-                                              !tmn ||
-                                              tmn.toUpperCase() ===
-                                                "YOUR_TMN_CODE"
-                                            )
-                                              invalid = true;
-                                            if (
-                                              !ret ||
-                                              ret.toLowerCase() === "string"
-                                            )
-                                              invalid = true;
-                                          } catch {
-                                            invalid = true;
-                                          }
-                                          if (invalid) {
-                                            showError(
-                                              "Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend."
-                                            );
-                                            return;
-                                          }
-                                          localStorage.setItem(
-                                            "last_payment_booking_id",
-                                            booking.bookingId
-                                          );
-                                          if (res.paymentId) {
-                                            localStorage.setItem(
-                                              "last_payment_id",
-                                              res.paymentId
-                                            );
-                                          }
-                                          localStorage.setItem(
-                                            savedUrlKey,
-                                            redirectUrl
-                                          );
-                                          window.location.href = redirectUrl;
-                                        } catch (e: any) {
-                                          showError(
-                                            e?.message ||
-                                              "Tạo thanh toán thất bại"
-                                          );
-                                        }
-                                      }}
-                                      className="inline-flex flex-col items-center px-2 py-2 text-sm rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-all"
-                                    >
-                                      <span className="text-xs font-small">
-                                        {Number(
-                                          booking.totalPrice || 0
-                                        ).toLocaleString("vi-VN")}{" "}
-                                        ₫
+                              return (
+                                <div
+                                  key={booking.bookingId}
+                                  className={`relative flex items-center gap-4 p-4 rounded-lg transition-all ${
+                                    shouldHighlight
+                                      ? "bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 shadow-md hover:shadow-lg"
+                                      : "bg-gray-50 hover:bg-gray-100 border border-transparent"
+                                  }`}
+                                >
+                                  {shouldHighlight && (
+                                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
+                                      <FaClock className="text-xs" />
+                                      Sắp tới!
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                      shouldHighlight
+                                        ? "bg-gradient-to-br from-amber-400 to-orange-400"
+                                        : "bg-gradient-to-br from-teal-400 to-cyan-400"
+                                    }`}
+                                  >
+                                    <FaCalendarAlt className="text-white text-xl" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-800">
+                                      {Array.isArray(booking.services) &&
+                                      booking.services.length > 0
+                                        ? `Dịch vụ (${booking.services.length})`
+                                        : "Đặt dịch vụ"}
+                                    </p>
+                                    <div className="flex items-center gap-3 mt-1">
+                                      <p className="text-sm text-gray-500">
+                                        {new Date(
+                                          booking.bookingDate
+                                        ).toLocaleDateString("vi-VN")}{" "}
+                                        •{" "}
+                                        {getPickUpTimeLabel(
+                                          `Slot${(booking.pickUpTime ?? 0) + 1}`
+                                        )}
+                                      </p>
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(
+                                          statusToString(booking.status)
+                                        )}`}
+                                      >
+                                        {getBookingStatusLabel(
+                                          statusToString(booking.status)
+                                        )}
                                       </span>
-                                      <span className="font-semibold">
-                                        Thanh toán
-                                      </span>
-                                    </button>
-                                  ) : (
+                                    </div>
+                                  </div>
+                                  <div className="text-right flex flex-col items-end gap-2">
                                     <p className="font-bold text-teal-600">
                                       {Number(
                                         booking.totalPrice || 0
                                       ).toLocaleString("vi-VN")}{" "}
                                       ₫
                                     </p>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      // Fetch full booking details with payment, services, and pets info
-                                      const detailsData =
-                                        await bookingService.getBookingDetails(
-                                          booking.bookingId
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        // Fetch full booking details with payment, services, and pets info
+                                        const detailsData =
+                                          await bookingService.getBookingDetails(
+                                            booking.bookingId
+                                          );
+                                        setSelectedBooking(
+                                          detailsData || booking
                                         );
-                                      setSelectedBooking(
-                                        detailsData || booking
-                                      );
-                                      setShowBookingDetail(true);
-                                    } catch (error) {
-                                      console.error(
-                                        "Error loading booking details:",
-                                        error
-                                      );
-                                      // Fallback to basic booking data
-                                      setSelectedBooking(booking);
-                                      setShowBookingDetail(true);
-                                    }
-                                  }}
-                                  className="ml-auto px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
-                                >
-                                  Xem chi tiết
-                                </button>
-                              </div>
-                            ));
+                                        setShowBookingDetail(true);
+                                      } catch (error) {
+                                        console.error(
+                                          "Error loading booking details:",
+                                          error
+                                        );
+                                        // Fallback to basic booking data
+                                        setSelectedBooking(booking);
+                                        setShowBookingDetail(true);
+                                      }
+                                    }}
+                                    className="ml-auto px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                </div>
+                              );
+                            });
                           })()
                         ) : (
                           <div className="text-center py-12 text-gray-500">
@@ -995,16 +1177,45 @@ const UserProfilePage = () => {
                         {(() => {
                           const filteredCount = [...bookingsHistory].filter(
                             (b) => {
-                              if (activityFilter === "all") return true;
-                              const status = statusToString(b.status);
-                              if (activityFilter === "completed")
-                                return status === "Completed";
-                              if (activityFilter === "cancelled")
-                                return status === "Cancelled";
-                              if (activityFilter === "upcoming")
-                                return (
-                                  status === "Confirmed" || status === "Pending"
-                                );
+                              // Status filter
+                              if (activityFilter !== "all") {
+                                const status = statusToString(b.status);
+                                if (
+                                  activityFilter === "pending" &&
+                                  status !== "Pending"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "confirmed" &&
+                                  status !== "Confirmed"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "completed" &&
+                                  status !== "Completed"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "cancelled" &&
+                                  status !== "Cancelled"
+                                )
+                                  return false;
+                              }
+
+                              // Date range filter
+                              if (dateFrom || dateTo) {
+                                const bookingDate = new Date(b.bookingDate);
+                                if (dateFrom) {
+                                  const fromDate = new Date(dateFrom);
+                                  if (bookingDate < fromDate) return false;
+                                }
+                                if (dateTo) {
+                                  const toDate = new Date(dateTo);
+                                  toDate.setHours(23, 59, 59, 999);
+                                  if (bookingDate > toDate) return false;
+                                }
+                              }
+
                               return true;
                             }
                           ).length;
@@ -1129,6 +1340,122 @@ const UserProfilePage = () => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === "payments" && (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                      <FaReceipt className="mr-3 text-2xl text-teal-600" />
+                      Lịch sử thanh toán
+                    </h3>
+
+                    {loadingPayments ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                      </div>
+                    ) : paymentsHistory.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FaReceipt className="mx-auto text-6xl text-gray-300 mb-4" />
+                        <p className="text-gray-500 text-lg">
+                          Chưa có lịch sử thanh toán
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {paymentsHistory.map((payment: any, index: number) => {
+                          const isSuccess = [
+                            "success",
+                            "completed",
+                            "paid",
+                            "true",
+                          ].some((k) =>
+                            String(payment.status || "")
+                              .toLowerCase()
+                              .includes(k)
+                          );
+
+                          return (
+                            <div
+                              key={payment.paymentId || index}
+                              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h4 className="font-semibold text-gray-800">
+                                      Mã thanh toán: {payment.paymentId}
+                                    </h4>
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                        isSuccess
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {isSuccess ? "Thành công" : "Thất bại"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-600">
+                                    Mã đơn hàng: {payment.bookingId}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {payment.createdAt
+                                      ? new Date(
+                                          payment.createdAt
+                                        ).toLocaleString("vi-VN")
+                                      : "N/A"}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-teal-600">
+                                    {payment.amount
+                                      ? new Intl.NumberFormat("vi-VN", {
+                                          style: "currency",
+                                          currency: "VND",
+                                        }).format(payment.amount)
+                                      : "N/A"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    PayOS
+                                  </p>
+                                </div>
+                              </div>
+
+                              {payment.description && (
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {payment.description}
+                                </p>
+                              )}
+
+                              {payment.booking && (
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                  <p className="text-gray-700">
+                                    <strong>Booking:</strong>{" "}
+                                    {payment.booking.serviceType ||
+                                      "Dịch vụ chăm sóc"}
+                                  </p>
+                                </div>
+                              )}
+
+                              {payment.booking && (
+                                <div className="mt-3">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBooking(payment.booking);
+                                      setShowBookingDetail(true);
+                                    }}
+                                    className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
+                                  >
+                                    Xem booking
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

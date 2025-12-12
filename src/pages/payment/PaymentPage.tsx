@@ -88,18 +88,36 @@ const PaymentPage = () => {
 
     try {
       const methodCode = PaymentMethodCode.PAYOS;
-      const returnUrl = `${window.location.origin}/payment-status`;
+      // Use environment variables for return URLs
+      const returnUrl =
+        import.meta.env.VITE_PAYMENT_SUCCESS_URL ||
+        `${window.location.origin}/payment-success`;
+
+      console.log("Payment returnUrl:", returnUrl);
       // Old VNPay code:
       // const methodCode = paymentMethod === "vnpay" ? PaymentMethodCode.VNPAY : PaymentMethodCode.MOMO;
       // const returnUrl = methodCode === PaymentMethodCode.VNPAY
       //   ? `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`
       //   : `${window.location.origin}/payment-status`;
 
-      const paymentRes = await paymentService.createPayment({
-        bookingId: location.state?.bookingId,
+      // Validate bookingId exists
+      if (!location.state?.bookingId) {
+        showError("Không tìm thấy mã đặt dịch vụ. Vui lòng thử lại.");
+        setIsProcessing(false);
+        return;
+      }
+
+      console.log("Creating payment with:", {
+        bookingId: location.state.bookingId,
         method: methodCode,
         returnUrl,
-        description: `DV thu cung`, // Tối đa 25 ký tự theo yêu cầu PayOS
+      });
+
+      const paymentRes = await paymentService.createPayment({
+        bookingId: location.state.bookingId,
+        method: methodCode,
+        returnUrl,
+        description: "Dich vu cham soc thu cung",
       });
 
       const redirectUrl = paymentService.extractRedirectUrl(paymentRes);

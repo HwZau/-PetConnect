@@ -111,20 +111,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           Thú cưng ({bookingData.petInfo.length})
         </h4>
         {bookingData.petInfo.map((pet, index) => (
-          <div key={index} className="flex justify-between text-sm mb-2">
-            <span>
-              {pet.petName} ({pet.petType})
-            </span>
-            <span>
-              {bookingData.serviceIds && bookingData.serviceIds.length > 0
-                ? formatPrice(
-                    getMultipleServiceDetails().reduce(
-                      (sum, s) => sum + s.basePrice,
-                      0
-                    )
-                  )
-                : formatPrice(getSingleServiceInfo().basePrice)}
-            </span>
+          <div key={index} className="text-sm mb-2">
+            {pet.petName} ({pet.petType})
           </div>
         ))}
       </div>
