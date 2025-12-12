@@ -32,6 +32,7 @@ export interface CreateBookingResponse {
   pickUpStatus: string;
   createdAt: string;
   updatedAt: string;
+  totalPrice?: number;
 }
 
 /**
@@ -137,6 +138,36 @@ export const getUserBookings = async (): Promise<CreateBookingResponse[]> => {
 };
 
 /**
+ * Get current user's booking history (optimized API)
+ */
+export const getMyBookingHistory = async (): Promise<any[]> => {
+  const response = await apiClient.get<any[]>(
+    API_ENDPOINTS.BOOKINGS.MY_HISTORY
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to get booking history");
+  }
+
+  return response.data;
+};
+
+/**
+ * Get booking details with full information (payment, services, pets)
+ */
+export const getBookingDetails = async (bookingId: string): Promise<any> => {
+  const response = await apiClient.get<any>(
+    API_ENDPOINTS.BOOKINGS.DETAIL_FULL(bookingId)
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to get booking details");
+  }
+
+  return response.data;
+};
+
+/**
  * Cancel booking
  */
 export const cancelBooking = async (bookingId: string): Promise<void> => {
@@ -149,10 +180,98 @@ export const cancelBooking = async (bookingId: string): Promise<void> => {
   }
 };
 
+/**
+ * Update booking status
+ */
+export const updateBookingStatus = async (
+  bookingId: string,
+  status: number
+): Promise<void> => {
+  const response = await apiClient.put<void>(
+    `${API_ENDPOINTS.BOOKINGS.UPDATE_STATUS(bookingId)}?status=${status}`,
+    {} // Empty body
+  );
+
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update booking status");
+  }
+};
+
+/**
+ * Update pickup status
+ */
+export const updatePickUpStatus = async (
+  bookingId: string,
+  status: number
+): Promise<void> => {
+  const response = await apiClient.put<void>(
+    `${API_ENDPOINTS.BOOKINGS.UPDATE_PICKUP_STATUS(
+      bookingId
+    )}?status=${status}`,
+    {} // Empty body
+  );
+
+  if (!response.success) {
+    throw new Error(response.error || "Failed to update pickup status");
+  }
+};
+
+export interface PaginatedBookingsResponse {
+  bookings: CreateBookingResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Get customer bookings with pagination
+ */
+export const getCustomerBookings = async (
+  customerId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedBookingsResponse> => {
+  const response = await apiClient.get<PaginatedBookingsResponse>(
+    API_ENDPOINTS.BOOKINGS.CUSTOMER_BOOKINGS(customerId, page, limit)
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to get customer bookings");
+  }
+
+  return response.data;
+};
+
+/**
+ * Get freelancer bookings with pagination
+ */
+export const getFreelancerBookings = async (
+  freelancerId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedBookingsResponse> => {
+  const response = await apiClient.get<PaginatedBookingsResponse>(
+    API_ENDPOINTS.BOOKINGS.FREELANCER_BOOKINGS(freelancerId, page, limit)
+  );
+
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Failed to get freelancer bookings");
+  }
+
+  return response.data;
+};
+
 export const bookingService = {
   createBooking,
   getBookingById,
   getUserBookings,
+  getMyBookingHistory,
+  getBookingDetails,
   cancelBooking,
   checkDuplicateBooking,
+  updateBookingStatus,
+  updatePickUpStatus,
+  getCustomerBookings,
+  getFreelancerBookings,
 };

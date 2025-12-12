@@ -1,6 +1,13 @@
 import React from "react";
 import { CONSTANTS } from "../../utils";
-import type { PetInformationProps } from "../../types";
+
+interface PetInformationProps {
+  petInfo?: any[];
+  onPetInfoChange?: (petIndex: number, field: string, value: string) => void;
+  onAddPet?: () => void;
+  onRemovePet?: (petIndex: number) => void;
+  errors?: Record<string, string>;
+}
 
 const PetInformation: React.FC<PetInformationProps> = ({
   petInfo,
@@ -55,7 +62,7 @@ const PetInformation: React.FC<PetInformationProps> = ({
       </div>
 
       <div className="space-y-6">
-        {petInfo?.map((pet, index) => (
+        {petInfo?.map((pet: any, index: number) => (
           <div key={index} className="relative">
             {/* Pet card header */}
             <div className="flex items-center justify-between mb-4">

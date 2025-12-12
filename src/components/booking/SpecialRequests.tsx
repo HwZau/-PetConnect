@@ -1,5 +1,9 @@
 import React from "react";
-import type { SpecialRequestsProps } from "../../types";
+
+interface SpecialRequestsProps {
+  specialRequests?: string;
+  onSpecialRequestsChange?: (value: string) => void;
+}
 
 const SpecialRequests: React.FC<SpecialRequestsProps> = ({
   specialRequests,

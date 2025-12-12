@@ -13,6 +13,7 @@ import { FaPaw } from "react-icons/fa";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import Logo from "../../assets/image/Logo.png";
 import { useAuth } from "../../hooks";
+import Avatar from "../common/Avatar";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -49,10 +50,13 @@ const Header = () => {
 
   // Function to get user avatar with fallback
   const getUserAvatar = () => {
+    if (user?.avatarUrl) {
+      return user.avatarUrl;
+    }
     if (user?.avatar) {
       return user.avatar;
     }
-    return "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
+    return null; // Return null to show initials
   };
 
   // Get user display name
@@ -184,15 +188,10 @@ const Header = () => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <img
+                  <Avatar
                     src={getUserAvatar()}
-                    alt={getUserDisplayName()}
-                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100";
-                    }}
+                    name={getUserDisplayName()}
+                    size="sm"
                   />
                 </button>
 

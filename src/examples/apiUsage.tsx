@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { apiClient } from "../services/apiClient";
 import { useApi, useFileUpload } from "../hooks";
 import { API_ENDPOINTS } from "../config/api";
-import type { UserProfile, Pet } from "../services/exampleServices";
+import type { UserProfile, Pet } from "../types";
 
 // ==================== React Component Examples ====================
 

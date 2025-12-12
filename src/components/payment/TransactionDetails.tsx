@@ -25,7 +25,8 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
 
   const getPaymentMethodName = (method: string) => {
     const normalized = String(method).toLowerCase();
-    if (normalized === "0" || normalized === "vnpay") return "VNPay";
+    if (normalized === "0" || normalized === "payos") return "PayOS";
+    if (normalized === "vnpay") return "VNPay";
     if (normalized === "1" || normalized === "momo") return "MoMo";
     if (normalized === "bank") return "Thẻ tín dụng/ghi nợ";
     if (normalized === "wallet") return "Ví điện tử";

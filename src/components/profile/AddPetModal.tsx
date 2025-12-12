@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FaTimes, FaDog, FaCat } from "react-icons/fa";
+import { FaDog, FaCat } from "react-icons/fa";
+import FormModal from "../ui/FormModal";
 
 interface AddPetModalProps {
   isOpen: boolean;
@@ -103,144 +104,116 @@ const AddPetModal = ({ isOpen, onClose, onSave }: AddPetModalProps) => {
     onClose();
   };
 
+  const isFormValid =
+    formData.petName.trim() !== "" &&
+    formData.species !== "" &&
+    formData.breed.trim() !== "";
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-pink-500 text-white p-6 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                <FaDog className="text-2xl" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">Thêm Thú Cưng Mới</h2>
-                <p className="text-orange-100 text-sm">
-                  Điền thông tin thú cưng của bạn
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleClose}
-              className="text-white hover:bg-white/20 p-2 rounded-full transition-all"
-            >
-              <FaTimes className="text-xl" />
-            </button>
+    <FormModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Thêm Thú Cưng Mới"
+      onSubmit={handleSubmit}
+      submitText="Thêm thú cưng"
+      isValid={isFormValid}
+      size="lg"
+      submitButtonClassName="px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+      cancelButtonClassName="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <div className="space-y-6">
+        {/* Species Selection */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Loại thú cưng <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-4">
+            {speciesOptions.map((option) => {
+              const Icon = option.icon;
+              const isSelected = formData.species === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleSpeciesSelect(option.value)}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? "border-orange-500 bg-orange-50 shadow-md scale-105"
+                      : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/50"
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 mx-auto mb-2 bg-gradient-to-br ${option.color} rounded-full flex items-center justify-center`}
+                  >
+                    <Icon className="text-white text-xl" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-700">
+                    {option.label}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+          {errors.species && (
+            <p className="text-red-500 text-xs mt-2">{errors.species}</p>
+          )}
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Species Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Loại thú cưng <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              {speciesOptions.map((option) => {
-                const Icon = option.icon;
-                const isSelected = formData.species === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleSpeciesSelect(option.value)}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      isSelected
-                        ? "border-orange-500 bg-orange-50 shadow-md scale-105"
-                        : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/50"
-                    }`}
-                  >
-                    <div
-                      className={`w-12 h-12 mx-auto mb-2 bg-gradient-to-br ${option.color} rounded-full flex items-center justify-center`}
-                    >
-                      <Icon className="text-white text-xl" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-700">
-                      {option.label}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-            {errors.species && (
-              <p className="text-red-500 text-xs mt-2">{errors.species}</p>
-            )}
-          </div>
+        {/* Pet Name */}
+        <div>
+          <label
+            htmlFor="petName"
+            className="block text-sm font-semibold text-gray-700 mb-2"
+          >
+            Tên thú cưng <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="petName"
+            name="petName"
+            value={formData.petName}
+            onChange={handleChange}
+            className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all ${
+              errors.petName
+                ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                : "border-gray-200 focus:border-orange-500 focus:ring-orange-200"
+            }`}
+            placeholder="Ví dụ: Milu, Cún con..."
+          />
+          {errors.petName && (
+            <p className="text-red-500 text-xs mt-1">{errors.petName}</p>
+          )}
+        </div>
 
-          {/* Pet Name */}
+        {/* Breed and Gender */}
+        <div className="grid md:grid-cols-1 gap-4">
           <div>
             <label
-              htmlFor="petName"
+              htmlFor="breed"
               className="block text-sm font-semibold text-gray-700 mb-2"
             >
-              Tên thú cưng <span className="text-red-500">*</span>
+              Giống <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              id="petName"
-              name="petName"
-              value={formData.petName}
+              id="breed"
+              name="breed"
+              value={formData.breed}
               onChange={handleChange}
               className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all ${
-                errors.petName
+                errors.breed
                   ? "border-red-300 focus:border-red-500 focus:ring-red-200"
                   : "border-gray-200 focus:border-orange-500 focus:ring-orange-200"
               }`}
-              placeholder="Ví dụ: Milu, Cún con..."
+              placeholder="Ví dụ: Poodle, Corgi, Persian..."
             />
-            {errors.petName && (
-              <p className="text-red-500 text-xs mt-1">{errors.petName}</p>
+            {errors.breed && (
+              <p className="text-red-500 text-xs mt-1">{errors.breed}</p>
             )}
           </div>
-
-          {/* Breed and Gender */}
-          <div className="grid md:grid-cols-1 gap-4">
-            <div>
-              <label
-                htmlFor="breed"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Giống <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="breed"
-                name="breed"
-                value={formData.breed}
-                onChange={handleChange}
-                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 transition-all ${
-                  errors.breed
-                    ? "border-red-300 focus:border-red-500 focus:ring-red-200"
-                    : "border-gray-200 focus:border-orange-500 focus:ring-orange-200"
-                }`}
-                placeholder="Ví dụ: Poodle, Corgi, Persian..."
-              />
-              {errors.breed && (
-                <p className="text-red-500 text-xs mt-1">{errors.breed}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl"
-            >
-              Thêm thú cưng
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </FormModal>
   );
 };
 

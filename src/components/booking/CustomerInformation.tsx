@@ -1,5 +1,10 @@
 import React from "react";
-import type { CustomerInformationProps } from "../../types";
+
+interface CustomerInformationProps {
+  customerInfo?: any;
+  onCustomerInfoChange?: (field: string, value: string) => void;
+  errors?: Record<string, string>;
+}
 
 const CustomerInformation: React.FC<CustomerInformationProps> = ({
   customerInfo,

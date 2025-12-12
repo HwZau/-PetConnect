@@ -35,6 +35,12 @@ export const API_ENDPOINTS = {
     FREELANCER_PROFILE: "/user/profile/freelancer/me",
   },
 
+  // Profile
+  PROFILE: {
+    UPDATE_CUSTOMER: "/user/profile/customer",
+    UPDATE_FREELANCER: "/user/profile/freelancer",
+  },
+
   // Pets
   PETS: {
     LIST: "/pet/getall",
@@ -43,7 +49,7 @@ export const API_ENDPOINTS = {
     CREATE: "/pet/create",
     UPDATE: (id: string) => `/pet/update/${id}`,
     EDIT: (id: string) => `/pet/edit/${id}`, // New: Edit pet endpoint
-    DELETE: (id: string) => `/pet/delete/${id}`,
+    DELETE: (id: string) => `/pet/remove/${id}`,
     ADD_PET: (id: string) => `/pet/add/${id}`,
     CREATE_USER_PET: (userId: string) => `/pet/${userId}`,
   },
@@ -65,21 +71,35 @@ export const API_ENDPOINTS = {
     LIST: "/booking/getall",
     CREATE: "/booking/create",
     DETAIL: (id: string) => `/booking/${id}`,
+    DETAIL_FULL: (id: string) => `/booking/${id}/details`, // With payment, services, pets
     UPDATE: (id: string) => `/booking/${id}`,
-    CANCEL: (id: string) => `/booking/${id}/cancel`,
+    CANCEL: (id: string) => `/booking/cancel/${id}`,
     HISTORY: "/booking/history",
-    USER_BOOKINGS: "/booking/user/me",
+    MY_HISTORY: "/booking/my-history", // Current user's bookings
+    CUSTOMER_HISTORY: (customerId: string) =>
+      `/booking/customer/${customerId}/history`,
+    FREELANCER_HISTORY: (freelancerId: string) =>
+      `/booking/freelancer/${freelancerId}/history`,
+    UPDATE_STATUS: (id: string) => `/booking/status/${id}`,
+    UPDATE_PICKUP_STATUS: (id: string) => `/booking/pickup-status/${id}`,
+    USER_BOOKINGS: "/booking/history", // Legacy endpoint for compatibility
+    CUSTOMER_BOOKINGS: (customerId: string, page: number, limit: number) =>
+      `/booking/customer/${customerId}/history?page=${page}&limit=${limit}`,
+    FREELANCER_BOOKINGS: (freelancerId: string, page: number, limit: number) =>
+      `/booking/freelancer/${freelancerId}/history?page=${page}&limit=${limit}`,
   },
 
   // Payments
   PAYMENT: {
     CREATE: "/payment/create",
-    VNPAY_CALLBACK: "/payment/vnpay-callback",
-    MOMO_CALLBACK: "/payment/momo-callback",
-    MOMO_RETURN: "/payment/momo-return",
+    PAYOS_CALLBACK: "/payment/payos-callback",
+    // VNPAY_CALLBACK: "/payment/vnpay-callback", // Commented - using PayOS
+    // MOMO_CALLBACK: "/payment/momo-callback",
+    // MOMO_RETURN: "/payment/momo-return",
     BY_BOOKING: (bookingId: string) => `/payment/booking/${bookingId}`,
     DETAIL: (paymentId: string) => `/payment/${paymentId}`,
     CANCEL: (paymentId: string) => `/payment/${paymentId}/cancel`,
+    STATUS: (bookingId: string) => `/payment/${bookingId}/status`,
   },
 
   // Freelancers
@@ -129,6 +149,23 @@ export const API_ENDPOINTS = {
     MULTIPLE: "/upload/multiple",
     AVATAR: "/upload/avatar",
     PET_PHOTO: "/upload/pet-photo",
+  },
+
+  // Cloudinary
+  CLOUDINARY: {
+    UPLOAD: "/cloudinary/upload",
+    UPLOAD_BASE64: "/cloudinary/upload-base64",
+    UPLOAD_VIDEO: "/cloudinary/upload-video",
+    UPLOAD_VIDEO_BASE64: "/cloudinary/upload-base64-video",
+    DELETE: (publicId: string) => `/cloudinary/${publicId}`,
+    DELETE_VIDEO: (id: string) => `/cloudinary/video/${id}`,
+    DELETE_VIDEO_BY_PUBLIC: (publicId: string) =>
+      `/cloudinary/video/public/${publicId}`,
+    GET_BY_ID: (id: string) => `/cloudinary/${id}`,
+    GET_BY_PUBLIC_ID: (publicId: string) => `/cloudinary/public/${publicId}`,
+    GET_ALL: "/cloudinary",
+    GET_TRANSFORMED_URL: (publicId: string) => `/cloudinary/url/${publicId}`,
+    GET_VIDEO_BY_ID: (id: string) => `/cloudinary/video/${id}`,
   },
 } as const;
 

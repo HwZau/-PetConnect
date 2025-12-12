@@ -42,13 +42,27 @@ const PaymentStatusHeader: React.FC<PaymentStatusHeaderProps> = ({
           : "Thanh toán thất bại!"}
       </h1>
 
-      <p className="text-gray-600 text-lg">
+      <p className="text-gray-600 text-lg mb-2">
         {status === "success"
           ? "Cảm ơn bạn đã tin tưởng dịch vụ PawNest"
+          : status === "pending"
+          ? "Đang xử lý giao dịch..."
           : "Đã xảy ra lỗi trong quá trình thanh toán"}
       </p>
 
-      {status === "success" && countdown !== undefined && (
+      {status === "success" && (
+        <p className="text-sm text-green-700">
+          Booking của bạn đã được xác nhận thành công!
+        </p>
+      )}
+
+      {status === "failed" && (
+        <p className="text-sm text-red-700">
+          Vui lòng thử lại hoặc chọn phương thức thanh toán khác
+        </p>
+      )}
+
+      {status === "success" && countdown !== undefined && countdown > 0 && (
         <div className="mt-4 text-sm text-green-700 bg-green-100 rounded-lg px-4 py-2 inline-block">
           Tự động chuyển về trang chủ sau {countdown} giây
         </div>

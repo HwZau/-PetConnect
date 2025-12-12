@@ -3,7 +3,7 @@ import { isAdminRole } from "../../utils/authUtils";
 import { useScrollToTop, useAuth } from "../../hooks";
 import { useNavigate } from "react-router-dom";
 import { showSuccess, showError } from "../../utils";
-import { petService } from "../../services";
+import { petService, profileService, bookingService } from "../../services";
 import {
   FaUser,
   FaPaw,
@@ -12,20 +12,21 @@ import {
   FaStar,
   FaCalendarAlt,
   FaGift,
-  FaPencilAlt,
   FaDog,
+  FaCat,
+  FaTrash,
   FaBolt,
-  FaCog,
   FaAward,
   FaCheckCircle,
   FaHeadset,
   FaBullseye,
   FaCalendarCheck,
   FaEdit,
+  FaReceipt,
+  FaClock,
 } from "react-icons/fa";
 
 import Header from "../../components/profile/Header";
-import ProfileMainContent from "../../components/profile/ProfileMainContent";
 import UpgradePlanCard from "../../components/profile/UpgradePlanCard";
 import FreelancerContactsCard from "../../components/profile/FreelancerContactsCard";
 import EditProfileModal from "../../components/profile/EditProfileModal";
@@ -35,19 +36,31 @@ import AddPetModal, {
   type PetFormData,
 } from "../../components/profile/AddPetModal";
 import EditPetModal from "../../components/profile/EditPetModal";
-import { getBookingStatusLabel, getBookingStatusColor, getPickUpTimeLabel } from "../../utils/bookingUtils";
-import { paymentService, PaymentMethodCode } from "../../services/payment/paymentService";
-import { apiClient } from "../../services/apiClient";
-import { API_ENDPOINTS } from "../../config/api";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Avatar from "../../components/common/Avatar";
+import { BookingDetailModal } from "../../components/booking";
+import {
+  getBookingStatusLabel,
+  getBookingStatusColor,
+  getPickUpTimeLabel,
+} from "../../utils/bookingUtils";
+import { paymentService } from "../../services/payment/paymentService";
+
+// Utility function to check if booking is upcoming soon (within 24 hours)
+const isUpcomingSoon = (bookingDate: string): boolean => {
+  const now = new Date();
+  const booking = new Date(bookingDate);
+  const diffHours = (booking.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return diffHours > 0 && diffHours <= 24;
+};
 import { freelancerService } from "../../services/freelancer/freelancerService";
 import type { FreelancerData } from "../../services/freelancer/freelancerService";
 
-
 interface EditFormData {
   name: string;
-  phone: string;
-  location: string;
-  bio: string;
+  phoneNumber: string;
+  address: string;
+  avatarUrl: string;
 }
 
 interface Freelancer {
@@ -61,12 +74,20 @@ const UserProfilePage = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [activityFilter, setActivityFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
+  const [activityFilter, setActivityFilter] = useState<
+    "all" | "pending" | "confirmed" | "completed" | "cancelled"
+  >("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [showAddPetModal, setShowAddPetModal] = useState<boolean>(false);
   const [showEditPetModal, setShowEditPetModal] = useState<boolean>(false);
+  const [showDeletePetConfirm, setShowDeletePetConfirm] =
+    useState<boolean>(false);
+  const [petToDelete, setPetToDelete] = useState<{
+    petId: string;
+    petName: string;
+  } | null>(null);
   const [selectedPet, setSelectedPet] = useState<{
     petId: string;
     petName: string;
@@ -75,12 +96,25 @@ const UserProfilePage = () => {
   } | null>(null);
   const [selectedFreelancer, setSelectedFreelancer] =
     useState<Freelancer | null>(null);
-  const [latestFreelancer, setLatestFreelancer] = useState<Freelancer | null>(null);
+  const [bookingsPage, setBookingsPage] = useState<number>(1);
+  const [bookingsPerPage] = useState<number>(5);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [showBookingDetail, setShowBookingDetail] = useState<boolean>(false);
+  const [latestFreelancer, setLatestFreelancer] = useState<Freelancer | null>(
+    null
+  );
+  const [freelancersList, setFreelancersList] = useState<Freelancer[]>([]);
+  const [bookingsHistory, setBookingsHistory] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState<boolean>(false);
+  const [paymentsHistory, setPaymentsHistory] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState<boolean>(false);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [editForm, setEditForm] = useState<EditFormData>({
     name: "",
-    phone: "",
-    location: "Hà Nội",
-    bio: "Yêu thích thú cưng!",
+    phoneNumber: "",
+    address: "",
+    avatarUrl: "",
   });
 
   useScrollToTop();
@@ -124,30 +158,58 @@ const UserProfilePage = () => {
         // Set edit form with user data
         setEditForm({
           name: user?.name || "",
-          phone: user?.phoneNumber || "",
-          location: user?.address || "",
-          bio: "Yêu thích thú cưng!",
+          phoneNumber: user?.phoneNumber || "",
+          address: user?.address || "",
+          avatarUrl: user?.avatarUrl || user?.avatar || "",
         });
         const bookings = user?.bookings || [];
         if (bookings.length > 0) {
-          const latest = [...bookings].sort(
-            (a: any, b: any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()
-          )[0];
-          const freelancerId = (latest as any)?.freelancerId;
-          if (freelancerId) {
-            const res = await freelancerService.getFreelancerById(freelancerId);
-            if (res.success && res.data) {
-              const f = res.data as FreelancerData;
-              setLatestFreelancer({
-                id: f.id,
-                name: f.name,
-                avatar: f.avatarUrl || "",
-                online: true,
-              });
+          // Get unique freelancer IDs from bookings
+          const freelancerIds = [
+            ...new Set(
+              bookings.map((b: any) => b.freelancerId).filter((id: any) => id)
+            ),
+          ];
+
+          // Fetch all freelancers
+          const freelancersData: Freelancer[] = [];
+          for (const freelancerId of freelancerIds) {
+            try {
+              const res = await freelancerService.getFreelancerById(
+                freelancerId
+              );
+              if (res.success && res.data) {
+                const f = res.data as FreelancerData;
+                freelancersData.push({
+                  id: f.id,
+                  name: f.name,
+                  avatar: f.avatarUrl || "",
+                  online: true,
+                });
+              }
+            } catch (err) {
+              console.error(`Failed to fetch freelancer ${freelancerId}:`, err);
+            }
+          }
+
+          setFreelancersList(freelancersData);
+
+          // Set latest freelancer
+          if (freelancersData.length > 0) {
+            const latest = [...bookings].sort(
+              (a: any, b: any) =>
+                new Date(b.bookingDate).getTime() -
+                new Date(a.bookingDate).getTime()
+            )[0];
+            const latestFreelancerId = (latest as any)?.freelancerId;
+            const latestFreelancerData = freelancersData.find(
+              (f) => f.id === latestFreelancerId
+            );
+            if (latestFreelancerData) {
+              setLatestFreelancer(latestFreelancerData);
             }
           }
         }
-        
       } catch (error) {
         console.error("Failed to load user data:", error);
       } finally {
@@ -157,14 +219,262 @@ const UserProfilePage = () => {
     loadUserData();
   }, [user?.id, user?.name, user?.phoneNumber, user?.address]);
 
+  // Fetch bookings history when Activity tab is active
+  useEffect(() => {
+    const loadBookingsHistory = async () => {
+      if (activeTab !== "activity") return;
+
+      setLoadingBookings(true);
+      try {
+        const data = await bookingService.getMyBookingHistory();
+
+        // Auto-cancel overdue unpaid bookings
+        if (data && data.length > 0) {
+          const now = new Date();
+          let hasCancellations = false;
+
+          console.log("=== Auto-cancel check started ===");
+          console.log("Current time:", now.toLocaleString("vi-VN"));
+
+          for (const booking of data) {
+            try {
+              // BookingStatus: 0=Pending, 1=Confirmed, 2=Completed, 3=Cancelled
+              const bookingStatus = Number(booking.status);
+              const isPaid =
+                String(booking.isPaid) === "true" || booking.isPaid === true;
+
+              console.log(
+                `Booking ${
+                  booking.bookingId
+                }: Status=${bookingStatus} (${statusToString(
+                  bookingStatus
+                )}), IsPaid=${isPaid}, Raw data:`,
+                {
+                  status: booking.status,
+                  isPaid: booking.isPaid,
+                  pickUpDate: booking.pickUpDate,
+                }
+              );
+
+              // Only process Pending(0) or Confirmed(1) bookings that are unpaid
+              if (!isPaid && (bookingStatus === 0 || bookingStatus === 1)) {
+                // Parse booking date from pickUpDate or bookingDate
+                const bookingDateStr =
+                  booking.pickUpDate || booking.bookingDate;
+                if (!bookingDateStr) {
+                  console.log(`Booking ${booking.bookingId}: No date found`);
+                  continue;
+                }
+
+                // Try different date parsing methods
+                let bookingDate: Date;
+                try {
+                  // Try ISO format first (YYYY-MM-DD or ISO string)
+                  bookingDate = new Date(bookingDateStr);
+
+                  // If invalid, try manual parsing
+                  if (isNaN(bookingDate.getTime())) {
+                    // Try format: DD/MM/YYYY
+                    const parts = bookingDateStr.split(/[-/]/);
+                    if (parts.length === 3) {
+                      const day = parseInt(parts[0]);
+                      const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+                      const year = parseInt(parts[2]);
+                      bookingDate = new Date(year, month, day);
+                    } else {
+                      console.log(
+                        `Booking ${booking.bookingId}: Invalid date format: ${bookingDateStr}`
+                      );
+                      continue;
+                    }
+                  }
+                } catch (dateError) {
+                  console.log(
+                    `Booking ${booking.bookingId}: Date parsing error:`,
+                    dateError
+                  );
+                  continue;
+                }
+
+                // Add pickup time slot hours to booking date (each slot is 2 hours)
+                // Slot 0: 8-10, Slot 1: 10-12, Slot 2: 12-14, etc.
+                const pickUpTime = booking.pickUpTime || 0;
+                const slotStartHour = 8 + pickUpTime * 2;
+                const slotEndHour = slotStartHour + 2;
+                bookingDate.setHours(slotEndHour, 0, 0, 0); // Use end of slot
+
+                console.log(
+                  `Booking ${
+                    booking.bookingId
+                  }: Scheduled for ${bookingDate.toLocaleString(
+                    "vi-VN"
+                  )} (Slot ${pickUpTime}: ${slotStartHour}:00-${slotEndHour}:00)`
+                );
+
+                // Check if booking date+time has passed
+                if (bookingDate < now) {
+                  console.log(
+                    `✓ Auto-cancelling overdue booking: ${booking.bookingId}`
+                  );
+
+                  try {
+                    // Call API to cancel booking
+                    await bookingService.cancelBooking(booking.bookingId);
+                    hasCancellations = true;
+                    console.log(
+                      `✓ Booking ${booking.bookingId} cancelled successfully`
+                    );
+
+                    // Also try to cancel payment if exists
+                    try {
+                      const payment = await paymentService.getPaymentByBooking(
+                        booking.bookingId
+                      );
+                      if (payment && payment.paymentId) {
+                        await paymentService.cancelPayment(payment.paymentId);
+                        console.log(
+                          `✓ Payment ${payment.paymentId} cancelled successfully`
+                        );
+                      }
+                    } catch (paymentError) {
+                      console.error("Failed to cancel payment:", paymentError);
+                    }
+                  } catch (cancelError) {
+                    console.error(
+                      `✗ Failed to cancel booking ${booking.bookingId}:`,
+                      cancelError
+                    );
+                  }
+                } else {
+                  const diffMs = bookingDate.getTime() - now.getTime();
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                  const diffMinutes = Math.floor(
+                    (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+                  );
+                  console.log(
+                    `- Booking ${booking.bookingId}: Still valid (in ${diffHours}h ${diffMinutes}m)`
+                  );
+                }
+              } else if (bookingStatus === 3) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already cancelled`
+                );
+              } else if (bookingStatus === 2) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already completed`
+                );
+              } else if (isPaid) {
+                console.log(
+                  `- Booking ${booking.bookingId}: Already paid, skipping`
+                );
+              }
+            } catch (error) {
+              console.error(
+                `Error processing booking ${booking.bookingId}:`,
+                error
+              );
+            }
+          }
+
+          console.log("=== Auto-cancel check completed ===");
+
+          // Reload data after cancellations
+          if (hasCancellations) {
+            console.log("Reloading bookings after cancellations...");
+            const refreshedData = await bookingService.getMyBookingHistory();
+            setBookingsHistory(refreshedData || []);
+          } else {
+            setBookingsHistory(data || []);
+          }
+        } else {
+          setBookingsHistory(data || []);
+        }
+      } catch (error) {
+        console.error("Error loading bookings history:", error);
+        setBookingsHistory([]);
+      } finally {
+        setLoadingBookings(false);
+      }
+    };
+
+    loadBookingsHistory();
+  }, [activeTab]);
+
+  // Fetch payments history when Payments tab is active
+  useEffect(() => {
+    const loadPaymentsHistory = async () => {
+      if (activeTab !== "payments") return;
+
+      setLoadingPayments(true);
+      try {
+        // Get all bookings first
+        const bookings = await bookingService.getMyBookingHistory();
+
+        // Then get payment details for each booking
+        const paymentsPromises = bookings.map(async (booking: any) => {
+          try {
+            const payment = await paymentService.getPaymentByBooking(
+              booking.bookingId
+            );
+            return {
+              ...payment,
+              booking: booking,
+            };
+          } catch (error) {
+            console.error(
+              `Error loading payment for booking ${booking.bookingId}:`,
+              error
+            );
+            return null;
+          }
+        });
+
+        const payments = (await Promise.all(paymentsPromises)).filter(
+          (p) => p !== null
+        );
+        setPaymentsHistory(payments);
+      } catch (error) {
+        console.error("Error loading payments history:", error);
+        setPaymentsHistory([]);
+      } finally {
+        setLoadingPayments(false);
+      }
+    };
+
+    loadPaymentsHistory();
+  }, [activeTab]);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setBookingsPage(1);
+  }, [activityFilter]);
+
   const handleFormChange = (field: string, value: string) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveProfile = () => {
-    console.log("Saving:", editForm);
-    showSuccess("Cập nhật hồ sơ thành công!");
-    setShowEditModal(false);
+  const handleSaveProfile = async () => {
+    try {
+      // Call API to update customer profile
+      const response = await profileService.updateCustomerProfile({
+        name: editForm.name,
+        phoneNumber: editForm.phoneNumber,
+        address: editForm.address,
+        avatarUrl: editForm.avatarUrl,
+      });
+
+      if (response.success) {
+        showSuccess("Đã cập nhật hồ sơ thành công!");
+        setShowEditModal(false);
+        // Refresh user data
+        await refreshUser();
+      } else {
+        showError(response.message || "Cập nhật hồ sơ thất bại");
+      }
+    } catch (error: any) {
+      console.error("Failed to update profile:", error);
+      showError(error.message || "Đã xảy ra lỗi khi cập nhật hồ sơ");
+    }
   };
 
   const handleUpgrade = (plan: "monthly" | "yearly") => {
@@ -248,18 +558,28 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleDeletePet = async (petId: string) => {
-    if (!user?.id) {
+  const handleDeletePet = (petId: string) => {
+    const pet = user?.pets?.find((p) => p.petId === petId);
+    if (pet) {
+      setPetToDelete({ petId: pet.petId, petName: pet.petName });
+      setShowDeletePetConfirm(true);
+    }
+  };
+
+  const confirmDeletePet = async () => {
+    if (!user?.id || !petToDelete) {
       showError("Không tìm thấy thông tin user");
       return;
     }
 
     try {
       // Use deletePet endpoint: DELETE /api/v1/pet/delete/{userId}
-      const response = await petService.deletePet(user.id, petId);
+      const response = await petService.deletePet(user.id, petToDelete.petId);
 
       if (response.success) {
         showSuccess("Xóa thú cưng thành công!");
+        setShowDeletePetConfirm(false);
+        setPetToDelete(null);
         setShowEditPetModal(false);
         setSelectedPet(null);
         // Refresh user data to get updated pets list
@@ -273,16 +593,33 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleSelectFreelancer = (freelancerId: string) => {
-    // Mock data - in real app, fetch from API
-    const freelancer: Freelancer = {
-      id: freelancerId,
-      name: "Nguyễn Văn A",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100",
-      online: true,
-    };
-    setSelectedFreelancer(freelancer);
+  const handleSelectFreelancer = async (freelancerId: string) => {
+    // Find in existing list first
+    const existingFreelancer = freelancersList.find(
+      (f) => f.id === freelancerId
+    );
+    if (existingFreelancer) {
+      setSelectedFreelancer(existingFreelancer);
+      return;
+    }
+
+    // Fetch from API if not in list
+    try {
+      const res = await freelancerService.getFreelancerById(freelancerId);
+      if (res.success && res.data) {
+        const f = res.data as FreelancerData;
+        const freelancer: Freelancer = {
+          id: f.id,
+          name: f.name,
+          avatar: f.avatarUrl || "",
+          online: true,
+        };
+        setSelectedFreelancer(freelancer);
+      }
+    } catch (error) {
+      console.error("Failed to fetch freelancer:", error);
+      showError("Đã xảy ra lỗi khi tải thông tin freelancer");
+    }
   };
 
   if (loading || !user) {
@@ -317,20 +654,12 @@ const UserProfilePage = () => {
             <div className="flex items-start gap-6">
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="w-32 h-32 bg-white rounded-2xl shadow-xl p-3">
-                  <img
-                    src={
-                      user?.avatar ||
-                      "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400"
-                    }
-                    alt={user?.name || "User"}
-                    className="w-full h-full rounded-xl object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400";
-                    }}
-                  />
-                </div>
+                <Avatar
+                  src={user?.avatarUrl || user?.avatar}
+                  name={user?.name || "User"}
+                  size="xl"
+                  className="shadow-xl"
+                />
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white"></div>
               </div>
 
@@ -341,17 +670,10 @@ const UserProfilePage = () => {
                     <h1 className="text-3xl font-bold mb-2">
                       {user?.name || "Người dùng"}
                     </h1>
-                    <p className="text-teal-100 text-sm mb-3">Since 2024</p>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2">
-                        <FaStar className="text-yellow-300" /> Khách hàng thân
-                        thiết
-                      </span>
-                      <span className="bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm">
-                        {user?.email || "user@example.com"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-6 text-sm">
+                    <p className="text-teal-100 text-sm mb-3">
+                      {user?.email || "user@example.com"}
+                    </p>
+                    <div className="flex items-center gap-6 text-sm mt-3">
                       <div className="flex items-center gap-2">
                         <FaDog className="text-orange-300" />
                         <span>{user?.pets?.length || 0} thú cưng</span>
@@ -360,20 +682,8 @@ const UserProfilePage = () => {
                         <FaCalendarCheck className="text-green-300" />
                         <span>{user?.bookings?.length || 0} lượt đặt</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <FaStar className="text-yellow-300" />
-                        <span>5.0 đánh giá</span>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Edit Profile Button */}
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="bg-white hover:bg-gray-50 text-teal-600 font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg flex items-center gap-2"
-                  >
-                    <FaPencilAlt /> CHỈNH SỬA
-                  </button>
                 </div>
               </div>
             </div>
@@ -444,15 +754,95 @@ const UserProfilePage = () => {
                       <FaStar className="text-lg" />
                       <span>Nâng cấp</span>
                     </button>
+                    <button
+                      onClick={() => setActiveTab("payments")}
+                      className={`px-6 py-4 font-semibold whitespace-nowrap transition-all flex items-center gap-2 ${
+                        activeTab === "payments"
+                          ? "text-teal-600 border-b-3 border-teal-600 bg-gradient-to-r from-teal-50 to-emerald-50"
+                          : "text-gray-600 hover:text-teal-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      <FaReceipt className="text-lg" />
+                      <span>Thanh toán</span>
+                    </button>
                   </div>
                 </div>
 
                 {/* Tab Content */}
                 {activeTab === "profile" && (
-                  <ProfileMainContent
-                    bio={editForm.bio}
-                    onEdit={() => setShowEditModal(true)}
-                  />
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                        <FaUser className="mr-3 text-2xl text-teal-600" />
+                        Thông tin cá nhân
+                      </h3>
+                      <button
+                        onClick={() => setShowEditModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 transition-all shadow-md flex items-center gap-2 font-medium"
+                      >
+                        <FaEdit /> Chỉnh sửa
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Name */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaUser className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Họ và tên
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.name || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Phone */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-orange-50 to-pink-50 border border-orange-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaCalendarAlt className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Số điện thoại
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.phoneNumber || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-lg">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FaBriefcase className="text-white text-lg" />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-sm font-semibold text-gray-600">
+                            Địa chỉ
+                          </label>
+                          <p className="text-gray-900 text-base font-medium mt-1">
+                            {user?.address || (
+                              <span className="text-gray-400 italic">
+                                Chưa cập nhật
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {activeTab === "pets" && (
@@ -476,18 +866,37 @@ const UserProfilePage = () => {
                             key={pet.petId}
                             className="bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 rounded-xl p-4 hover:shadow-lg transition-all relative group"
                           >
-                            {/* Edit Button */}
-                            <button
-                              onClick={() => handleEditPet(pet)}
-                              className="absolute top-3 right-3 w-8 h-8 bg-white hover:bg-teal-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100"
-                              title="Chỉnh sửa thú cưng"
-                            >
-                              <FaEdit className="text-sm" />
-                            </button>
+                            {/* Action Buttons */}
+                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handleEditPet(pet)}
+                                className="w-8 h-8 bg-white hover:bg-teal-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all"
+                                title="Chỉnh sửa thú cưng"
+                              >
+                                <FaEdit className="text-sm" />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePet(pet.petId)}
+                                className="w-8 h-8 bg-white hover:bg-red-500 text-gray-600 hover:text-white rounded-full flex items-center justify-center shadow-md transition-all"
+                                title="Xóa thú cưng"
+                              >
+                                <FaTrash className="text-sm" />
+                              </button>
+                            </div>
 
                             <div className="flex items-center gap-3">
-                              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full flex items-center justify-center text-3xl shadow-lg">
-                                <FaDog className="text-white" />
+                              <div
+                                className={`w-16 h-16 bg-gradient-to-br ${
+                                  pet.species.toLowerCase() === "cat"
+                                    ? "from-purple-400 to-pink-400"
+                                    : "from-orange-400 to-amber-400"
+                                } rounded-full flex items-center justify-center text-3xl shadow-lg`}
+                              >
+                                {pet.species.toLowerCase() === "cat" ? (
+                                  <FaCat className="text-white" />
+                                ) : (
+                                  <FaDog className="text-white" />
+                                )}
                               </div>
                               <div className="flex-1">
                                 <h4 className="font-bold text-gray-800 text-lg">
@@ -527,20 +936,23 @@ const UserProfilePage = () => {
                       <FaChartLine className="mr-3 text-2xl text-teal-600" />
                       Hoạt động gần đây
                     </h3>
-                    <div className="flex gap-2 mb-4">
+
+                    {/* Status Filters */}
+                    <div className="flex flex-wrap gap-2 mb-4">
                       {[
                         { id: "all", label: "Tất cả" },
-                        { id: "upcoming", label: "Sắp tới" },
+                        { id: "pending", label: "Chờ xác nhận" },
+                        { id: "confirmed", label: "Đã xác nhận" },
                         { id: "completed", label: "Hoàn thành" },
                         { id: "cancelled", label: "Đã hủy" },
                       ].map((t) => (
                         <button
                           key={t.id}
                           onClick={() => setActivityFilter(t.id as any)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium border ${
+                          className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
                             activityFilter === t.id
-                              ? "bg-teal-600 text-white border-teal-600"
-                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                              ? "bg-teal-600 text-white border-teal-600 shadow-md"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-teal-300"
                           }`}
                         >
                           {t.label}
@@ -548,131 +960,300 @@ const UserProfilePage = () => {
                       ))}
                     </div>
 
-                    <div className="space-y-4">
-                      {user?.bookings && user.bookings.length > 0 ? (
-                        [...(user.bookings || [])]
-                          .sort((a: any, b: any) => {
-                            const da = new Date(a.bookingDate).getTime();
-                            const db = new Date(b.bookingDate).getTime();
-                            return db - da;
-                          })
-                          .filter((b) => {
-                            if (activityFilter === "all") return true;
-                            const status = statusToString(b.status);
-                            if (activityFilter === "completed")
-                              return status === "Completed";
-                            if (activityFilter === "cancelled")
-                              return status === "Cancelled";
-                            if (activityFilter === "upcoming")
-                              return status === "Confirmed" || status === "Pending";
-                            return true;
-                          })
-                          .map((booking: any) => (
-                            <div
-                              key={booking.bookingId}
-                              className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex items-center justify-center">
-                                <FaCalendarAlt className="text-white text-xl" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-800">
-                                  {Array.isArray(booking.services) && booking.services.length > 0
-                                    ? `Dịch vụ (${booking.services.length})`
-                                    : "Đặt dịch vụ"}
-                                </p>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <p className="text-sm text-gray-500">
-                                    {new Date(booking.bookingDate).toLocaleDateString("vi-VN")} • {getPickUpTimeLabel(`Slot${(booking.pickUpTime ?? 0) + 1}`)}
-                                  </p>
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(statusToString(booking.status))}`}
+                    {/* Date Range Filter */}
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="text-sm font-semibold text-gray-700">
+                          Lọc theo ngày:
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Từ ngày"
+                          />
+                          <span className="text-gray-500">→</span>
+                          <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            placeholder="Đến ngày"
+                          />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                          <button
+                            onClick={() => {
+                              setDateFrom("");
+                              setDateTo("");
+                            }}
+                            className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Xóa bộ lọc
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {loadingBookings ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent"></div>
+                        <p className="mt-4 text-gray-600">
+                          Đang tải dữ liệu...
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {bookingsHistory && bookingsHistory.length > 0 ? (
+                          (() => {
+                            const filteredBookings = [...bookingsHistory]
+                              .sort((a: any, b: any) => {
+                                const da = new Date(a.bookingDate).getTime();
+                                const db = new Date(b.bookingDate).getTime();
+                                return db - da;
+                              })
+                              .filter((b) => {
+                                // Status filter
+                                if (activityFilter !== "all") {
+                                  const status = statusToString(b.status);
+                                  if (
+                                    activityFilter === "pending" &&
+                                    status !== "Pending"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "confirmed" &&
+                                    status !== "Confirmed"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "completed" &&
+                                    status !== "Completed"
+                                  )
+                                    return false;
+                                  if (
+                                    activityFilter === "cancelled" &&
+                                    status !== "Cancelled"
+                                  )
+                                    return false;
+                                }
+
+                                // Date range filter
+                                if (dateFrom || dateTo) {
+                                  const bookingDate = new Date(b.bookingDate);
+                                  if (dateFrom) {
+                                    const fromDate = new Date(dateFrom);
+                                    if (bookingDate < fromDate) return false;
+                                  }
+                                  if (dateTo) {
+                                    const toDate = new Date(dateTo);
+                                    toDate.setHours(23, 59, 59, 999); // End of day
+                                    if (bookingDate > toDate) return false;
+                                  }
+                                }
+
+                                return true;
+                              });
+                            const paginatedBookings = filteredBookings.slice(
+                              (bookingsPage - 1) * bookingsPerPage,
+                              bookingsPage * bookingsPerPage
+                            );
+                            return paginatedBookings.map((booking: any) => {
+                              const isUpcoming = isUpcomingSoon(
+                                booking.bookingDate
+                              );
+                              const statusStr = statusToString(booking.status);
+                              // Only highlight if status is Pending or Confirmed
+                              const shouldHighlight =
+                                isUpcoming &&
+                                (statusStr === "Pending" ||
+                                  statusStr === "Confirmed");
+
+                              return (
+                                <div
+                                  key={booking.bookingId}
+                                  className={`relative flex items-center gap-4 p-4 rounded-lg transition-all ${
+                                    shouldHighlight
+                                      ? "bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 shadow-md hover:shadow-lg"
+                                      : "bg-gray-50 hover:bg-gray-100 border border-transparent"
+                                  }`}
+                                >
+                                  {shouldHighlight && (
+                                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 animate-pulse">
+                                      <FaClock className="text-xs" />
+                                      Sắp tới!
+                                    </div>
+                                  )}
+                                  <div
+                                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                      shouldHighlight
+                                        ? "bg-gradient-to-br from-amber-400 to-orange-400"
+                                        : "bg-gradient-to-br from-teal-400 to-cyan-400"
+                                    }`}
                                   >
-                                    {getBookingStatusLabel(statusToString(booking.status))}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-teal-600">
-                                  {Number(booking.totalPrice || 0).toLocaleString("vi-VN")} ₫
-                                </p>
-                                {String(booking.isPaid) === "false" && statusToString(booking.status) !== "Cancelled" && (
+                                    <FaCalendarAlt className="text-white text-xl" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-800">
+                                      {Array.isArray(booking.services) &&
+                                      booking.services.length > 0
+                                        ? `Dịch vụ (${booking.services.length})`
+                                        : "Đặt dịch vụ"}
+                                    </p>
+                                    <div className="flex items-center gap-3 mt-1">
+                                      <p className="text-sm text-gray-500">
+                                        {new Date(
+                                          booking.bookingDate
+                                        ).toLocaleDateString("vi-VN")}{" "}
+                                        •{" "}
+                                        {getPickUpTimeLabel(
+                                          `Slot${(booking.pickUpTime ?? 0) + 1}`
+                                        )}
+                                      </p>
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full font-medium ${getBookingStatusColor(
+                                          statusToString(booking.status)
+                                        )}`}
+                                      >
+                                        {getBookingStatusLabel(
+                                          statusToString(booking.status)
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right flex flex-col items-end gap-2">
+                                    <p className="font-bold text-teal-600">
+                                      {Number(
+                                        booking.totalPrice || 0
+                                      ).toLocaleString("vi-VN")}{" "}
+                                      ₫
+                                    </p>
+                                  </div>
                                   <button
                                     onClick={async () => {
                                       try {
-                                        const savedUrlKey = `payment_url_${booking.bookingId}`;
-                                        const savedUrl = localStorage.getItem(savedUrlKey);
-                                        if (savedUrl) {
-                                          let invalid = false;
-                                          try {
-                                            const u = new URL(savedUrl);
-                                            const tmn = u.searchParams.get("vnp_TmnCode");
-                                            const ret = u.searchParams.get("vnp_ReturnUrl");
-                                            if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
-                                            if (!ret || ret.toLowerCase() === "string") invalid = true;
-                                          } catch {
-                                            invalid = true;
-                                          }
-                                          if (invalid) {
-                                            showError("Liên kết VNPAY cũ không hợp lệ. Đang tạo liên kết mới...");
-                                          } else {
-                                            window.location.href = savedUrl;
-                                            return;
-                                          }
-                                        }
-
-                                        const returnUrl = `${apiClient.getBaseURL()}${API_ENDPOINTS.PAYMENT.VNPAY_CALLBACK}`;
-                                        const res = await paymentService.createPayment({
-                                          bookingId: booking.bookingId,
-                                          method: PaymentMethodCode.VNPAY,
-                                          returnUrl,
-                                          description: `Thanh toán đặt lịch ${new Date(booking.bookingDate).toLocaleDateString("vi-VN")}`,
-                                        });
-                                        const redirectUrl = paymentService.extractRedirectUrl(res);
-                                        if (!redirectUrl) {
-                                          showError("Không nhận được liên kết thanh toán");
-                                          return;
-                                        }
-                                        let invalid = false;
-                                        try {
-                                          const u = new URL(redirectUrl);
-                                          const tmn = u.searchParams.get("vnp_TmnCode");
-                                          const ret = u.searchParams.get("vnp_ReturnUrl");
-                                          if (!tmn || tmn.toUpperCase() === "YOUR_TMN_CODE") invalid = true;
-                                          if (!ret || ret.toLowerCase() === "string") invalid = true;
-                                        } catch {
-                                          invalid = true;
-                                        }
-                                        if (invalid) {
-                                          showError("Cấu hình VNPAY chưa hợp lệ. Vui lòng kiểm tra TmnCode và ReturnUrl trên backend.");
-                                          return;
-                                        }
-                                        localStorage.setItem("last_payment_booking_id", booking.bookingId);
-                                        if (res.paymentId) {
-                                          localStorage.setItem("last_payment_id", res.paymentId);
-                                        }
-                                        localStorage.setItem(savedUrlKey, redirectUrl);
-                                        window.location.href = redirectUrl;
-                                      } catch (e: any) {
-                                        showError(e?.message || "Tạo thanh toán thất bại");
+                                        // Fetch full booking details with payment, services, and pets info
+                                        const detailsData =
+                                          await bookingService.getBookingDetails(
+                                            booking.bookingId
+                                          );
+                                        setSelectedBooking(
+                                          detailsData || booking
+                                        );
+                                        setShowBookingDetail(true);
+                                      } catch (error) {
+                                        console.error(
+                                          "Error loading booking details:",
+                                          error
+                                        );
+                                        // Fallback to basic booking data
+                                        setSelectedBooking(booking);
+                                        setShowBookingDetail(true);
                                       }
                                     }}
-                                    className="mt-2 inline-flex items-center px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white hover:bg-teal-700"
+                                    className="ml-auto px-4 py-2 text-sm bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
                                   >
-                                    Thanh toán VNPAY
+                                    Xem chi tiết
                                   </button>
-                                )}
+                                </div>
+                              );
+                            });
+                          })()
+                        ) : (
+                          <div className="text-center py-12 text-gray-500">
+                            <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
+                            <p className="text-lg font-medium">
+                              Chưa có hoạt động nào
+                            </p>
+                            <p className="text-sm mt-2">
+                              Đặt dịch vụ đầu tiên của bạn ngay hôm nay!
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Pagination */}
+                        {(() => {
+                          const filteredCount = [...bookingsHistory].filter(
+                            (b) => {
+                              // Status filter
+                              if (activityFilter !== "all") {
+                                const status = statusToString(b.status);
+                                if (
+                                  activityFilter === "pending" &&
+                                  status !== "Pending"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "confirmed" &&
+                                  status !== "Confirmed"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "completed" &&
+                                  status !== "Completed"
+                                )
+                                  return false;
+                                if (
+                                  activityFilter === "cancelled" &&
+                                  status !== "Cancelled"
+                                )
+                                  return false;
+                              }
+
+                              // Date range filter
+                              if (dateFrom || dateTo) {
+                                const bookingDate = new Date(b.bookingDate);
+                                if (dateFrom) {
+                                  const fromDate = new Date(dateFrom);
+                                  if (bookingDate < fromDate) return false;
+                                }
+                                if (dateTo) {
+                                  const toDate = new Date(dateTo);
+                                  toDate.setHours(23, 59, 59, 999);
+                                  if (bookingDate > toDate) return false;
+                                }
+                              }
+
+                              return true;
+                            }
+                          ).length;
+                          const totalPages = Math.ceil(
+                            filteredCount / bookingsPerPage
+                          );
+                          return (
+                            filteredCount > bookingsPerPage && (
+                              <div className="flex items-center justify-center gap-2 mt-6 pb-4">
+                                <button
+                                  onClick={() =>
+                                    setBookingsPage((p) => Math.max(1, p - 1))
+                                  }
+                                  disabled={bookingsPage === 1}
+                                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Trước
+                                </button>
+                                <span className="px-4 py-2 text-sm text-gray-600">
+                                  Trang {bookingsPage} / {totalPages}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    setBookingsPage((p) =>
+                                      Math.min(totalPages, p + 1)
+                                    )
+                                  }
+                                  disabled={bookingsPage >= totalPages}
+                                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Sau
+                                </button>
                               </div>
-                            </div>
-                          ))
-                      ) : (
-                        <div className="text-center py-12 text-gray-500">
-                          <FaCalendarAlt className="text-6xl mb-4 mx-auto text-gray-400" />
-                          <p className="text-lg font-medium">Chưa có hoạt động nào</p>
-                          <p className="text-sm mt-2">Đặt dịch vụ đầu tiên của bạn ngay hôm nay!</p>
-                        </div>
-                      )}
-                    </div>
+                            )
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -700,13 +1281,26 @@ const UserProfilePage = () => {
                           }}
                         />
                         <div className="flex-1">
-                          <p className="font-semibold text-gray-800">{latestFreelancer.name}</p>
-                          <p className="text-sm text-gray-600">Freelancer từ booking gần nhất</p>
+                          <p className="font-semibold text-gray-800">
+                            {latestFreelancer.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Freelancer từ booking gần nhất
+                          </p>
                         </div>
-                        <button className="px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white">Chat</button>
+                        <button className="px-3 py-1.5 text-sm rounded-full bg-teal-600 text-white">
+                          Chat
+                        </button>
                       </div>
                     )}
                     <FreelancerContactsCard
+                      freelancers={freelancersList.map((f) => ({
+                        id: f.id,
+                        name: f.name,
+                        title: "Chuyên gia chăm sóc thú cưng",
+                        avatar: f.avatar,
+                        online: f.online,
+                      }))}
                       onSelectFreelancer={handleSelectFreelancer}
                     />
                   </div>
@@ -746,6 +1340,122 @@ const UserProfilePage = () => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === "payments" && (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                      <FaReceipt className="mr-3 text-2xl text-teal-600" />
+                      Lịch sử thanh toán
+                    </h3>
+
+                    {loadingPayments ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                      </div>
+                    ) : paymentsHistory.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FaReceipt className="mx-auto text-6xl text-gray-300 mb-4" />
+                        <p className="text-gray-500 text-lg">
+                          Chưa có lịch sử thanh toán
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {paymentsHistory.map((payment: any, index: number) => {
+                          const isSuccess = [
+                            "success",
+                            "completed",
+                            "paid",
+                            "true",
+                          ].some((k) =>
+                            String(payment.status || "")
+                              .toLowerCase()
+                              .includes(k)
+                          );
+
+                          return (
+                            <div
+                              key={payment.paymentId || index}
+                              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
+                            >
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h4 className="font-semibold text-gray-800">
+                                      Mã thanh toán: {payment.paymentId}
+                                    </h4>
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                        isSuccess
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {isSuccess ? "Thành công" : "Thất bại"}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-600">
+                                    Mã đơn hàng: {payment.bookingId}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {payment.createdAt
+                                      ? new Date(
+                                          payment.createdAt
+                                        ).toLocaleString("vi-VN")
+                                      : "N/A"}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-teal-600">
+                                    {payment.amount
+                                      ? new Intl.NumberFormat("vi-VN", {
+                                          style: "currency",
+                                          currency: "VND",
+                                        }).format(payment.amount)
+                                      : "N/A"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    PayOS
+                                  </p>
+                                </div>
+                              </div>
+
+                              {payment.description && (
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {payment.description}
+                                </p>
+                              )}
+
+                              {payment.booking && (
+                                <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                                  <p className="text-gray-700">
+                                    <strong>Booking:</strong>{" "}
+                                    {payment.booking.serviceType ||
+                                      "Dịch vụ chăm sóc"}
+                                  </p>
+                                </div>
+                              )}
+
+                              {payment.booking && (
+                                <div className="mt-3">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBooking(payment.booking);
+                                      setShowBookingDetail(true);
+                                    }}
+                                    className="w-full px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors"
+                                  >
+                                    Xem booking
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -793,37 +1503,6 @@ const UserProfilePage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Quick Actions */}
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                    <h3 className="font-bold text-gray-800 mb-4 flex items-center">
-                      <FaCog className="mr-2" />
-                      Thao tác nhanh
-                    </h3>
-                    <div className="space-y-2">
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 rounded-lg transition-all flex items-center gap-3 border border-blue-200">
-                        <FaCalendarAlt className="text-xl text-blue-600" />
-                        <span className="font-medium text-gray-700">
-                          Đặt lịch mới
-                        </span>
-                      </button>
-                      <button className="w-full text-left px-4 py-3 bg-gradient-to-r from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 rounded-lg transition-all flex items-center gap-3 border border-teal-200">
-                        <FaPaw className="text-xl text-teal-600" />
-                        <span className="font-medium text-gray-700">
-                          Quản lý thú cưng
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setShowEditModal(true)}
-                        className="w-full text-left px-4 py-3 bg-gradient-to-r from-orange-50 to-pink-50 hover:from-orange-100 hover:to-pink-100 rounded-lg transition-all flex items-center gap-3 border border-orange-200"
-                      >
-                        <FaPencilAlt className="text-xl text-orange-600" />
-                        <span className="font-medium text-gray-700">
-                          Chỉnh sửa hồ sơ
-                        </span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -861,8 +1540,38 @@ const UserProfilePage = () => {
             setSelectedPet(null);
           }}
           onSave={handleUpdatePet}
-          onDelete={handleDeletePet}
           petData={selectedPet}
+        />
+
+        {/* Booking Detail Modal */}
+        {selectedBooking && (
+          <BookingDetailModal
+            isOpen={showBookingDetail}
+            onClose={() => {
+              setShowBookingDetail(false);
+              setSelectedBooking(null);
+            }}
+            booking={selectedBooking}
+            userRole="customer"
+            onStatusUpdate={async () => {
+              await refreshUser();
+            }}
+          />
+        )}
+
+        {/* Delete Pet Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showDeletePetConfirm}
+          title="Xác nhận xóa thú cưng"
+          message={`Bạn có chắc chắn muốn xóa "${petToDelete?.petName}"? Hành động này không thể hoàn tác.`}
+          confirmText="Xóa"
+          cancelText="Hủy"
+          type="danger"
+          onConfirm={confirmDeletePet}
+          onCancel={() => {
+            setShowDeletePetConfirm(false);
+            setPetToDelete(null);
+          }}
         />
       </div>
     </div>

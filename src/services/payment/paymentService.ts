@@ -2,8 +2,9 @@ import { apiClient } from "../apiClient";
 import { API_ENDPOINTS } from "../../config/api";
 
 export enum PaymentMethodCode {
-  VNPAY = 0,
-  MOMO = 1,
+  PAYOS = 0,
+  // VNPAY = 0, // Commented - using PayOS
+  // MOMO = 1,
 }
 
 export interface CreatePaymentRequest {
@@ -36,7 +37,9 @@ export interface PaymentDetailResponse {
   updatedAt?: string;
 }
 
-const extractRedirectUrl = (data: CreatePaymentResponse): string | undefined => {
+const extractRedirectUrl = (
+  data: CreatePaymentResponse
+): string | undefined => {
   return data.redirectUrl || data.paymentUrl || data.url;
 };
 
@@ -63,7 +66,9 @@ export const getPaymentByBooking = async (
   );
 
   if (!response.success || !response.data) {
-    throw new Error(response.error || "Không thể lấy thông tin thanh toán theo booking");
+    throw new Error(
+      response.error || "Không thể lấy thông tin thanh toán theo booking"
+    );
   }
   return response.data;
 };
@@ -89,10 +94,23 @@ export const cancelPayment = async (paymentId: string): Promise<void> => {
   }
 };
 
+export const getPaymentStatus = async (
+  bookingId: string
+): Promise<PaymentDetailResponse> => {
+  const response = await apiClient.get<PaymentDetailResponse>(
+    API_ENDPOINTS.PAYMENT.STATUS(bookingId)
+  );
+  if (!response.success || !response.data) {
+    throw new Error(response.error || "Không thể lấy trạng thái thanh toán");
+  }
+  return response.data;
+};
+
 export const paymentService = {
   createPayment,
   getPaymentByBooking,
   getPaymentById,
   cancelPayment,
+  getPaymentStatus,
   extractRedirectUrl,
 };

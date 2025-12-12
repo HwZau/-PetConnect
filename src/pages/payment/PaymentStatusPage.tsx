@@ -14,38 +14,129 @@ const PaymentStatusPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const initialState = location.state as PaymentStatusData | undefined;
-  const [statusData, setStatusData] = useState<PaymentStatusData | undefined>(initialState);
-  const [transactionTime, setTransactionTime] = useState<string | undefined>(undefined);
+  const [statusData, setStatusData] = useState<PaymentStatusData | undefined>(
+    initialState
+  );
+  const [transactionTime, setTransactionTime] = useState<string | undefined>(
+    undefined
+  );
   const [countdown, setCountdown] = useState(5);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const resolveFromServer = async () => {
       try {
-        const bookingId = localStorage.getItem("last_payment_booking_id");
-        const paymentId = localStorage.getItem("last_payment_id");
-        let detail: PaymentDetailResponse | null = null;
-        if (bookingId) {
-          detail = await paymentService.getPaymentByBooking(bookingId);
-        } else if (paymentId) {
-          detail = await paymentService.getPaymentById(paymentId);
+        // Parse PayOS callback parameters from URL
+        const searchParams = new URLSearchParams(location.search);
+        const code = searchParams.get("code");
+        const status = searchParams.get("status");
+        const orderCode = searchParams.get("orderCode");
+        const cancel = searchParams.get("cancel");
+        const id = searchParams.get("id"); // Payment ID from PayOS
+
+        console.log("PayOS Callback params:", {
+          code,
+          status,
+          orderCode,
+          cancel,
+          id,
+        });
+
+        // Determine payment status from PayOS params
+        let paymentStatus: "success" | "failed" | "pending" = "pending";
+        if (cancel === "true" || status === "CANCELLED") {
+          paymentStatus = "failed";
+        } else if (status === "PAID" || code === "00") {
+          paymentStatus = "success";
+        } else if (status === "PENDING") {
+          paymentStatus = "pending";
         }
+
+        const bookingId = localStorage.getItem("last_payment_booking_id");
+        const paymentId = id || localStorage.getItem("last_payment_id");
+
+        console.log("Fetching payment details:", { bookingId, paymentId });
+
+        let detail: PaymentDetailResponse | null = null;
+
+        // Try to get payment detail from backend
+        try {
+          if (bookingId) {
+            detail = await paymentService.getPaymentByBooking(bookingId);
+            console.log("Payment detail from booking:", detail);
+          } else if (paymentId) {
+            detail = await paymentService.getPaymentById(paymentId);
+            console.log("Payment detail from paymentId:", detail);
+          }
+        } catch (apiError) {
+          console.error("Failed to fetch payment details from API:", apiError);
+          // Continue with URL params if API fails
+        }
+
         if (detail) {
           const normalized = String(detail.status || "").toLowerCase();
-          const isSuccess = ["success", "completed", "paid"].some((k) => normalized.includes(k));
-          const isFailed = ["failed", "canceled", "cancelled", "error"].some((k) => normalized.includes(k));
+          const isSuccess = ["success", "completed", "paid", "true"].some((k) =>
+            normalized.includes(k)
+          );
+          const isFailed = [
+            "failed",
+            "canceled",
+            "cancelled",
+            "error",
+            "false",
+          ].some((k) => normalized.includes(k));
+
+          // Override with API status if available
+          if (isSuccess) paymentStatus = "success";
+          if (isFailed) paymentStatus = "failed";
+
+          console.log("Final payment status:", paymentStatus);
+
           const resolved: PaymentStatusData = {
-            status: isSuccess ? "success" : isFailed ? "failed" : "pending",
+            status: paymentStatus,
             bookingData: initialState?.bookingData || ({} as any),
-            totalAmount: Number(detail.amount ?? initialState?.totalAmount ?? 0),
-            paymentMethod: String(detail.method ?? initialState?.paymentMethod ?? "vnpay"),
-            transactionId: detail.paymentId || initialState?.transactionId || `TXN${Date.now()}`,
+            totalAmount: Number(
+              detail.amount ?? initialState?.totalAmount ?? 0
+            ),
+            paymentMethod: "PayOS",
+            transactionId:
+              orderCode ||
+              detail.paymentId ||
+              initialState?.transactionId ||
+              `TXN${Date.now()}`,
           };
           setStatusData(resolved);
           setTransactionTime(detail.updatedAt || detail.createdAt);
+        } else {
+          // No detail from API, use URL params
+          console.log("Using URL params for payment status:", paymentStatus);
+          const resolved: PaymentStatusData = {
+            status: paymentStatus,
+            bookingData: initialState?.bookingData || ({} as any),
+            totalAmount: initialState?.totalAmount ?? 0,
+            paymentMethod: "PayOS",
+            transactionId:
+              orderCode ||
+              paymentId ||
+              initialState?.transactionId ||
+              `TXN${Date.now()}`,
+          };
+          setStatusData(resolved);
         }
       } catch (e) {
+        console.error("Error resolving payment status:", e);
         // fallback to initial state
-        setStatusData(initialState);
+        setStatusData(
+          initialState || {
+            status: "failed",
+            bookingData: {} as any,
+            totalAmount: 0,
+            paymentMethod: "PayOS",
+            transactionId: `TXN${Date.now()}`,
+          }
+        );
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -53,14 +144,18 @@ const PaymentStatusPage = () => {
       resolveFromServer();
     } else {
       setStatusData(initialState);
+      setIsLoading(false);
     }
+  }, [initialState, location.search]);
 
-    if (statusData?.status === "success") {
+  // Separate useEffect for countdown to avoid race condition
+  useEffect(() => {
+    if (statusData?.status === "success" && !isLoading) {
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            navigate("/");
+            navigate("/profile"); // Redirect to profile/bill page
             return 0;
           }
           return prev - 1;
@@ -69,7 +164,18 @@ const PaymentStatusPage = () => {
 
       return () => clearInterval(timer);
     }
-  }, [initialState, statusData?.status, navigate]);
+  }, [statusData?.status, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Đang xử lý thanh toán...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!statusData) {
     return null;

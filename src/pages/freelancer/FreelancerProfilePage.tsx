@@ -63,7 +63,9 @@ const FreelancerProfilePage: React.FC = () => {
       experience: Math.floor(data.services.length / 2) || 1,
       rating: avgRating,
       reviewsCount: data.reviewsReceived.length,
-      completedBookings: data.services.length * 10,
+      completedBookings:
+        (data as any).bookings?.filter((b: any) => Number(b.status) === 2)
+          .length || 0,
       responseTime: 1, // 1 hour
       isActive: true,
 
@@ -77,30 +79,12 @@ const FreelancerProfilePage: React.FC = () => {
       portfolio: [],
       availability: {
         schedule: {
-          monday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
-          },
-          tuesday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
-          },
-          wednesday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
-          },
-          thursday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
-          },
-          friday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "17:00" }],
-          },
-          saturday: {
-            isAvailable: true,
-            timeSlots: [{ startTime: "08:00", endTime: "12:00" }],
-          },
+          monday: { isAvailable: true, timeSlots: [] },
+          tuesday: { isAvailable: true, timeSlots: [] },
+          wednesday: { isAvailable: true, timeSlots: [] },
+          thursday: { isAvailable: true, timeSlots: [] },
+          friday: { isAvailable: true, timeSlots: [] },
+          saturday: { isAvailable: true, timeSlots: [] },
           sunday: { isAvailable: false, timeSlots: [] },
         },
         exceptions: [],

@@ -49,6 +49,7 @@ export interface OrderSummaryItem {
 }
 
 export interface PaymentBookingData {
+  totalPrice?: number; // Total price from booking API
   freelancer: {
     id: string;
     name: string;
