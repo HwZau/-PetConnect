@@ -79,7 +79,6 @@ const FreelancerOwnProfilePage = () => {
     avatarUrl: "",
   });
   const [bookingsHistory, setBookingsHistory] = useState<any[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [freelancerProfile, setFreelancerProfile] = useState<any>(null);
@@ -724,7 +723,7 @@ const FreelancerOwnProfilePage = () => {
                       </div>
                     </div>
 
-                    {loadingBookings ? (
+                    {loading ? (
                       <div className="text-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
                         <p className="text-gray-500 mt-4">Đang tải...</p>
