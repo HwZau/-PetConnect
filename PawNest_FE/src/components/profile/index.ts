@@ -1,0 +1,11 @@
+// Profile Page Components - Active exports only
+export { default as Header } from "./Header";
+export { default as UserProfileCard } from "./UserProfileCard";
+export { default as ProfileMainContent } from "./ProfileMainContent";
+export { default as UpgradePlanCard } from "./UpgradePlanCard";
+export { default as FreelancerContactsCard } from "./FreelancerContactsCard";
+export { default as EditProfileModal } from "./EditProfileModal";
+export { default as UpgradeModal } from "./UpgradeModal";
+export { default as ChatBox } from "./ChatBox";
+export { default as AddPetModal } from "./AddPetModal";
+export { default as EditPetModal } from "./EditPetModal";
