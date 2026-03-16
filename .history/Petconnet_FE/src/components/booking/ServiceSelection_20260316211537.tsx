@@ -17,8 +17,8 @@ const ServiceSelection: React.FC<ServiceSelectionProps> = ({
   // If freelancer is provided and has services, use their services
   // Otherwise fall back to all services
   const serviceOptions = freelancer?.services
-    ? freelancer.services.map((service: any, index: number) => ({
-        id: service.id || service._id || `service-${freelancer.id}-${index}`, // Ensure unique ID
+    ? freelancer.services.map((service: any) => ({
+        id: service.id || service._id || `service-${Math.random()}`, // Fallback for missing id
         name: service.name,
         description: service.description || "",
         price:
@@ -67,7 +67,7 @@ const ServiceSelection: React.FC<ServiceSelectionProps> = ({
                     ? "border-purple-500 bg-purple-50"
                     : "border-gray-200 hover:border-purple-300"
                 }`}
-                onClick={() => handleServiceClick(service.id)}
+                onClick={() => onServiceChange?.(service.id)}
               >
                 {/* Checkbox indicator */}
                 <div
