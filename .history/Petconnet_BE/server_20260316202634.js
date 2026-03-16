@@ -14,29 +14,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: function (origin, callback) {
-      // Allow requests with no origin
-      if (!origin) return callback(null, true);
-
-      // Allow localhost for development
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-
-      // Allow Railway domains
-      if (origin.includes('railway.app')) {
-        return callback(null, true);
-      }
-
-      // Allow specific frontend URL if set
-      if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-        return callback(null, true);
-      }
-
-      return callback(new Error('Not allowed by CORS'));
-    },
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"]
   }
 });
 

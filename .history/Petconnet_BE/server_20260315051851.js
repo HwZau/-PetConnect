@@ -14,56 +14,15 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: function (origin, callback) {
-      // Allow requests with no origin
-      if (!origin) return callback(null, true);
-
-      // Allow localhost for development
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-
-      // Allow Railway domains
-      if (origin.includes('railway.app')) {
-        return callback(null, true);
-      }
-
-      // Allow specific frontend URL if set
-      if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-        return callback(null, true);
-      }
-
-      return callback(new Error('Not allowed by CORS'));
-    },
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-
-    // Allow localhost for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
-
-    // Allow Railway domains
-    if (origin.includes('railway.app')) {
-      return callback(null, true);
-    }
-
-    // Allow specific frontend URL if set
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
-    }
-
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
   credentials: true
 }));
 
@@ -138,13 +97,36 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = parseInt(process.env.PORT, 10) || 8080;
+const PORT = parseInt(process.env.PORT, 10) || 5000;
 
-// Start server for Railway deployment
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-  console.log(`🗄️  Database: ${process.env.MONGODB_URI ? 'Connected' : 'Local MongoDB'}`);
-});
+// Try to bind to a port, if it's in use then try the next one.
+const startServer = (port, attempts = 0) => {
+  if (attempts > 5) {
+    console.error('Failed to start server after multiple attempts.');
+    process.exit(1);
+  }
+
+  const onError = (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`Port ${port} is in use, trying ${port + 1}...`);
+      // Remove previous listeners before retrying
+      server.removeAllListeners('error');
+      server.removeAllListeners('listening');
+      startServer(port + 1, attempts + 1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  };
+
+  server.once('error', onError);
+  server.once('listening', () => {
+    console.log(`Server running on port ${port}`);
+  });
+
+  server.listen(port);
+};
+
+startServer(PORT);
 
 module.exports = { app, server, io };
