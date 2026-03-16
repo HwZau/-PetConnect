@@ -46,7 +46,7 @@ router.get('/getall', auth, requireRole('Admin'), async (req, res) => {
     const bookings = await Booking.find({})
       .populate('customerId', 'name email')
       .populate('freelancerId', 'name email')
-      .populate('serviceIds', 'name price') // Changed from serviceId to serviceIds
+      .populate('serviceId', 'name price')
       .populate('petIds', 'name type')
       .limit(pageSize * 1)
       .skip((page - 1) * pageSize)
@@ -74,7 +74,7 @@ router.get('/recent', auth, requireRole('Admin'), async (req, res) => {
     const bookings = await Booking.find({})
       .populate('customerId', 'name email')
       .populate('freelancerId', 'name email')
-      .populate('serviceIds', 'name price') // Changed from serviceId to serviceIds
+      .populate('serviceId', 'name price')
       .populate('petIds', 'name type')
       .limit(parseInt(limit))
       .sort({ createdAt: -1 });
@@ -189,7 +189,7 @@ router.put('/:id', auth, async (req, res) => {
     const updatedBooking = await Booking.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
-    }).populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']); // Changed serviceId to serviceIds
+    }).populate(['customerId', 'freelancerId', 'serviceId', 'petIds']);
 
     res.json({ booking: updatedBooking });
   } catch (error) {
@@ -216,7 +216,7 @@ router.put('/status/:id', auth, async (req, res) => {
     const updatedBooking = await Booking.findByIdAndUpdate(req.params.id, { status }, {
       new: true,
       runValidators: true
-    }).populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']); // Changed serviceId to serviceIds
+    }).populate(['customerId', 'freelancerId', 'serviceId', 'petIds']);
 
     res.json({ booking: updatedBooking });
   } catch (error) {
@@ -243,7 +243,7 @@ router.put('/pickup-status/:id', auth, async (req, res) => {
     const updatedBooking = await Booking.findByIdAndUpdate(req.params.id, { pickUpStatus }, {
       new: true,
       runValidators: true
-    }).populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']); // Changed serviceId to serviceIds
+    }).populate(['customerId', 'freelancerId', 'serviceId', 'petIds']);
 
     res.json({ booking: updatedBooking });
   } catch (error) {
@@ -272,7 +272,7 @@ router.put('/cancel/:id', auth, async (req, res) => {
     }, {
       new: true,
       runValidators: true
-    }).populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']); // Changed serviceId to serviceIds
+    }).populate(['customerId', 'freelancerId', 'serviceId', 'petIds']);
 
     res.json({ booking: updatedBooking });
   } catch (error) {

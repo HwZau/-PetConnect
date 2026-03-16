@@ -272,7 +272,7 @@ router.put('/cancel/:id', auth, async (req, res) => {
     }, {
       new: true,
       runValidators: true
-    }).populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']); // Changed serviceId to serviceIds
+    }).populate(['customerId', 'freelancerId', 'serviceId', 'petIds']);
 
     res.json({ booking: updatedBooking });
   } catch (error) {
