@@ -1,0 +1,17 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "services": {
+    "backend": {
+      "source": "Petconnet_BE",
+      "buildCommand": "npm install",
+      "startCommand": "npm start"
+    },
+    "frontend": {
+      "source": "Petconnet_FE",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm run preview"
+    }
+  }
+}
