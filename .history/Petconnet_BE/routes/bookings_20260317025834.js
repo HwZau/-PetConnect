@@ -202,21 +202,15 @@ router.post('/create', auth, async (req, res) => {
     const finalServiceIds = serviceIds || (serviceId ? [serviceId] : []);
 
     if (!finalServiceIds || finalServiceIds.length === 0) {
-      console.error('Service IDs validation failed:', finalServiceIds);
       return res.status(400).json({ message: 'At least one service is required' });
     }
-
-    console.log('Final service IDs:', finalServiceIds);
 
     // Map frontend fields to backend model fields
     const timeSlotMap = ['Slot1', 'Slot2', 'Slot3', 'Slot4', 'Slot5'];
     const timeSlot = typeof pickUpTime === 'number' ? timeSlotMap[pickUpTime] : pickUpTime;
     const scheduledDate = bookingDate ? new Date(bookingDate) : null;
 
-    console.log('Mapped fields:', { timeSlot, scheduledDate, pickUpTime });
-
     if (!scheduledDate || isNaN(scheduledDate.getTime())) {
-      console.error('Invalid booking date:', bookingDate);
       return res.status(400).json({ message: 'Invalid booking date' });
     }
 
@@ -224,10 +218,7 @@ router.post('/create', auth, async (req, res) => {
     const Service = require('../models/Service');
     const services = await Service.find({ _id: { $in: finalServiceIds } });
 
-    console.log('Found services:', services.length, 'Expected:', finalServiceIds.length);
-
     if (services.length !== finalServiceIds.length) {
-      console.error('Not all services found');
       return res.status(400).json({ message: 'One or more services not found' });
     }
 
@@ -237,10 +228,7 @@ router.post('/create', auth, async (req, res) => {
       service.freelancer.toString() === freelancerId
     );
 
-    console.log('Freelancer IDs match:', allServicesBelongToFreelancer, 'First freelancer:', freelancerId);
-
     if (!allServicesBelongToFreelancer) {
-      console.error('Services belong to different freelancers');
       return res.status(400).json({ message: 'All services must belong to the same freelancer' });
     }
 
@@ -295,11 +283,9 @@ router.post('/create', auth, async (req, res) => {
     console.log('Booking created successfully:', responseData);
     res.status(201).json(responseData);
   } catch (error) {
-    console.error('=== CREATE BOOKING ERROR ===');
-    console.error('Error message:', error.message);
+    console.error('Create booking error:', error);
     console.error('Error stack:', error.stack);
-    console.error('Error details:', error);
-    res.status(500).json({ message: 'Server error', error: error.message, details: error.toString() });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

@@ -213,10 +213,7 @@ router.post('/create', auth, async (req, res) => {
     const timeSlot = typeof pickUpTime === 'number' ? timeSlotMap[pickUpTime] : pickUpTime;
     const scheduledDate = bookingDate ? new Date(bookingDate) : null;
 
-    console.log('Mapped fields:', { timeSlot, scheduledDate, pickUpTime });
-
     if (!scheduledDate || isNaN(scheduledDate.getTime())) {
-      console.error('Invalid booking date:', bookingDate);
       return res.status(400).json({ message: 'Invalid booking date' });
     }
 
@@ -224,10 +221,7 @@ router.post('/create', auth, async (req, res) => {
     const Service = require('../models/Service');
     const services = await Service.find({ _id: { $in: finalServiceIds } });
 
-    console.log('Found services:', services.length, 'Expected:', finalServiceIds.length);
-
     if (services.length !== finalServiceIds.length) {
-      console.error('Not all services found');
       return res.status(400).json({ message: 'One or more services not found' });
     }
 
@@ -237,10 +231,7 @@ router.post('/create', auth, async (req, res) => {
       service.freelancer.toString() === freelancerId
     );
 
-    console.log('Freelancer IDs match:', allServicesBelongToFreelancer, 'First freelancer:', freelancerId);
-
     if (!allServicesBelongToFreelancer) {
-      console.error('Services belong to different freelancers');
       return res.status(400).json({ message: 'All services must belong to the same freelancer' });
     }
 

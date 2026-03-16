@@ -237,10 +237,7 @@ router.post('/create', auth, async (req, res) => {
       service.freelancer.toString() === freelancerId
     );
 
-    console.log('Freelancer IDs match:', allServicesBelongToFreelancer, 'First freelancer:', freelancerId);
-
     if (!allServicesBelongToFreelancer) {
-      console.error('Services belong to different freelancers');
       return res.status(400).json({ message: 'All services must belong to the same freelancer' });
     }
 
