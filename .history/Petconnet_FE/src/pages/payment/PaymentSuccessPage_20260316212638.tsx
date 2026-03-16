@@ -97,66 +97,20 @@ const PaymentSuccessPage = () => {
             <FiCheckCircle className="w-12 h-12 text-green-600" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {manualPayment ? "Đặt dịch vụ thành công!" : "Thanh toán thành công!"} 🎉
+            Thanh toán thành công! 🎉
           </h1>
           <p className="text-lg text-gray-600">
-            {manualPayment
-              ? "Vui lòng chuyển khoản theo thông tin bên dưới"
-              : "Cảm ơn bạn đã sử dụng dịch vụ Pet Connect"
-            }
+            Cảm ơn bạn đã sử dụng dịch vụ Pet Connect
           </p>
         </div>
 
         {/* Payment Details Card */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <h2 className="text-2xl font-semibold mb-6 text-gray-800">
-            {manualPayment ? "Thông tin chuyển khoản" : "Chi tiết thanh toán"}
+            Chi tiết thanh toán
           </h2>
 
-          {manualPayment && accountInfo ? (
-            <div className="space-y-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center mb-2">
-                  <FiCreditCard className="w-5 h-5 text-yellow-600 mr-2" />
-                  <span className="font-semibold text-yellow-800">Hướng dẫn chuyển khoản</span>
-                </div>
-                <p className="text-yellow-700 text-sm">
-                  Vui lòng chuyển khoản theo thông tin bên dưới. Sau khi chuyển khoản thành công,
-                  hệ thống sẽ xác nhận và kích hoạt dịch vụ của bạn trong vòng 24 giờ.
-                </p>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h3 className="font-semibold text-blue-800 mb-4">Thông tin tài khoản</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Ngân hàng:</span>
-                    <span className="font-semibold text-blue-900">{accountInfo.type}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Số tài khoản:</span>
-                    <span className="font-semibold text-blue-900 font-mono">{accountInfo.number}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Chủ tài khoản:</span>
-                    <span className="font-semibold text-blue-900">{accountInfo.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Số tiền:</span>
-                    <span className="font-semibold text-blue-900 text-lg">
-                      {formatPrice(location.state?.totalAmount || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-700">Nội dung:</span>
-                    <span className="font-semibold text-blue-900 font-mono">
-                      PET{location.state?.bookingId?.slice(-6) || 'XXXXXX'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
+          <div className="space-y-4">
             <div className="flex justify-between items-center py-3 border-b border-gray-100">
               <span className="text-gray-600">Mã giao dịch:</span>
               <span className="font-semibold text-gray-900">
@@ -206,7 +160,6 @@ const PaymentSuccessPage = () => {
               </div>
             )}
           </div>
-          )}
         </div>
 
         {/* Action Buttons */}

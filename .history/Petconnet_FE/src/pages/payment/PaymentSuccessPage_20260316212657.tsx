@@ -206,7 +206,6 @@ const PaymentSuccessPage = () => {
               </div>
             )}
           </div>
-          )}
         </div>
 
         {/* Action Buttons */}
