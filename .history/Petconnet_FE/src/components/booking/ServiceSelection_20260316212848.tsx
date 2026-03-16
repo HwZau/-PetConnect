@@ -18,8 +18,8 @@ const ServiceSelection: React.FC<ServiceSelectionProps> = ({
   // Otherwise fall back to all services
   const serviceOptions = freelancer?.services
     ? freelancer.services.map((service: any, index: number) => ({
-        id: service._id, // Use _id from backend
-        name: service.name || service.title,
+        id: service._id || service.id, // Use actual ObjectId, don't create fake IDs
+        name: service.name,
         description: service.description || "",
         price:
           typeof service.price === "number"
