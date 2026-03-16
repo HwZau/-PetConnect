@@ -291,15 +291,7 @@ const updateCustomerProfile = async (req, res) => {
     // If no valid updates, return current user
     if (Object.keys(updates).length === 0) {
       const user = await User.findById(req.user._id).select('-password');
-
-      // Populate user's pets
-      const Pet = require('../models/Pet');
-      const pets = await Pet.find({ owner: user._id, status: 'active' }).select('-__v');
-
-      const userWithPets = user.toObject();
-      userWithPets.pets = pets;
-
-      return res.json({ user: userWithPets });
+      return res.json({ user });
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
@@ -307,14 +299,7 @@ const updateCustomerProfile = async (req, res) => {
       runValidators: true
     }).select('-password');
 
-    // Populate user's pets
-    const Pet = require('../models/Pet');
-    const pets = await Pet.find({ owner: user._id, status: 'active' }).select('-__v');
-
-    const userWithPets = user.toObject();
-    userWithPets.pets = pets;
-
-    res.json({ user: userWithPets });
+    res.json({ user });
   } catch (error) {
     console.error('Update customer profile error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -339,15 +324,7 @@ const updateFreelancerProfile = async (req, res) => {
     // If no valid updates, return current user
     if (Object.keys(updates).length === 0) {
       const user = await User.findById(req.user._id).select('-password');
-
-      // Populate user's pets
-      const Pet = require('../models/Pet');
-      const pets = await Pet.find({ owner: user._id, status: 'active' }).select('-__v');
-
-      const userWithPets = user.toObject();
-      userWithPets.pets = pets;
-
-      return res.json({ user: userWithPets });
+      return res.json({ user });
     }
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
@@ -355,14 +332,7 @@ const updateFreelancerProfile = async (req, res) => {
       runValidators: true
     }).select('-password');
 
-    // Populate user's pets
-    const Pet = require('../models/Pet');
-    const pets = await Pet.find({ owner: user._id, status: 'active' }).select('-__v');
-
-    const userWithPets = user.toObject();
-    userWithPets.pets = pets;
-
-    res.json({ user: userWithPets });
+    res.json({ user });
   } catch (error) {
     console.error('Update freelancer profile error:', error);
     res.status(500).json({ message: 'Server error' });
