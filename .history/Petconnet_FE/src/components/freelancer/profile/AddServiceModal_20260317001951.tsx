@@ -6,7 +6,6 @@ interface ServiceFormData {
   description: string;
   price: string;
   category: string;
-  duration: string; // in minutes
 }
 
 interface AddServiceModalProps {
@@ -37,7 +36,6 @@ const AddServiceModal = ({
     description: "",
     price: "",
     category: "grooming", // Default to "grooming"
-    duration: "60", // Default to 60 minutes
   });
 
   const [errors, setErrors] = useState<Partial<ServiceFormData>>({});
@@ -72,12 +70,6 @@ const AddServiceModal = ({
       newErrors.price = "Giá dịch vụ phải là số dương";
     }
 
-    if (!formData.duration.trim()) {
-      newErrors.duration = "Vui lòng nhập thời lượng dịch vụ";
-    } else if (isNaN(Number(formData.duration)) || Number(formData.duration) <= 0) {
-      newErrors.duration = "Thời lượng dịch vụ phải là số dương";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,7 +85,6 @@ const AddServiceModal = ({
         description: "",
         price: "",
         category: "grooming",
-        duration: "60",
       });
       setErrors({});
       onClose();
@@ -106,7 +97,6 @@ const AddServiceModal = ({
       description: "",
       price: "",
       category: "grooming",
-      duration: "60",
     });
     setErrors({});
     onClose();

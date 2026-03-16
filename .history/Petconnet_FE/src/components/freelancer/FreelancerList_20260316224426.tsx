@@ -91,8 +91,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       services: freelancer.services.map((s) => ({
         _id: s._id || s.id,
         id: s.id || s._id,
-        name: s.name,
-        title: s.name,
+        name: s.title,
         description: s.description,
         price: s.price,
       })),

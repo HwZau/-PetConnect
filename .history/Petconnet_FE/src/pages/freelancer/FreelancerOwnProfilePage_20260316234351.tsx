@@ -258,8 +258,7 @@ const FreelancerOwnProfilePage = () => {
     name: string;
     description: string;
     price: string;
-    category: string;
-    duration: string;
+    type: string;
   }) => {
     setIsAddingService(true);
     try {
@@ -267,9 +266,9 @@ const FreelancerOwnProfilePage = () => {
       const response = await serviceService.createService({
         name: data.name,
         description: data.description,
-        category: data.category,
-        price: Number(data.price),
+        category: data.type,
         duration: Number(data.duration),
+        price: Number(data.price),
       });
 
       if (response.success && response.data) {
@@ -292,8 +291,8 @@ const FreelancerOwnProfilePage = () => {
   };
 
   const handleEditService = (service: any) => {
-    console.log("Editing service:", service);
-    setSelectedService(service);
+    // Ensure we always pass an ID to the edit modal (backend uses _id)
+    setSelectedService({ ...service, id: service._id || service.id });
     setShowEditServiceModal(true);
   };
 
@@ -303,18 +302,19 @@ const FreelancerOwnProfilePage = () => {
       name: string;
       description: string;
       category: string;
+      duration: number;
       price: number;
-      duration?: number;
     }
   ) => {
     setIsUpdatingService(true);
     try {
-      if (!serviceId) {
-        showError("Service ID is missing");
-        return;
-      }
-
-      const response = await serviceService.updateService(serviceId, data);
+      const response = await serviceService.updateService(serviceId, {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        duration: data.duration,
+        price: data.price,
+      });
 
       if (response.success) {
         showSuccess("Cập nhật dịch vụ thành công!");
@@ -598,9 +598,9 @@ const FreelancerOwnProfilePage = () => {
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                       {services && services.length > 0 ? (
-                        services.map((service: any, index: number) => (
+                        services.map((service: any) => (
                           <FreelancerServiceCard
-                            key={service._id || `service-${index}`}
+                            key={service._id || service.id}
                             service={service}
                             onEdit={handleEditService}
                             onDelete={handleDeleteService}

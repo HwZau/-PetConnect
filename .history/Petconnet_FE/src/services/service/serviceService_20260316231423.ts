@@ -8,24 +8,21 @@ export interface CreateServiceData {
   description: string;
   category: string;
   price: number;
-  duration: number; // in minutes
 }
 
 export interface UpdateServiceData {
-  name?: string;
+  title?: string;
   description?: string;
-  category?: string;
+  type?: number;
   price?: number;
-  duration?: number; // in minutes
 }
 
 export interface ServiceResponse {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  category: string;
+  type: number;
   price: number;
-  duration: number; // in minutes
   createdAt?: string;
   updatedAt?: string;
 }

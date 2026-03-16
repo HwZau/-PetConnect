@@ -258,8 +258,7 @@ const FreelancerOwnProfilePage = () => {
     name: string;
     description: string;
     price: string;
-    category: string;
-    duration: string;
+    type: string;
   }) => {
     setIsAddingService(true);
     try {
@@ -267,9 +266,8 @@ const FreelancerOwnProfilePage = () => {
       const response = await serviceService.createService({
         name: data.name,
         description: data.description,
-        category: data.category,
+        category: data.type,
         price: Number(data.price),
-        duration: Number(data.duration),
       });
 
       if (response.success && response.data) {
@@ -304,7 +302,6 @@ const FreelancerOwnProfilePage = () => {
       description: string;
       category: string;
       price: number;
-      duration?: number;
     }
   ) => {
     setIsUpdatingService(true);
@@ -600,7 +597,7 @@ const FreelancerOwnProfilePage = () => {
                       {services && services.length > 0 ? (
                         services.map((service: any, index: number) => (
                           <FreelancerServiceCard
-                            key={service._id || `service-${index}`}
+                            key={service._id || service.id || index}
                             service={service}
                             onEdit={handleEditService}
                             onDelete={handleDeleteService}

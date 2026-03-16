@@ -304,7 +304,6 @@ const FreelancerOwnProfilePage = () => {
       description: string;
       category: string;
       price: number;
-      duration?: number;
     }
   ) => {
     setIsUpdatingService(true);

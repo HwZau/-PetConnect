@@ -58,7 +58,7 @@ const FreelancerProfilePage: React.FC = () => {
       // Extended freelancer fields
       description: data.services[0]?.description || "Chuyên nghiệp và tận tâm",
       specializations: data.services.map((s) =>
-        freelancerService.formatServiceType(s.category || s.type)
+        freelancerService.formatServiceType(s.type)
       ),
       experience: Math.floor(data.services.length / 2) || 1,
       rating: avgRating,
@@ -92,7 +92,7 @@ const FreelancerProfilePage: React.FC = () => {
         timezone: "Asia/Ho_Chi_Minh",
       },
       pricing: data.services.map((service) => ({
-        serviceType: service.name,
+        serviceType: service.title,
         basePrice: service.price,
         currency: "VND",
         unit: "session" as const,
@@ -106,8 +106,7 @@ const FreelancerProfilePage: React.FC = () => {
       services: data.services.map((service) => ({
         _id: service._id || service.id,
         id: service.id || service._id,
-        name: service.name,
-        title: service.name,
+        name: service.title,
         description: service.description,
         price: service.price,
       })),

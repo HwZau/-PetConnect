@@ -5,8 +5,8 @@ interface ServiceFormData {
   name: string;
   description: string;
   price: string;
-  category: string;
-  duration: string; // in minutes
+  type: string;
+  duration: string;
 }
 
 interface AddServiceModalProps {
@@ -36,8 +36,8 @@ const AddServiceModal = ({
     name: "",
     description: "",
     price: "",
-    category: "grooming", // Default to "grooming"
-    duration: "60", // Default to 60 minutes
+    type: "grooming", // Default to "grooming"
+    duration: "60", // default 60 minutes
   });
 
   const [errors, setErrors] = useState<Partial<ServiceFormData>>({});
@@ -75,7 +75,7 @@ const AddServiceModal = ({
     if (!formData.duration.trim()) {
       newErrors.duration = "Vui lòng nhập thời lượng dịch vụ";
     } else if (isNaN(Number(formData.duration)) || Number(formData.duration) <= 0) {
-      newErrors.duration = "Thời lượng dịch vụ phải là số dương";
+      newErrors.duration = "Thời lượng phải là số dương";
     }
 
     setErrors(newErrors);
@@ -92,7 +92,7 @@ const AddServiceModal = ({
         name: "",
         description: "",
         price: "",
-        category: "grooming",
+        type: "grooming",
         duration: "60",
       });
       setErrors({});
@@ -105,7 +105,7 @@ const AddServiceModal = ({
       name: "",
       description: "",
       price: "",
-      category: "grooming",
+      type: "grooming",
       duration: "60",
     });
     setErrors({});
@@ -166,8 +166,8 @@ const AddServiceModal = ({
             <div className="relative">
               <FaTag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select
-                name="category"
-                value={formData.category}
+                name="type"
+                value={formData.type}
                 onChange={handleChange}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all appearance-none bg-white"
               >
@@ -200,6 +200,29 @@ const AddServiceModal = ({
             </div>
             {errors.price && (
               <p className="mt-1 text-sm text-red-500">{errors.price}</p>
+            )}
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Thời lượng (phút) <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <FaClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                placeholder="VD: 60"
+                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all ${
+                  errors.duration ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+            </div>
+            {errors.duration && (
+              <p className="mt-1 text-sm text-red-500">{errors.duration}</p>
             )}
           </div>
 

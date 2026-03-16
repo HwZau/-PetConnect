@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes, FaDog, FaDollarSign, FaTag } from "react-icons/fa";
 
-interface ServiceFormData {
+interface Service {
+  id: string;
   name: string;
   description: string;
-  price: string;
   category: string;
-  duration: string; // in minutes
+  price: number;
 }
 
-interface AddServiceModalProps {
+interface EditServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: ServiceFormData) => void;
+  onSubmit: (serviceId: string, data: { name: string; description: string; category: string; price: number }) => void;
   isLoading?: boolean;
+  service: Service | null;
 }
 
 // Map category names to backend category values
@@ -26,21 +27,37 @@ const SERVICE_CATEGORIES = [
   { value: "other", label: "Other (Khác)" },
 ];
 
-const AddServiceModal = ({
+const EditServiceModal = ({
   isOpen,
   onClose,
   onSubmit,
   isLoading = false,
-}: AddServiceModalProps) => {
-  const [formData, setFormData] = useState<ServiceFormData>({
+  service,
+}: EditServiceModalProps) => {
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
-    category: "grooming", // Default to "grooming"
-    duration: "60", // Default to 60 minutes
+    category: "grooming",
   });
 
-  const [errors, setErrors] = useState<Partial<ServiceFormData>>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    description?: string;
+    price?: string;
+  }>({});
+
+  // Update form when service prop changes
+  useEffect(() => {
+    if (service) {
+      setFormData({
+        name: service.name,
+        description: service.description,
+        price: service.price.toString(),
+        category: service.category || "grooming",
+      });
+    }
+  }, [service]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -49,14 +66,13 @@ const AddServiceModal = ({
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user types
-    if (errors[name as keyof ServiceFormData]) {
+    if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ServiceFormData> = {};
+    const newErrors: typeof errors = {};
 
     if (!formData.name.trim()) {
       newErrors.name = "Vui lòng nhập tên dịch vụ";
@@ -72,12 +88,6 @@ const AddServiceModal = ({
       newErrors.price = "Giá dịch vụ phải là số dương";
     }
 
-    if (!formData.duration.trim()) {
-      newErrors.duration = "Vui lòng nhập thời lượng dịch vụ";
-    } else if (isNaN(Number(formData.duration)) || Number(formData.duration) <= 0) {
-      newErrors.duration = "Thời lượng dịch vụ phải là số dương";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,45 +95,33 @@ const AddServiceModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (validateForm()) {
-      onSubmit(formData);
-      // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        category: "grooming",
-        duration: "60",
+    if (validateForm() && service) {
+      onSubmit(service.id, {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type,
+        price: Number(formData.price),
       });
-      setErrors({});
-      onClose();
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      name: "",
-      description: "",
-      price: "",
-      category: "grooming",
-      duration: "60",
-    });
     setErrors({});
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !service) return null;
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
+        <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
               <FaDog className="text-xl" />
             </div>
-            <h2 className="text-2xl font-bold">Thêm dịch vụ mới</h2>
+            <h2 className="text-2xl font-bold">Chỉnh sửa dịch vụ</h2>
           </div>
           <button
             onClick={handleClose}
@@ -144,17 +142,17 @@ const AddServiceModal = ({
               <FaDog className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="title"
+                value={formData.title}
                 onChange={handleChange}
                 placeholder="VD: Chăm sóc thú cưng tại nhà"
-                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all ${
-                  errors.name ? "border-red-500" : "border-gray-300"
+                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.title ? "border-red-500" : "border-gray-300"
                 }`}
               />
             </div>
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-500">{errors.title}</p>
             )}
           </div>
 
@@ -166,10 +164,10 @@ const AddServiceModal = ({
             <div className="relative">
               <FaTag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <select
-                name="category"
-                value={formData.category}
+                name="type"
+                value={formData.type}
                 onChange={handleChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all appearance-none bg-white"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all appearance-none bg-white"
               >
                 {SERVICE_CATEGORIES.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -193,7 +191,7 @@ const AddServiceModal = ({
                 value={formData.price}
                 onChange={handleChange}
                 placeholder="VD: 200000"
-                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all ${
+                className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.price ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -214,7 +212,7 @@ const AddServiceModal = ({
               onChange={handleChange}
               placeholder="Mô tả chi tiết về dịch vụ của bạn..."
               rows={4}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none ${
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none ${
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
             />
@@ -235,9 +233,9 @@ const AddServiceModal = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-teal-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-pink-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Đang thêm..." : "Thêm dịch vụ"}
+              {isLoading ? "Đang cập nhật..." : "Cập nhật"}
             </button>
           </div>
         </form>
@@ -246,4 +244,4 @@ const AddServiceModal = ({
   );
 };
 
-export default AddServiceModal;
+export default EditServiceModal;

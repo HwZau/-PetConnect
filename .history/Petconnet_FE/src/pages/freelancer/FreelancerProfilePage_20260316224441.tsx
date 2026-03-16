@@ -106,8 +106,7 @@ const FreelancerProfilePage: React.FC = () => {
       services: data.services.map((service) => ({
         _id: service._id || service.id,
         id: service.id || service._id,
-        name: service.name,
-        title: service.name,
+        name: service.title,
         description: service.description,
         price: service.price,
       })),

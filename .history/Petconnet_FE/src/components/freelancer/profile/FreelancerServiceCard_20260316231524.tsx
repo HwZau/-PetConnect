@@ -13,7 +13,6 @@ interface Service {
   description: string;
   category: string;
   price: number;
-  duration?: number;
   createdAt?: string;
   updatedAt?: string;
   freelancerId?: string;
@@ -78,7 +77,7 @@ const FreelancerServiceCard: React.FC<FreelancerServiceCardProps> = ({
       <div className="flex items-center justify-between pt-3 border-t border-teal-200">
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <FaClock className="text-teal-600" />
-          <span>{service.duration ? `${service.duration} phút` : "Dịch vụ " + service.category}</span>
+          <span>Dịch vụ {service.type}</span>
         </div>
         <div className="flex items-center gap-2 text-lg font-bold text-teal-600">
           <FaMoneyBillWave />

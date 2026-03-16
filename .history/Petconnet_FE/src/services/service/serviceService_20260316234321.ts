@@ -7,16 +7,16 @@ export interface CreateServiceData {
   name: string;
   description: string;
   category: string;
-  price: number;
   duration: number; // in minutes
+  price: number;
 }
 
 export interface UpdateServiceData {
   name?: string;
   description?: string;
   category?: string;
-  price?: number;
   duration?: number; // in minutes
+  price?: number;
 }
 
 export interface ServiceResponse {
@@ -24,8 +24,8 @@ export interface ServiceResponse {
   name: string;
   description: string;
   category: string;
-  price: number;
   duration: number; // in minutes
+  price: number;
   createdAt?: string;
   updatedAt?: string;
 }

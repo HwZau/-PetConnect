@@ -304,7 +304,6 @@ const FreelancerOwnProfilePage = () => {
       description: string;
       category: string;
       price: number;
-      duration?: number;
     }
   ) => {
     setIsUpdatingService(true);
@@ -600,7 +599,7 @@ const FreelancerOwnProfilePage = () => {
                       {services && services.length > 0 ? (
                         services.map((service: any, index: number) => (
                           <FreelancerServiceCard
-                            key={service._id || `service-${index}`}
+                            key={service._id || service.id || index}
                             service={service}
                             onEdit={handleEditService}
                             onDelete={handleDeleteService}

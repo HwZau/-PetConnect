@@ -70,9 +70,9 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       id: freelancer._id || freelancer.id,
       name: freelancer.name,
       avatar: freelancer.avatarUrl || "https://picsum.photos/150",
-      title: freelancer.services[0]?.name || "Freelancer thú cưng",
+      title: freelancer.services[0]?.title || "Freelancer thú cưng",
       category: freelancerService.formatServiceType(
-        freelancer.services[0]?.category || "0"
+        freelancer.services[0]?.type || "0"
       ),
       location: freelancer.location || `${freelancer.address?.city || ''}, ${freelancer.address?.country || ''}`.trim() || 'Unknown',
       rating: avgRating,
@@ -81,7 +81,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
         freelancer.services[0]?.description || "Chuyên nghiệp và tận tâm",
       skills: freelancer.services
         .slice(0, 3)
-        .map((s: { name: string }) => s.name),
+        .map((s: { title: string }) => s.title),
       isVerified: true, // Có thể thêm field này vào API sau
       completedJobs: undefined, // Chỉ hiển thị nếu API có data thực
       responseTime: undefined, // Chỉ hiển thị nếu API có data thực
@@ -91,8 +91,7 @@ const FreelancerList: React.FC<FreelancerListProps> = ({ filters }) => {
       services: freelancer.services.map((s) => ({
         _id: s._id || s.id,
         id: s.id || s._id,
-        name: s.name,
-        title: s.name,
+        name: s.title,
         description: s.description,
         price: s.price,
       })),

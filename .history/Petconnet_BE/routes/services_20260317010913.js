@@ -59,7 +59,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create service (Freelancers only)
-router.post('/create', auth, async (req, res) => {
+router.post('/create', auth, requireRole('Freelancer'), async (req, res) => {
   try {
     console.log('Creating service with data:', req.body);
     console.log('User:', req.user._id);
@@ -82,9 +82,6 @@ router.post('/create', auth, async (req, res) => {
 // Update service
 router.put('/update/:id', auth, async (req, res) => {
   try {
-    console.log('Updating service:', req.params.id);
-    console.log('Update data:', req.body);
-
     const service = await Service.findById(req.params.id);
 
     if (!service) {
@@ -101,19 +98,15 @@ router.put('/update/:id', auth, async (req, res) => {
       runValidators: true
     }).populate('freelancer', 'name email avatarUrl');
 
-    console.log('Service updated successfully:', updatedService);
     res.json({ service: updatedService });
   } catch (error) {
-    console.error('Error updating service:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Delete service
 router.delete('/delete/:id', auth, async (req, res) => {
   try {
-    console.log('Deleting service:', req.params.id);
-
     const service = await Service.findById(req.params.id);
 
     if (!service) {
@@ -126,11 +119,9 @@ router.delete('/delete/:id', auth, async (req, res) => {
     }
 
     await Service.findByIdAndDelete(req.params.id);
-    console.log('Service deleted successfully');
     res.json({ message: 'Service deleted successfully' });
   } catch (error) {
-    console.error('Error deleting service:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
