@@ -237,7 +237,7 @@ router.post('/create', auth, async (req, res) => {
       totalPrice: booking.totalAmount
     };
 
-    res.status(201).json(responseData);
+    res.status(201).json({ booking: responseData });
   } catch (error) {
     console.error('Create booking error:', error);
     res.status(500).json({ message: 'Server error' });

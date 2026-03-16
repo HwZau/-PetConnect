@@ -30,22 +30,7 @@ router.get('/my-history', auth, async (req, res) => {
 
     const bookings = await Booking.find({ customerId: req.user._id }).sort({ createdAt: -1 });
 
-    // Map to frontend expected format
-    const mappedBookings = bookings.map(booking => ({
-      bookingId: booking._id.toString(),
-      pickUpTime: { 'Slot1': 0, 'Slot2': 1, 'Slot3': 2, 'Slot4': 3, 'Slot5': 4 }[booking.timeSlot] || 0,
-      bookingDate: booking.scheduledDate.toISOString().split('T')[0],
-      serviceIds: booking.serviceIds.map(s => s.toString()),
-      freelancerId: booking.freelancerId.toString(),
-      petIds: booking.petIds.map(p => p.toString()),
-      bookingStatus: booking.status,
-      pickUpStatus: booking.pickUpStatus,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-      totalPrice: booking.totalAmount
-    }));
-
-    return res.apiSuccess(mappedBookings, 'Booking history retrieved successfully');
+    return res.apiSuccess(bookings, 'Booking history retrieved successfully');
   } catch (error) {
     console.error('Error fetching booking history:', error);
     console.error('Error stack:', error.stack);
@@ -62,22 +47,7 @@ router.get('/history', auth, async (req, res) => {
 
     const bookings = await Booking.find({ customerId: req.user._id }).sort({ createdAt: -1 });
 
-    // Map to frontend expected format
-    const mappedBookings = bookings.map(booking => ({
-      bookingId: booking._id.toString(),
-      pickUpTime: { 'Slot1': 0, 'Slot2': 1, 'Slot3': 2, 'Slot4': 3, 'Slot5': 4 }[booking.timeSlot] || 0,
-      bookingDate: booking.scheduledDate.toISOString().split('T')[0],
-      serviceIds: booking.serviceIds.map(s => s.toString()),
-      freelancerId: booking.freelancerId.toString(),
-      petIds: booking.petIds.map(p => p.toString()),
-      bookingStatus: booking.status,
-      pickUpStatus: booking.pickUpStatus,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-      totalPrice: booking.totalAmount
-    }));
-
-    return res.apiSuccess(mappedBookings, 'Booking history retrieved successfully');
+    return res.apiSuccess(bookings, 'Booking history retrieved successfully');
   } catch (error) {
     console.error('Error fetching booking history:', error);
     console.error('Error stack:', error.stack);
@@ -191,7 +161,7 @@ router.get('/:id/details', auth, async (req, res) => {
 // Create booking
 router.post('/create', auth, async (req, res) => {
   try {
-    const { serviceIds, serviceId, pickUpTime, bookingDate, ...bookingData } = req.body;
+    const { serviceIds, serviceId, ...bookingData } = req.body;
 
     // Handle both serviceIds array and single serviceId for backward compatibility
     const finalServiceIds = serviceIds || (serviceId ? [serviceId] : []);
@@ -200,44 +170,17 @@ router.post('/create', auth, async (req, res) => {
       return res.status(400).json({ message: 'At least one service is required' });
     }
 
-    // Map frontend fields to backend model fields
-    const timeSlotMap = ['Slot1', 'Slot2', 'Slot3', 'Slot4', 'Slot5'];
-    const timeSlot = typeof pickUpTime === 'number' ? timeSlotMap[pickUpTime] : pickUpTime;
-    const scheduledDate = bookingDate ? new Date(bookingDate) : null;
-
-    if (!scheduledDate || isNaN(scheduledDate.getTime())) {
-      return res.status(400).json({ message: 'Invalid booking date' });
-    }
-
     const booking = new Booking({
       ...bookingData,
       serviceIds: finalServiceIds,
       serviceId: finalServiceIds[0], // Keep for backward compatibility
-      timeSlot: timeSlot,
-      scheduledDate: scheduledDate,
       customerId: req.user._id
     });
 
     await booking.save();
     await booking.populate(['customerId', 'freelancerId', 'serviceIds', 'petIds']);
 
-    // Map backend booking to frontend expected format
-    const timeSlotToNumber = { 'Slot1': 0, 'Slot2': 1, 'Slot3': 2, 'Slot4': 3, 'Slot5': 4 };
-    const responseData = {
-      bookingId: booking._id.toString(),
-      pickUpTime: timeSlotToNumber[booking.timeSlot] || 0,
-      bookingDate: booking.scheduledDate.toISOString().split('T')[0], // YYYY-MM-DD format
-      serviceIds: booking.serviceIds.map(s => s._id.toString()),
-      freelancerId: booking.freelancerId._id.toString(),
-      petIds: booking.petIds.map(p => p._id.toString()),
-      bookingStatus: booking.status,
-      pickUpStatus: booking.pickUpStatus,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-      totalPrice: booking.totalAmount
-    };
-
-    res.status(201).json(responseData);
+    res.status(201).json({ booking });
   } catch (error) {
     console.error('Create booking error:', error);
     res.status(500).json({ message: 'Server error' });

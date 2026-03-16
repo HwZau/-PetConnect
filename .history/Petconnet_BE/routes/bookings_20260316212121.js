@@ -28,24 +28,13 @@ router.get('/my-history', auth, async (req, res) => {
     console.log('Fetching booking history for user:', req.user._id);
     console.log('User role:', req.user.role);
 
-    const bookings = await Booking.find({ customerId: req.user._id }).sort({ createdAt: -1 });
+    const bookings = await Booking.find({ customerId: req.user._id })
+      .populate('freelancerId', 'name email')
+      .populate('serviceIds', 'name price')
+      .populate('petIds', 'name type')
+      .sort({ createdAt: -1 });
 
-    // Map to frontend expected format
-    const mappedBookings = bookings.map(booking => ({
-      bookingId: booking._id.toString(),
-      pickUpTime: { 'Slot1': 0, 'Slot2': 1, 'Slot3': 2, 'Slot4': 3, 'Slot5': 4 }[booking.timeSlot] || 0,
-      bookingDate: booking.scheduledDate.toISOString().split('T')[0],
-      serviceIds: booking.serviceIds.map(s => s.toString()),
-      freelancerId: booking.freelancerId.toString(),
-      petIds: booking.petIds.map(p => p.toString()),
-      bookingStatus: booking.status,
-      pickUpStatus: booking.pickUpStatus,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-      totalPrice: booking.totalAmount
-    }));
-
-    return res.apiSuccess(mappedBookings, 'Booking history retrieved successfully');
+    return res.apiSuccess(bookings, 'Booking history retrieved successfully');
   } catch (error) {
     console.error('Error fetching booking history:', error);
     console.error('Error stack:', error.stack);
@@ -60,24 +49,13 @@ router.get('/history', auth, async (req, res) => {
     console.log('Fetching booking history for user:', req.user._id);
     console.log('User role:', req.user.role);
 
-    const bookings = await Booking.find({ customerId: req.user._id }).sort({ createdAt: -1 });
+    const bookings = await Booking.find({ customerId: req.user._id })
+      .populate('freelancerId', 'name email')
+      .populate('serviceIds', 'name price')
+      .populate('petIds', 'name type')
+      .sort({ createdAt: -1 });
 
-    // Map to frontend expected format
-    const mappedBookings = bookings.map(booking => ({
-      bookingId: booking._id.toString(),
-      pickUpTime: { 'Slot1': 0, 'Slot2': 1, 'Slot3': 2, 'Slot4': 3, 'Slot5': 4 }[booking.timeSlot] || 0,
-      bookingDate: booking.scheduledDate.toISOString().split('T')[0],
-      serviceIds: booking.serviceIds.map(s => s.toString()),
-      freelancerId: booking.freelancerId.toString(),
-      petIds: booking.petIds.map(p => p.toString()),
-      bookingStatus: booking.status,
-      pickUpStatus: booking.pickUpStatus,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-      totalPrice: booking.totalAmount
-    }));
-
-    return res.apiSuccess(mappedBookings, 'Booking history retrieved successfully');
+    return res.apiSuccess(bookings, 'Booking history retrieved successfully');
   } catch (error) {
     console.error('Error fetching booking history:', error);
     console.error('Error stack:', error.stack);
@@ -237,7 +215,7 @@ router.post('/create', auth, async (req, res) => {
       totalPrice: booking.totalAmount
     };
 
-    res.status(201).json(responseData);
+    res.status(201).json({ booking: responseData });
   } catch (error) {
     console.error('Create booking error:', error);
     res.status(500).json({ message: 'Server error' });
