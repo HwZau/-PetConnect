@@ -80,7 +80,7 @@ const userSchema = new mongoose.Schema({
   },
   subscriptionStatus: {
     type: String,
-    enum: ['inactive', 'pending', 'active', 'expired', 'cancelled'],
+    enum: ['inactive', 'active', 'expired', 'cancelled'],
     default: 'inactive'
   },
   subscriptionAutoRenew: {

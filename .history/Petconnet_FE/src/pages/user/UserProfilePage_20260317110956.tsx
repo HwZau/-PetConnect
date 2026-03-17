@@ -516,23 +516,14 @@ const UserProfilePage = () => {
       
       const response = await subscriptionService.upgrade(plan);
       
-      if (response.success && response.data) {
+      if (response.success) {
+        showSuccess(
+          `Nâng cấp gói ${plan === "monthly" ? "tháng" : "năm"} thành công! Vui lòng chờ xác nhận từ admin.`
+        );
         setShowUpgradeModal(false);
         
-        // Navigate to subscription payment page with upgrade data
-        navigate('/subscription-payment', {
-          state: {
-            subscriptionData: {
-              paymentId: response.data.paymentId,
-              subscriptionId: response.data.subscriptionId,
-              plan,
-              amount: response.data.amount,
-              startDate: response.data.startDate,
-              endDate: response.data.endDate,
-              status: response.data.status
-            }
-          }
-        });
+        // Refresh user to get updated subscription status
+        await refreshUser();
       } else {
         showError(response.error || 'Nâng cấp không thành công');
       }
