@@ -102,7 +102,7 @@ const PaymentDetailPage: React.FC = () => {
       }
 
       // First try: treat `id` as real paymentId
-      let resp = await adminService.getPaymentById(id).catch(() => ({ success: false }));
+      const resp = await adminService.getPaymentById(id).catch(() => ({ success: false }));
       if (resp && resp.success && 'data' in resp && resp.data) {
         // Normalize backend payment shape to local UI shape
         const pd = resp.data as any;
