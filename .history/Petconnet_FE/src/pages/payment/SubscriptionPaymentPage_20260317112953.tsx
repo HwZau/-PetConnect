@@ -266,7 +266,7 @@ const SubscriptionPaymentPage = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate('/profile', { replace: true })}
+                  onClick={() => navigate('/user/profile', { replace: true })}
                   className="w-full mt-6 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Quay lại hồ sơ

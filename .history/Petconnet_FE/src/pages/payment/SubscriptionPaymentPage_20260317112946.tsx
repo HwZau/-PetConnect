@@ -231,12 +231,11 @@ const SubscriptionPaymentPage = () => {
             <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-24">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Mã QR {currentMethod.name}</h3>
               
-              <div className="bg-white p-4 rounded-xl border-2 border-blue-200 flex items-center justify-center mb-6">
-                <img 
-                  src={paymentMethod === 'momo' ? QR_CODES.momo : QR_CODES.vnpay}
-                  alt={`${currentMethod.name} QR Code`}
-                  className="w-full h-auto rounded-lg"
-                />
+              <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-4 rounded-xl aspect-square flex items-center justify-center mb-6">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-2">Quét mã QR để thanh toán</p>
+                  <p className="text-xs text-gray-500">(Hiển thị mã QR tại đây)</p>
+                </div>
               </div>
 
               {/* Instructions */}
@@ -266,7 +265,7 @@ const SubscriptionPaymentPage = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate('/profile', { replace: true })}
+                  onClick={() => navigate('/user/profile', { replace: true })}
                   className="w-full mt-6 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Quay lại hồ sơ
